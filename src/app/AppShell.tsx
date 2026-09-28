@@ -1,10 +1,17 @@
 "use client";
 
+/* eslint-disable @next/next/no-html-link-for-pages -- the Discord login anchor points at an API route that redirects to OAuth, not a page */
+
 import { useCallback, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import BotDashboard from "./BotDashboard";
 import AdminPanel from "./AdminPanel";
 import SettingsPanel from "./SettingsPanel";
 import TrainAiPanel from "./TrainAiPanel";
+import LicensePanel from "./LicensePanel";
+import ShopPanel from "./ShopPanel";
+import AdminAddBotPanel from "./AdminAddBotPanel";
+import ToastHost from "./ToastHost";
 import { Logo } from "./Logo";
 
 type Me = {
@@ -17,14 +24,87 @@ type Me = {
   isGuest: boolean;
 };
 
-type Tab = "dashboard" | "admin" | "train" | "settings";
+type Tab = "dashboard" | "license" | "shop" | "admin" | "addbot" | "train" | "settings";
+
+// Tabs are URL-driven: /shop, /license, /admin… so links are shareable and
+// the Discord buttons (…/#shop) land on the right tab.
+const TAB_PATHS: Record<Tab, string> = {
+  dashboard: "/",
+  license: "/license",
+  shop: "/shop",
+  admin: "/admin",
+  addbot: "/addbot",
+  train: "/train",
+  settings: "/settings",
+};
+const PATH_TABS = new Map<string, Tab>(
+  (Object.entries(TAB_PATHS) as [Tab, string][]).map(([tab, path]) => [path, tab]),
+);
+
+function tabFromPath(pathname: string): Tab {
+  return PATH_TABS.get(pathname) ?? "dashboard";
+}
 
 export default function AppShell() {
   const [me, setMe] = useState<Me | null>(null);
   const [discordConfigured, setDiscordConfigured] = useState(true);
+  // Plan status shown as a bar under the account name in the sidebar.
+  const [planBar, setPlanBar] = useState<{ pct: number; label: string } | null>(null);
   const [loaded, setLoaded] = useState(false);
-  const [tab, setTab] = useState<Tab>("dashboard");
+  const pathname = usePathname();
+  const [tab, setTabState] = useState<Tab>(() => tabFromPath(pathname));
+
+  // In-app tab switches push the URL without a Next navigation, so the shell
+  // (and its loaded state) never remounts.
+  const setTab = useCallback((next: Tab) => {
+    setTabState(next);
+    window.history.pushState({}, "", TAB_PATHS[next]);
+  }, []);
+
+  // Browser back/forward keeps the tab in sync.
+  useEffect(() => {
+    const onPop = () => setTabState(tabFromPath(window.location.pathname));
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  // External links (Discord Renew Now / Buy License) point at /#shop etc —
+  // honor the hash once on load.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const hash = window.location.hash.replace("#", "");
+      if (!(hash in TAB_PATHS)) return;
+      if (hash !== tabFromPath(window.location.pathname)) {
+        window.history.replaceState({}, "", TAB_PATHS[hash as Tab]);
+        setTabState(hash as Tab);
+      }
+    }, 0);
+    return () => clearTimeout(t);
+  }, []);
   const [mobileNav, setMobileNav] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("mcbm:sidebar-collapsed") !== "1") return;
+    } catch {
+      return;
+    }
+    // deferred a tick: no sync setState in the effect, and the width
+    // transition makes the restore look intentional instead of a pop
+    const id = setTimeout(() => setCollapsed(true), 0);
+    return () => clearTimeout(id);
+  }, []);
+
+  function toggleCollapsed() {
+    setCollapsed((c) => {
+      const next = !c;
+      try {
+        localStorage.setItem("mcbm:sidebar-collapsed", next ? "1" : "0");
+      } catch {}
+      return next;
+    });
+  }
 
   const loadMe = useCallback(async () => {
     try {
@@ -32,16 +112,90 @@ export default function AppShell() {
       const data = await res.json();
       setMe(data.user ?? null);
       setDiscordConfigured(data.discordConfigured ?? false);
+      if (data.user) {
+        try {
+          const lres = await fetch("/api/licenses", { cache: "no-store" });
+          if (lres.ok) {
+            const st = await lres.json();
+            if (data.user.role === "admin") {
+              setPlanBar({ pct: 100, label: "Admin · unlimited" });
+            } else if (Array.isArray(st?.activeLicenses) && st.activeLicenses.length > 0) {
+              const now = Date.now();
+              const exp = (l: { expiresAt: string }) => new Date(l.expiresAt).getTime();
+              const furthest = st.activeLicenses.reduce((a: { expiresAt: string; createdAt: string }, l: { expiresAt: string; createdAt: string }) => (exp(l) > exp(a) ? l : a));
+              const total = Math.max(1, exp(furthest) - new Date(furthest.createdAt).getTime());
+              const remaining = Math.max(0, exp(furthest) - now);
+              const pct = Math.max(3, Math.min(100, Math.round((remaining / total) * 100)));
+              const hrs = Math.floor(remaining / 3_600_000);
+              const label = hrs >= 24 ? `${Math.floor(hrs / 24)}d ${hrs % 24}h left` : `${hrs}h left`;
+              setPlanBar({ pct, label: `${st.totalSlots ?? 0} slots · ${label}` });
+            } else {
+              setPlanBar(null);
+            }
+          }
+        } catch {
+          // plan bar is cosmetic — ignore fetch errors
+        }
+      } else {
+        setPlanBar(null);
+      }
     } catch {
       setMe(null);
+      setPlanBar(null);
     } finally {
       setLoaded(true);
     }
   }, []);
 
   useEffect(() => {
-    loadMe();
+    const first = setTimeout(() => loadMe(), 0);
+    return () => clearTimeout(first);
   }, [loadMe]);
+
+  // Discourage casual inspection/saving: block the right-click menu (the
+  // "Inspect" entry) and the save/view-source shortcuts. The app itself is a
+  // JS-rendered shell behind auth, so a saved page contains no app content.
+  // DevTools keyboard shortcuts stay available — the admin needs them.
+  useEffect(() => {
+    const onContextMenu = (e: MouseEvent) => e.preventDefault();
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && ["s", "u"].includes(e.key.toLowerCase())) {
+        e.preventDefault();
+      }
+    };
+    document.addEventListener("contextmenu", onContextMenu);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("contextmenu", onContextMenu);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, []);
+
+  useEffect(() => {
+    function onMessage(ev: MessageEvent) {
+      if (ev.data?.type === "mcbm:login-success") {
+        loadMe();
+      }
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [loadMe]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("login") === "success" && window.opener) {
+      try {
+        window.opener.postMessage({ type: "mcbm:login-success" }, "*");
+      } catch {}
+      window.history.replaceState({}, "", "/");
+      setTimeout(() => {
+        try {
+          window.close();
+        } catch {}
+      }, 400);
+    }
+  }, []);
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -69,11 +223,22 @@ export default function AppShell() {
     );
   }
 
+  // Admin-only tabs fall back to the dashboard content for regular users.
+  const activeTab: Tab =
+    tab === "admin" || tab === "addbot" || tab === "train"
+      ? me.role === "admin"
+        ? tab
+        : "dashboard"
+      : tab;
+
   const navItems: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: "dashboard", label: "Bots", icon: <BotIcon /> },
+    { key: "license", label: "License", icon: <TicketIcon /> },
+    { key: "shop", label: "Shop", icon: <ShopIcon /> },
     ...(me.role === "admin"
       ? [
           { key: "admin" as Tab, label: "Admin", icon: <ShieldIcon /> },
+          { key: "addbot" as Tab, label: "Add Bots", icon: <PlusBotIcon /> },
           { key: "train" as Tab, label: "Train AI", icon: <BrainIcon /> },
         ]
       : []),
@@ -82,56 +247,71 @@ export default function AppShell() {
 
   return (
     <div className="flex min-h-screen">
-      {/* Sidebar */}
+      <ToastHost />
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-slate-800/80 bg-slate-950/80 backdrop-blur-xl transition-transform duration-300 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-slate-800/80 bg-slate-950/80 backdrop-blur-xl transition-all duration-300 lg:translate-x-0 ${
           mobileNav ? "translate-x-0" : "-translate-x-full"
-        }`}
+        } ${collapsed ? "lg:w-[76px]" : "lg:w-64"}`}
       >
-        <div className="flex items-center gap-3 px-5 py-5">
-          <Logo size={40} className="drop-shadow-[0_4px_16px_rgba(16,185,129,0.35)]" />
-          <div className="leading-tight">
-            <div className="text-sm font-bold tracking-tight">
-              MC Bot Manager
+        <div className={`flex items-center gap-3 py-5 ${collapsed ? "justify-center px-3 lg:flex-col lg:gap-2" : "px-5"}`}>
+          <Logo size={collapsed ? 32 : 40} className="drop-shadow-[0_4px_16px_color-mix(in_srgb,var(--color-emerald-500)_35%,transparent)]" />
+          {!collapsed && (
+            <div className="leading-tight">
+              <div className="text-sm font-bold tracking-tight">
+                MC Bot Manager
+              </div>
+              <div className="text-[11px] text-slate-500">control center</div>
             </div>
-            <div className="text-[11px] text-slate-500">control center</div>
-          </div>
+          )}
+          <button
+            onClick={toggleCollapsed}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className={`hidden h-7 w-7 shrink-0 place-items-center rounded-lg border border-slate-800 text-slate-500 transition hover:text-slate-200 lg:grid ${
+              collapsed ? "" : "ml-auto"
+            }`}
+          >
+            <CollapseIcon collapsed={collapsed} />
+          </button>
         </div>
 
         <nav className="flex flex-1 flex-col gap-1 px-3 py-2">
           {navItems.map((item) => (
             <button
               key={item.key}
+              title={item.label}
               onClick={() => {
                 setTab(item.key);
                 setMobileNav(false);
               }}
-              className={`group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all ${
-                tab === item.key
+              className={`group flex items-center rounded-xl text-sm font-medium transition-all ${
+                collapsed
+                  ? "justify-center px-0 py-2.5"
+                  : "gap-3 px-3.5 py-2.5"
+              } ${
+                activeTab === item.key
                   ? "bg-gradient-to-r from-emerald-500/15 to-emerald-500/5 text-emerald-300 ring-1 ring-emerald-500/20"
                   : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-100"
               }`}
             >
               <span
-                className={`grid h-8 w-8 place-items-center rounded-lg transition ${
-                  tab === item.key
+                className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg transition ${
+                  activeTab === item.key
                     ? "bg-emerald-500/20 text-emerald-300"
                     : "bg-slate-800/60 text-slate-400 group-hover:text-slate-200"
                 }`}
               >
                 {item.icon}
               </span>
-              {item.label}
-              {tab === item.key && (
+              {!collapsed && item.label}
+              {!collapsed && activeTab === item.key && (
                 <span className="ml-auto h-1.5 w-1.5 rounded-full bg-emerald-400" />
               )}
             </button>
           ))}
         </nav>
 
-        {/* User block */}
         <div className="border-t border-slate-800/80 p-3">
-          <div className="flex items-center gap-3 rounded-xl bg-slate-900/60 p-3">
+          <div className={`flex items-center gap-3 rounded-xl bg-slate-900/60 p-3 ${collapsed ? "lg:justify-center lg:gap-0 lg:p-2" : ""}`}>
             {me.avatar ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={me.avatar} alt="" className="h-9 w-9 rounded-full" />
@@ -140,7 +320,7 @@ export default function AppShell() {
                 {me.username.slice(0, 2).toUpperCase()}
               </div>
             )}
-            <div className="min-w-0 flex-1">
+            <div className={`min-w-0 flex-1 ${collapsed ? "lg:hidden" : ""}`}>
               <div className="flex items-center gap-1.5">
                 <span className="truncate text-sm font-semibold">
                   {me.username}
@@ -152,20 +332,39 @@ export default function AppShell() {
                 )}
               </div>
               <div className="text-[11px] text-slate-500">
-                {me.isGuest ? "guest account" : "discord"}
+                {me.isGuest ? "guest account" : me.username.includes("local:") ? "local" : "discord"}
               </div>
+              {planBar ? (
+                <div className="mt-1.5">
+                  <div className="h-1 w-full overflow-hidden rounded-full bg-slate-700/50">
+                    <div
+                      className="h-full rounded-full bg-sky-400"
+                      style={{ width: `${planBar.pct}%` }}
+                    />
+                  </div>
+                  <div className="mt-1 text-[10px] font-medium text-slate-500">
+                    {planBar.label}
+                  </div>
+                </div>
+              ) : (
+                me.role !== "admin" && (
+                  <div className="mt-1 text-[10px] text-slate-600">No active plan</div>
+                )
+              )}
             </div>
           </div>
           <button
             onClick={logout}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-800 px-3 py-2 text-xs font-medium text-slate-400 transition hover:border-rose-500/40 hover:text-rose-300"
+            title="Logout"
+            className={`mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-800 px-3 py-2 text-xs font-medium text-slate-400 transition hover:border-rose-500/40 hover:text-rose-300 ${
+              collapsed ? "lg:px-1" : ""
+            }`}
           >
-            <LogoutIcon /> Logout
+            <LogoutIcon /> {!collapsed && "Logout"}
           </button>
         </div>
       </aside>
 
-      {/* Mobile overlay */}
       {mobileNav && (
         <div
           onClick={() => setMobileNav(false)}
@@ -173,9 +372,7 @@ export default function AppShell() {
         />
       )}
 
-      {/* Main */}
-      <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
-        {/* Mobile top bar */}
+      <div className={`flex min-w-0 flex-1 flex-col transition-all duration-300 ${collapsed ? "lg:pl-[76px]" : "lg:pl-64"}`}>
         <div className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-800/80 bg-slate-950/80 px-4 py-3 backdrop-blur lg:hidden">
           <div className="flex items-center gap-2">
             <Logo size={28} />
@@ -190,13 +387,18 @@ export default function AppShell() {
         </div>
 
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-8">
-          <div key={tab} className="animate-fade-in">
-            {tab === "dashboard" && <BotDashboard />}
-            {tab === "admin" && me.role === "admin" && (
+          <div key={activeTab} className="animate-fade-in">
+            {activeTab === "dashboard" && <BotDashboard meRole={me.role} />}
+            {activeTab === "license" && <LicensePanel />}
+            {activeTab === "shop" && <ShopPanel onGoLicense={() => setTab("license")} />}
+            {activeTab === "admin" && me.role === "admin" && (
               <AdminPanel meId={me.id} />
             )}
-            {tab === "train" && me.role === "admin" && <TrainAiPanel />}
-            {tab === "settings" && <SettingsPanel me={me} onChange={loadMe} />}
+            {activeTab === "addbot" && me.role === "admin" && (
+              <AdminAddBotPanel />
+            )}
+            {activeTab === "train" && me.role === "admin" && <TrainAiPanel />}
+            {activeTab === "settings" && <SettingsPanel me={me} onChange={loadMe} />}
           </div>
         </main>
       </div>
@@ -213,6 +415,10 @@ function LoginScreen({
 }) {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   async function devLogin() {
     setBusy(true);
@@ -223,6 +429,33 @@ function LoginScreen({
         body: JSON.stringify({ name }),
       });
       onDevLogin();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function passwordAuth() {
+    setError(null);
+    if (!username.trim() || !password) {
+      setError("Username and password required");
+      return;
+    }
+    setBusy(true);
+    try {
+      const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: username.trim(), password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Failed");
+        return;
+      }
+      onDevLogin();
+    } catch {
+      setError("Network error");
     } finally {
       setBusy(false);
     }
@@ -240,7 +473,7 @@ function LoginScreen({
         <div className="flex flex-col items-center text-center">
           <Logo
             size={72}
-            className="drop-shadow-[0_8px_30px_rgba(16,185,129,0.45)]"
+            className="drop-shadow-[0_8px_30px_color-mix(in_srgb,var(--color-emerald-500)_45%,transparent)]"
           />
           <h1 className="mt-5 text-2xl font-bold tracking-tight">
             MC Bot Manager
@@ -251,7 +484,65 @@ function LoginScreen({
           </p>
         </div>
 
-        <div className="mt-7 space-y-3">
+        <div className="mt-7 space-y-4">
+          <div className="rounded-2xl border border-slate-700 bg-slate-900/60 p-4">
+            <div className="flex gap-1 rounded-xl bg-slate-950 p-1">
+              <button
+                onClick={() => setMode("login")}
+                className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition ${mode === "login" ? "bg-slate-800 text-white" : "text-slate-400 hover:text-slate-200"}`}
+              >
+                Login
+              </button>
+              <button
+                onClick={() => setMode("register")}
+                className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition ${mode === "register" ? "bg-slate-800 text-white" : "text-slate-400 hover:text-slate-200"}`}
+              >
+                Register
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <input
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Username"
+                className="w-full rounded-xl border border-slate-700 bg-slate-950/60 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 outline-none transition focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/20"
+              />
+              <input
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && passwordAuth()}
+                placeholder="Password"
+                type="password"
+                className="w-full rounded-xl border border-slate-700 bg-slate-950/60 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 outline-none transition focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/20"
+              />
+              {error && (
+                <div className="rounded-xl bg-rose-500/10 px-3 py-2 text-xs text-rose-300 ring-1 ring-rose-500/20">
+                  {error}
+                </div>
+              )}
+              <button
+                onClick={passwordAuth}
+                disabled={busy}
+                className="btn-primary w-full rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-400 disabled:opacity-50"
+              >
+                {busy ? "Please wait…" : mode === "login" ? "Login with Username" : "Create Account"}
+              </button>
+              <p className="text-center text-[11px] text-slate-500">
+                {mode === "login" ? "New here? Switch to Register" : "Already have account? Switch to Login"} · First account becomes admin
+              </p>
+            </div>
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-800" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-slate-900/60 px-2 text-slate-500">or</span>
+            </div>
+          </div>
+
           {discordConfigured ? (
             <a
               href="/api/auth/discord/login"
@@ -263,8 +554,7 @@ function LoginScreen({
           ) : (
             <div className="space-y-3">
               <div className="rounded-xl bg-amber-500/10 px-4 py-3 text-xs leading-relaxed text-amber-300 ring-1 ring-amber-500/20">
-                Discord OAuth isn&apos;t configured. Use a quick guest login for
-                now:
+                Discord OAuth isn&apos;t configured. Use a quick guest login for now:
               </div>
               <input
                 value={name}
@@ -276,7 +566,7 @@ function LoginScreen({
               <button
                 onClick={devLogin}
                 disabled={busy}
-                className="w-full rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-400 disabled:opacity-50"
+                className="w-full rounded-xl bg-slate-800 px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-slate-700 disabled:opacity-50"
               >
                 {busy ? "Signing in…" : "Continue as guest"}
               </button>
@@ -285,18 +575,33 @@ function LoginScreen({
         </div>
 
         <p className="mt-6 text-center text-[11px] text-slate-600">
-          Secure session · the first account becomes admin
+          Secure session · local auth for now, will be removed later
         </p>
       </div>
     </div>
   );
 }
 
-/* ---- Icons ---- */
 function DiscordIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
       <path d="M20.317 4.369a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.249a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.036A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.009c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.331c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
+    </svg>
+  );
+}
+function PlusBotIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="8" width="16" height="12" rx="3" />
+      <path d="M12 4v4M9 14h.01M15 14h.01M2 13v2M22 13v2" />
+      <path d="M17 1v6M14 4h6" />
+    </svg>
+  );
+}
+function CollapseIcon({ collapsed }: { collapsed: boolean }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d={collapsed ? "M9 18l6-6-6-6" : "M15 18l-6-6 6-6"} />
     </svg>
   );
 }
@@ -342,6 +647,23 @@ function MenuIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
       <path d="M3 12h18M3 6h18M3 18h18" />
+    </svg>
+  );
+}
+function TicketIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
+      <path d="M13 5v2M13 17v2M13 11v2" />
+    </svg>
+  );
+}
+function ShopIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <path d="M16 10a4 4 0 01-8 0" />
     </svg>
   );
 }
