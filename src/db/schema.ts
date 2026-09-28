@@ -5,6 +5,7 @@ import {
   integer,
   uuid,
   doublePrecision,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
@@ -61,6 +62,38 @@ export const beamConversations = pgTable("beam_conversations", {
   target: text("target"),
   outcome: text("outcome").notNull().default("unknown"),
   transcript: text("transcript").notNull().default("[]"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const beamContacts = pgTable(
+  "beam_contacts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    username: text("username").notNull(),
+    host: text("host").notNull(),
+    outcome: text("outcome").notNull().default("messaged"),
+    attempts: integer("attempts").notNull().default(0),
+    method: text("method").notNull().default(""),
+    botId: uuid("bot_id"),
+    lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    userHostUnique: uniqueIndex("beam_contacts_username_host_unique").on(
+      table.username,
+      table.host,
+    ),
+  }),
+);
+
+export const beamAttempts = pgTable("beam_attempts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  botId: uuid("bot_id"),
+  host: text("host").notNull().default(""),
+  username: text("username").notNull().default(""),
+  method: text("method").notNull().default(""),
+  stage: text("stage").notNull().default(""),
+  note: text("note").notNull().default(""),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
