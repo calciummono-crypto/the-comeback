@@ -302,7 +302,7 @@ textarea {
 
 @keyframes bot-track-slide {
   from { transform: translateX(0); }
-  to { transform: translateX(calc(-1 * (340px + 1.25rem) * 3)); }
+  to { transform: translateX(calc(-1 * (340px + 1.25rem) * 4)); }
 }
 .bot-card-track {
   width: max-content;

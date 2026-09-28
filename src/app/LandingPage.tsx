@@ -7,7 +7,7 @@ const stats = [
   ["Fast deploy", "Railway + Postgres startup handled"],
 ];
 
-const features = [
+export const features = [
   {
     title: "Add bots without guessing",
     text: "Paste a session token, resolve the IGN, pick a server, choose the version and start from a clean wizard.",
@@ -41,9 +41,10 @@ const features = [
 ];
 
 const botCards = [
-  { name: "matyr16", server: "eu.minemen.club", engine: "Mineflayer", status: "1.8.9 pinned", accent: "from-emerald-300 to-cyan-400" },
-  { name: "beam_worker", server: "badlion-pvp.xyz", engine: "Azalea", status: "sidecar online", accent: "from-indigo-300 to-violet-500" },
-  { name: "lobby-adbot", server: "play.example.net", engine: "NMP", status: "raw protocol", accent: "from-sky-300 to-blue-500" },
+  { name: "Drexlerr", skin: "Drexlerr", server: "eu.minemen.club", engine: "Mineflayer", status: "1.8.9 pinned", accent: "from-emerald-300 to-cyan-400" },
+  { name: "KairoVex", skin: "Dream", server: "play.hypixel.net", engine: "Azalea", status: "sidecar online", accent: "from-indigo-300 to-violet-500" },
+  { name: "NovaStrafe", skin: "Technoblade", server: "mc.hypixel.net", engine: "NMP", status: "raw protocol", accent: "from-sky-300 to-blue-500" },
+  { name: "RiftedAsh", skin: "Sapnap", server: "na.minemen.club", engine: "Mineflayer", status: "auto reconnect", accent: "from-amber-200 to-orange-400" },
 ];
 
 export default function LandingPage() {
@@ -53,7 +54,7 @@ export default function LandingPage() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(99,102,241,.22),transparent_34rem)]" />
       <div className="pointer-events-none absolute left-1/2 top-0 h-px w-[min(960px,80vw)] -translate-x-1/2 bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
-      <nav className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-5 sm:px-8">
+      <nav className="sticky top-4 z-40 mx-auto mt-3 flex w-[min(1180px,calc(100%_-_24px))] items-center justify-between rounded-[1.6rem] border border-white/10 bg-[#0b1020]/70 px-4 py-3 shadow-2xl shadow-black/25 backdrop-blur-2xl sm:px-5">
         <Link href="/" className="group flex items-center gap-3">
           <div className="grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/[0.04] shadow-2xl shadow-indigo-950/40 backdrop-blur-xl transition group-hover:border-indigo-300/30 group-hover:bg-white/[0.07]">
             <Logo size={28} />
@@ -64,7 +65,7 @@ export default function LandingPage() {
           </div>
         </Link>
         <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] p-1 text-sm text-slate-400 backdrop-blur-xl md:flex">
-          <a href="#features" className="rounded-full px-4 py-2 hover:bg-white/[0.06] hover:text-white">Features</a>
+          <Link href="/features" className="rounded-full px-4 py-2 hover:bg-white/[0.06] hover:text-white">Features</Link>
           <a href="#showcase" className="rounded-full px-4 py-2 hover:bg-white/[0.06] hover:text-white">Showcase</a>
           <a href="#preview" className="rounded-full px-4 py-2 hover:bg-white/[0.06] hover:text-white">Preview</a>
           <Link href="/dashboard" className="rounded-full bg-white px-4 py-2 font-medium text-slate-950 hover:bg-indigo-100">Dashboard</Link>
@@ -146,10 +147,10 @@ export default function LandingPage() {
       <section id="showcase" className="relative z-10 mx-auto w-full max-w-7xl scroll-mt-24 px-5 py-16 sm:px-8">
         <div className="grid items-center gap-10 lg:grid-cols-[.82fr_1.18fr]">
           <div>
-            <p className="text-sm font-medium text-indigo-300">Bot card flow</p>
-            <h2 className="mt-2 text-4xl font-semibold tracking-tight text-white">Cards slide, tilt, and show real state.</h2>
+            <p className="text-sm font-medium text-indigo-300">Live session showcase</p>
+            <h2 className="mt-2 text-4xl font-semibold tracking-tight text-white">Player cards that feel alive.</h2>
             <p className="mt-4 text-sm leading-7 text-slate-400">
-              The dashboard should feel like a control surface: compact bot cards, status at a glance, and motion that helps without screaming.
+              Random player skins, real server targets, engine labels and status chips move like an actual session queue — not a static mockup.
             </p>
             <Link href="/dashboard" className="mt-7 inline-flex rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-indigo-100">
               Open dashboard
@@ -161,7 +162,9 @@ export default function LandingPage() {
             <div className="bot-card-track flex h-full items-center gap-5">
               {[...botCards, ...botCards].map((bot, idx) => (
                 <div key={`${bot.name}-${idx}`} className="bot-showcase-card shrink-0">
-                  <div className={`mb-5 h-14 w-14 rounded-3xl bg-gradient-to-br ${bot.accent} shadow-2xl shadow-indigo-950/40`} />
+                  <div className="mb-5 h-14 w-14 overflow-hidden rounded-3xl border border-white/10 bg-slate-900 shadow-2xl shadow-indigo-950/40">
+                    <img src={`https://minotar.net/helm/${bot.skin}/96.png`} alt="" className="h-full w-full object-cover" />
+                  </div>
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <h3 className="text-xl font-semibold text-white">{bot.name}</h3>
@@ -212,14 +215,16 @@ function BotCardShowcase() {
         <div className="relative flex items-center justify-between">
           <div>
             <p className="text-sm font-semibold text-white">Live bots</p>
-            <p className="text-xs text-slate-500">smooth card rotation</p>
+            <p className="text-xs text-slate-500">player skins + server targets</p>
           </div>
           <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-slate-400">3 active</span>
         </div>
         <div className="relative mt-8 h-[350px]">
-          {botCards.map((bot, i) => (
+          {botCards.slice(0, 3).map((bot, i) => (
             <div key={bot.name} className={`hero-bot-card hero-bot-card-${i}`}>
-              <div className={`mb-5 h-16 w-16 rounded-[1.4rem] bg-gradient-to-br ${bot.accent} shadow-2xl shadow-indigo-950/50`} />
+              <div className="mb-5 h-16 w-16 overflow-hidden rounded-[1.4rem] border border-white/10 bg-slate-900 shadow-2xl shadow-indigo-950/50">
+                <img src={`https://minotar.net/helm/${bot.skin}/128.png`} alt="" className="h-full w-full object-cover" />
+              </div>
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h3 className="text-2xl font-semibold tracking-tight text-white">{bot.name}</h3>
@@ -268,13 +273,15 @@ function DashboardPreview() {
         </div>
         <div className="grid gap-4 pt-4 lg:grid-cols-[.55fr_1fr]">
           <div className="space-y-3">
-            {['matyr16', 'beam_worker', 'lobby-adbot'].map((x, i) => (
-              <div key={x} className="rounded-3xl border border-white/10 bg-white/[0.035] p-4">
+            {botCards.slice(0, 3).map((bot) => (
+              <div key={bot.name} className="rounded-3xl border border-white/10 bg-white/[0.035] p-4">
                 <div className="flex items-center gap-3">
-                  <div className={`h-10 w-10 rounded-2xl bg-gradient-to-br ${i === 0 ? 'from-emerald-300 to-cyan-400' : i === 1 ? 'from-indigo-300 to-violet-500' : 'from-sky-300 to-blue-500'}`} />
+                  <div className="h-10 w-10 overflow-hidden rounded-2xl border border-white/10 bg-slate-900">
+                    <img src={`https://minotar.net/helm/${bot.skin}/80.png`} alt="" className="h-full w-full object-cover" />
+                  </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-white">{x}</p>
-                    <p className="text-xs text-slate-500">online · console ready</p>
+                    <p className="text-sm font-semibold text-white">{bot.name}</p>
+                    <p className="truncate text-xs text-slate-500">{bot.server} · {bot.engine}</p>
                   </div>
                 </div>
               </div>
