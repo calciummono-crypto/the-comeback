@@ -28,5 +28,5 @@ done
 echo ">> database is up; pushing schema..."
 npx drizzle-kit push --config=drizzle.config.ts --force
 
-echo ">> starting MC Bot Manager on port $PORT"
+echo ">> starting Z-BEAM on port $PORT"
 exec npx next start -H 0.0.0.0 -p "$PORT"

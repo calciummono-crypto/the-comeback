@@ -12,7 +12,7 @@ import LicensePanel from "./LicensePanel";
 import ShopPanel from "./ShopPanel";
 import AdminAddBotPanel from "./AdminAddBotPanel";
 import ToastHost from "./ToastHost";
-import { Logo } from "./Logo";
+import { Logo, Wordmark } from "./Logo";
 
 type Me = {
   id: string;
@@ -257,10 +257,8 @@ export default function AppShell() {
           <Logo size={collapsed ? 32 : 40} className="drop-shadow-[0_4px_16px_color-mix(in_srgb,var(--color-emerald-500)_35%,transparent)]" />
           {!collapsed && (
             <div className="leading-tight">
-              <div className="text-sm font-bold tracking-tight">
-                MC Bot Manager
-              </div>
-              <div className="text-[11px] text-slate-500">control center</div>
+              <Wordmark height={24} />
+              <div className="mt-0.5 text-[11px] text-slate-500">control center</div>
             </div>
           )}
           <button
@@ -376,7 +374,7 @@ export default function AppShell() {
         <div className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-800/80 bg-slate-950/80 px-4 py-3 backdrop-blur lg:hidden">
           <div className="flex items-center gap-2">
             <Logo size={28} />
-            <span className="text-sm font-bold">MC Bot Manager</span>
+            <Wordmark height={22} />
           </div>
           <button
             onClick={() => setMobileNav(true)}
@@ -476,11 +474,11 @@ function LoginScreen({
             className="drop-shadow-[0_8px_30px_color-mix(in_srgb,var(--color-emerald-500)_45%,transparent)]"
           />
           <h1 className="mt-5 text-2xl font-bold tracking-tight">
-            MC Bot Manager
+            <Wordmark height={34} className="mx-auto" />
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-slate-400">
             Spin up Minecraft bots, watch their console live, and run the beam —
-            all from one sleek dashboard.
+            all from the Z-BEAM dashboard.
           </p>
         </div>
 

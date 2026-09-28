@@ -2,7 +2,7 @@
 name = "azalea-bridge"
 version = "0.1.0"
 edition = "2021"
-description = "JSON-lines sidecar that drives an Azalea (Rust) Minecraft client for MC Bot Manager"
+description = "JSON-lines sidecar that drives an Azalea (Rust) Minecraft client for Z-BEAM"
 
 [dependencies]
 azalea = { version = "0.16.0", default-features = true }

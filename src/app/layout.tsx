@@ -4,9 +4,9 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "MC Bot Manager",
+  title: "Z-BEAM",
   description:
-    "Spin up Minecraft bots, watch them join servers, and control their consoles.",
+    "Spin up Minecraft bots, watch them join servers, and control them from Z-BEAM.",
   robots: { index: false, follow: false },
 };
 

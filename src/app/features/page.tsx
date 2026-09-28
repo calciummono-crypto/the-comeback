@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Logo } from "../Logo";
+import { Logo, Wordmark } from "../Logo";
 import { features } from "../LandingPage";
 
 export const dynamic = "force-dynamic";
@@ -24,8 +24,8 @@ export default function FeaturesPage() {
             <Logo size={26} />
           </div>
           <div>
-            <p className="text-sm font-semibold text-white">MC Bot Manager</p>
-            <p className="text-[11px] text-slate-500">features</p>
+            <Wordmark height={24} />
+            <p className="mt-0.5 text-[11px] text-slate-500">features</p>
           </div>
         </Link>
         <div className="flex items-center gap-2">

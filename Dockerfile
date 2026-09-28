@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# MC Bot Manager — production image (Railway / any Docker host)
+# Z-BEAM — production image (Railway / any Docker host)
 # Stage 1 compiles the Azalea (Rust) sidecar. First build is slow (~10–20 min).
 
 FROM rust:bookworm AS azalea

@@ -1,6 +1,6 @@
 "use client";
 
-import { Logo } from "./Logo";
+import { Logo, Wordmark } from "./Logo";
 import { useState } from "react";
 import { THEME_PRESETS, applyThemePreset, loadThemeId, saveThemeId } from "@/lib/theme";
 import { toast } from "./toast";
@@ -201,7 +201,7 @@ export default function SettingsPanel({
       </section>
 
       <div className="flex items-center justify-center gap-2 pt-2 text-xs text-slate-600">
-        <Logo size={18} /> MC Bot Manager
+        <Logo size={18} /> <Wordmark height={18} />
       </div>
     </div>
   );

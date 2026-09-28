@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Logo } from "./Logo";
+import { Logo, Wordmark } from "./Logo";
 
 const stats = [
   ["Azalea + MF", "Pick the engine that fits the server"],
@@ -60,8 +60,8 @@ export default function LandingPage() {
             <Logo size={28} />
           </div>
           <div className="leading-tight">
-            <p className="text-sm font-semibold tracking-tight text-white">MC Bot Manager</p>
-            <p className="text-[11px] text-slate-500">bot control panel</p>
+            <Wordmark height={26} />
+            <p className="mt-0.5 text-[11px] text-slate-500">beam control panel</p>
           </div>
         </Link>
         <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] p-1 text-sm text-slate-400 backdrop-blur-xl md:flex">
@@ -85,7 +85,7 @@ export default function LandingPage() {
             Smooth controls · real bot sessions · cleaner workflow
           </div>
           <h1 className="max-w-4xl text-balance text-5xl font-semibold tracking-[-0.055em] text-white sm:text-6xl lg:text-7xl">
-            Run Minecraft bots from a cleaner command center.
+            Run Minecraft bots from the Z-BEAM command center.
           </h1>
           <p className="mt-6 max-w-2xl text-pretty text-base leading-8 text-slate-400 sm:text-lg">
             Start accounts, choose engines, watch join logs, run beam flows and manage slots without opening terminal logs every time something happens.
