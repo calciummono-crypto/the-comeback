@@ -88,43 +88,77 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div id="preview" className="animate-slide-up [animation-delay:120ms] lg:pl-6">
-          <div className="landing-cut-card relative mx-auto max-w-xl overflow-hidden rounded-[2rem] border border-white/10 bg-[#0b1020]/80 p-3 shadow-2xl shadow-black/50 backdrop-blur-2xl">
-            <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-indigo-200/50 to-transparent" />
-            <div className="rounded-[1.45rem] border border-white/10 bg-slate-950/80 p-4">
-              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+        <div id="preview" className="animate-slide-up scroll-mt-24 [animation-delay:120ms] lg:pl-6">
+          <div className="landing-cut-card relative mx-auto max-w-xl overflow-hidden rounded-[2.25rem] border border-white/10 bg-[#070b16]/85 p-3 shadow-[0_40px_100px_-35px_rgba(0,0,0,.9)] backdrop-blur-2xl">
+            <div className="absolute -left-24 top-16 h-44 w-44 rounded-full bg-indigo-400/20 blur-3xl" />
+            <div className="absolute -right-20 bottom-10 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl" />
+            <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-indigo-200/60 to-transparent" />
+            <div className="relative overflow-hidden rounded-[1.7rem] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,.92),rgba(2,6,23,.96))] p-4">
+              <div className="absolute right-5 top-5 flex gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-rose-400/70" />
+                <span className="h-2.5 w-2.5 rounded-full bg-amber-300/70" />
+                <span className="h-2.5 w-2.5 rounded-full bg-emerald-300/70" />
+              </div>
+              <div className="flex items-center justify-between border-b border-white/10 pb-5 pr-20">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-indigo-300 to-indigo-600" />
+                  <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-emerald-300 to-indigo-500 shadow-2xl shadow-indigo-600/25">
+                    <div className="h-5 w-5 rounded-lg bg-white/80" />
+                  </div>
                   <div>
-                    <div className="h-3 w-32 rounded-full bg-white/80" />
-                    <div className="mt-2 h-2 w-20 rounded-full bg-white/20" />
+                    <div className="h-3 w-36 rounded-full bg-white/80" />
+                    <div className="mt-2 h-2 w-24 rounded-full bg-white/20" />
                   </div>
                 </div>
-                <div className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs text-emerald-200">online</div>
+                <div className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs font-semibold text-emerald-200">online</div>
               </div>
-              <div className="grid gap-4 pt-4 md:grid-cols-[.68fr_1fr]">
-                <div className="space-y-2">
-                  {['Bots', 'License', 'Shop', 'Admin'].map((x, i) => (
-                    <div key={x} className={`rounded-2xl px-3 py-3 text-sm ${i === 0 ? 'bg-indigo-400/15 text-indigo-100 ring-1 ring-indigo-300/20' : 'bg-white/[0.035] text-slate-500'}`}>{x}</div>
+              <div className="grid gap-4 pt-4 md:grid-cols-[.58fr_1fr]">
+                <div className="space-y-2.5">
+                  {['Dashboard', 'License', 'Shop', 'Admin'].map((x, i) => (
+                    <div key={x} className={`flex items-center gap-2 rounded-2xl px-3 py-3 text-sm ${i === 0 ? 'bg-indigo-400/15 text-indigo-100 ring-1 ring-indigo-300/20' : 'bg-white/[0.035] text-slate-500'}`}>
+                      <span className={`h-2 w-2 rounded-full ${i === 0 ? 'bg-indigo-300' : 'bg-slate-700'}`} />
+                      {x}
+                    </div>
                   ))}
+                  <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                    <div className="mb-2 h-2 w-16 rounded-full bg-white/25" />
+                    <div className="h-1.5 overflow-hidden rounded-full bg-slate-800">
+                      <div className="h-full w-3/4 rounded-full bg-indigo-300" />
+                    </div>
+                  </div>
                 </div>
                 <div className="space-y-3">
-                  <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-4">
+                  <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-4 shadow-inner shadow-white/[0.02]">
                     <div className="mb-4 flex items-center justify-between">
-                      <div className="h-3 w-28 rounded-full bg-white/70" />
-                      <div className="h-7 w-20 rounded-full bg-indigo-400/25" />
+                      <div>
+                        <div className="h-3 w-28 rounded-full bg-white/70" />
+                        <div className="mt-2 h-2 w-40 rounded-full bg-white/15" />
+                      </div>
+                      <div className="h-8 w-24 rounded-full bg-indigo-400/25 ring-1 ring-indigo-300/20" />
                     </div>
-                    <div className="space-y-2">
-                      {[82, 62, 74].map((w, i) => (
-                        <div key={i} className="h-9 rounded-xl bg-slate-800/80 p-2">
-                          <div className="h-full rounded-lg bg-gradient-to-r from-indigo-400/30 to-transparent" style={{ width: `${w}%` }} />
+                    <div className="space-y-2.5">
+                      {[86, 64, 76].map((w, i) => (
+                        <div key={i} className="flex items-center gap-3 rounded-2xl border border-white/5 bg-slate-900/80 p-2.5">
+                          <div className="h-7 w-7 rounded-xl bg-gradient-to-br from-indigo-300/50 to-cyan-300/20" />
+                          <div className="h-2.5 flex-1 rounded-full bg-slate-800">
+                            <div className="h-full rounded-full bg-gradient-to-r from-indigo-300/50 to-cyan-300/10" style={{ width: `${w}%` }} />
+                          </div>
                         </div>
                       ))}
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="h-24 rounded-3xl border border-white/10 bg-indigo-400/10" />
-                    <div className="h-24 rounded-3xl border border-white/10 bg-white/[0.035]" />
+                    <div className="rounded-3xl border border-indigo-300/15 bg-indigo-400/10 p-4">
+                      <div className="h-2 w-14 rounded-full bg-indigo-200/50" />
+                      <div className="mt-8 h-8 w-8 rounded-2xl bg-indigo-200/20" />
+                    </div>
+                    <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-4">
+                      <div className="h-2 w-16 rounded-full bg-white/30" />
+                      <div className="mt-8 flex gap-1">
+                        <span className="h-8 w-3 rounded-full bg-emerald-300/40" />
+                        <span className="h-8 w-3 rounded-full bg-indigo-300/50" />
+                        <span className="h-8 w-3 rounded-full bg-sky-300/30" />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -133,7 +167,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="features" className="relative z-10 mx-auto w-full max-w-7xl px-5 pb-24 sm:px-8">
+      <section id="features" className="relative z-10 mx-auto w-full max-w-7xl scroll-mt-24 px-5 pb-24 sm:px-8">
         <div className="mb-8 flex items-end justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-indigo-300">Built for operating</p>
