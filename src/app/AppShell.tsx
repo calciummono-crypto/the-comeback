@@ -249,9 +249,9 @@ export default function AppShell() {
     <div className="flex min-h-screen">
       <ToastHost />
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-slate-800/80 bg-slate-950/90 backdrop-blur-xl transition-all duration-300 lg:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-slate-800/80 bg-slate-950/80 backdrop-blur-xl transition-all duration-300 lg:translate-x-0 ${
           mobileNav ? "translate-x-0" : "-translate-x-full"
-        }`}
+        } ${collapsed ? "lg:w-[76px]" : "lg:w-64"}`}
       >
         <div className={`flex items-center gap-3 py-5 ${collapsed ? "justify-center px-3 lg:flex-col lg:gap-2" : "px-5"}`}>
           <Logo size={collapsed ? 32 : 40} className="drop-shadow-[0_4px_16px_color-mix(in_srgb,var(--color-emerald-500)_35%,transparent)]" />
@@ -372,56 +372,7 @@ export default function AppShell() {
         />
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col transition-all duration-300">
-        <header className="sticky top-0 z-30 hidden border-b border-white/10 bg-[#080d19]/78 px-6 py-3 backdrop-blur-2xl lg:block">
-          <div className="mx-auto flex max-w-7xl items-center justify-between gap-5">
-            <button onClick={() => setTab("dashboard")} className="group flex items-center gap-3 rounded-2xl px-2 py-1.5">
-              <div className="grid h-10 w-10 place-items-center rounded-2xl border border-white/10 bg-white/[0.04] shadow-lg shadow-indigo-950/40 transition group-hover:border-indigo-300/30">
-                <Logo size={26} />
-              </div>
-              <div className="text-left leading-tight">
-                <div className="text-sm font-semibold tracking-tight text-white">MC Bot Manager</div>
-                <div className="text-[11px] text-slate-500">operator dashboard</div>
-              </div>
-            </button>
-
-            <nav className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.035] p-1 shadow-2xl shadow-black/20">
-              {navItems.map((item) => (
-                <button
-                  key={item.key}
-                  onClick={() => setTab(item.key)}
-                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${
-                    activeTab === item.key
-                      ? "bg-white text-slate-950 shadow-lg shadow-black/20"
-                      : "text-slate-400 hover:bg-white/[0.06] hover:text-white"
-                  }`}
-                >
-                  <span className="grid h-5 w-5 place-items-center">{item.icon}</span>
-                  {item.label}
-                </button>
-              ))}
-            </nav>
-
-            <div className="flex items-center gap-3">
-              <div className="hidden min-w-0 text-right xl:block">
-                <div className="text-sm font-semibold text-white">{me.username}</div>
-                <div className="text-[11px] text-slate-500">{me.role === "admin" ? "admin" : planBar?.label ?? "standard"}</div>
-              </div>
-              {me.avatar ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={me.avatar} alt="" className="h-10 w-10 rounded-2xl ring-1 ring-white/10" />
-              ) : (
-                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-indigo-300 to-indigo-600 text-xs font-bold text-white ring-1 ring-white/10">
-                  {me.username.slice(0, 2).toUpperCase()}
-                </div>
-              )}
-              <button onClick={logout} className="rounded-full border border-white/10 px-3 py-2 text-xs font-semibold text-slate-400 hover:border-rose-400/40 hover:bg-rose-400/10 hover:text-rose-200">
-                Logout
-              </button>
-            </div>
-          </div>
-        </header>
-
+      <div className={`flex min-w-0 flex-1 flex-col transition-all duration-300 ${collapsed ? "lg:pl-[76px]" : "lg:pl-64"}`}>
         <div className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-800/80 bg-slate-950/80 px-4 py-3 backdrop-blur lg:hidden">
           <div className="flex items-center gap-2">
             <Logo size={28} />
