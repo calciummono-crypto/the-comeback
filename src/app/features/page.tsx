@@ -37,7 +37,7 @@ export default function FeaturesPage() {
       <section className="relative z-10 mx-auto max-w-7xl px-5 pb-20 pt-32 sm:px-8">
         <div className="mx-auto max-w-3xl text-center animate-slide-up">
           <p className="text-sm font-medium text-indigo-300">User-facing features</p>
-          <h1 className="mt-3 text-5xl font-semibold tracking-[-0.05em] text-white sm:text-6xl">
+          <h1 className="mt-3 text-5xl font-black leading-[0.95] tracking-[-0.065em] text-white sm:text-6xl">
             Everything users need to run bots cleanly.
           </h1>
           <p className="mt-5 text-base leading-8 text-slate-400">
@@ -53,7 +53,7 @@ export default function FeaturesPage() {
               style={{ animationDelay: `${i * 55}ms` }}
             >
               <span className="rounded-full border border-indigo-200/15 bg-indigo-300/10 px-3 py-1 text-xs font-semibold text-indigo-200">{f.tag}</span>
-              <h2 className="mt-7 text-xl font-semibold text-white">{f.title}</h2>
+              <h2 className="mt-7 text-xl font-bold tracking-tight text-white">{f.title}</h2>
               <p className="mt-3 text-sm leading-7 text-slate-400">{f.text}</p>
             </article>
           ))}
@@ -62,7 +62,7 @@ export default function FeaturesPage() {
         <div className="mt-16 grid gap-6 rounded-[2rem] border border-white/10 bg-white/[0.035] p-5 backdrop-blur-xl lg:grid-cols-[.8fr_1.2fr] lg:p-8">
           <div>
             <p className="text-sm font-medium text-indigo-300">Typical session</p>
-            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">From token to live control in one flow.</h2>
+            <h2 className="mt-2 text-3xl font-black tracking-[-0.045em] text-white">From token to live control in one flow.</h2>
             <p className="mt-4 text-sm leading-7 text-slate-400">
               The dashboard keeps the boring setup steps visible so users understand what is happening before a bot reaches the server.
             </p>

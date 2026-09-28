@@ -67,6 +67,17 @@ body {
   position: relative;
 }
 
+body {
+  font-feature-settings: "cv02", "cv03", "cv04", "ss01";
+  text-rendering: geometricPrecision;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.035em;
+}
+
 /* Ambient animated background with premium grid */
 .app-bg {
   position: fixed;
