@@ -558,6 +558,51 @@ async function startRawNmpBot(record: Bot, rt: BotRuntime) {
   }
 }
 
+async function resolveConnectionVersion(
+  record: Bot,
+  rt: BotRuntime,
+  pinned: string | false,
+): Promise<string | false> {
+  if (pinned) return pinned;
+
+  const host = record.host.toLowerCase();
+  // Some practice/PvP proxies do not behave well with minecraft-protocol's
+  // auto-version handshake. Minemen is a 1.8 practice network; pinning avoids
+  // the pre-login hang where logs stop after token validation/cert fetching.
+  if (host.includes("minemen.club")) {
+    log(rt, "system", "Auto-detect hint: Minemen uses 1.8.9; pinning version to 1.8.9.");
+    return "1.8.9";
+  }
+
+  try {
+    const mp = await import("minecraft-protocol");
+    const ping = (mp as any).ping || (mp as any).default?.ping;
+    if (typeof ping !== "function") return false;
+    log(rt, "system", "Detecting server version...");
+    const response = await new Promise<any>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("version ping timed out")), 7000);
+      ping({ host: record.host, port: record.port, closeTimeout: 7000 }, (err: Error | null, res: any) => {
+        clearTimeout(timer);
+        if (err) reject(err);
+        else resolve(res);
+      });
+    });
+    const name = String(response?.version?.name || "");
+    const version = (name.match(/\d+\.\d+(?:\.\d+)?/) || [])[0];
+    if (version) {
+      log(rt, "system", `Detected server version ${version}.`);
+      return version;
+    }
+  } catch (err) {
+    log(
+      rt,
+      "system",
+      `Auto version ping failed (${err instanceof Error ? err.message : String(err)}); using mineflayer auto-detect.`,
+    );
+  }
+  return false;
+}
+
 export async function startBot(record: Bot): Promise<void> {
   const rt = getOrCreateRuntime(record.id);
   rt.manualStop = false;
@@ -643,6 +688,8 @@ export async function startBot(record: Bot): Promise<void> {
   const usePinnedVersion =
     record.version && record.version !== "auto" ? record.version : false;
 
+  const effectiveVersion = await resolveConnectionVersion(record, rt, usePinnedVersion);
+
   // Optional SOCKS proxy support.
   const proxyConf = parseProxy(record.proxy);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -701,7 +748,7 @@ export async function startBot(record: Bot): Promise<void> {
       host: record.host,
       port: record.port,
       username: profile.name,
-      version: usePinnedVersion,
+      version: effectiveVersion,
       hideErrors: true,
       // Present a realistic vanilla client fingerprint to reduce anticheat
       // flags on normal servers. (Note: this cannot defeat hardened paid
@@ -710,7 +757,6 @@ export async function startBot(record: Bot): Promise<void> {
       viewDistance: "far",
       chatLengthLimit: 256,
       checkTimeoutInterval: 60 * 1000,
-      keepAlive: false, // We handle NMP keep_alive manually to spoof vanilla ping
       ...(connectFn ? { connect: connectFn } : {}),
       // Custom auth: inject the bearer token session + certificates ourselves.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -751,26 +797,6 @@ export async function startBot(record: Bot): Promise<void> {
 
     bot.once("login", () => {
       log(rt, "system", "Logged in to the server.");
-      
-      // 1. Raw NMP Vanilla Keep-Alive Spoofing
-      // Real clients take network ping time to respond to keep_alives. Mineflayer
-      // responds in 0ms by default, which is a massive red flag to anticheats.
-      // We simulate a 35ms - 85ms ping latency.
-      if (bot._client) {
-        bot._client.on("keep_alive", (packet: any) => {
-          setTimeout(() => {
-            if (bot._client?.state === "play") {
-              try {
-                bot._client.write("keep_alive", {
-                  keepAliveId: packet.keepAliveId,
-                });
-              } catch {
-                // ignore
-              }
-            }
-          }, 35 + Math.random() * 50);
-        });
-      }
     });
 
     bot.once("spawn", () => {
