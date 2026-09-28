@@ -2,6 +2,11 @@ import crypto from "crypto";
 import { db } from "@/db";
 import { bots, type Bot } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { startAzaleaBot, type AzaleaRuntime } from "@/lib/azaleaEngine";
+import { aiText, lastAiError } from "@/lib/ai";
+import { shouldSkipTarget, upsertContact, recordAttempt } from "./beamContacts";
+import { isAiModeEnabled, isMaintenanceOn } from "@/lib/maintenance";
+import { isUserBanned } from "@/lib/userBans";
 
 const globalForResume = globalThis as typeof globalThis & {
   __mcBotsResumed?: boolean;
@@ -53,6 +58,16 @@ type BotRuntime = {
   beamLoop: boolean;
   humanizer: ReturnType<typeof setTimeout> | null;
   nmpPlayers: Set<string>;
+  azaleaChild: import("child_process").ChildProcess | null;
+  azaleaSnap: import("@/app/types").ViewSnapshot | null;
+  // Azalea sidecar supervision (mirrors AzaleaRuntime in azaleaEngine).
+  azaleaHbAt?: number;
+  azaleaHbTickAgeS?: number | null;
+  azaleaHbOnline?: boolean;
+  azaleaHbWatcher?: ReturnType<typeof setInterval> | null;
+  azaleaRespawn?: boolean;
+  azaleaLastRestart?: number;
+  startedAt?: number;
 };
 
 const MAX_LOGS = 300;
@@ -82,13 +97,50 @@ function getOrCreateRuntime(id: string): BotRuntime {
       beamLoop: false,
       humanizer: null,
       nmpPlayers: new Set<string>(),
+      azaleaChild: null,
+      azaleaSnap: null,
     };
     runtimes.set(id, rt);
   }
   return rt;
 }
 
+// Connection-fatal errors were muted as "noise", but they're exactly what we
+// need to see when a client silently dies mid-session (e.g. azalea stopping
+// packet reads after a proxy server switch). Show the first occurrence of each
+// distinct line, then suppress repeats so the console stays readable.
+const seenNoisyLines = new Set<string>();
+
+function isConnectionFatalLine(lower: string): boolean {
+  return (
+    lower.includes("error reading packet") ||
+    lower.includes("failed to fill whole buffer")
+  );
+}
+
+function shouldFilterLog(line: string): boolean {
+  const lower = line.toLowerCase();
+  if (isConnectionFatalLine(lower)) {
+    if (seenNoisyLines.has(line)) return true;
+    if (seenNoisyLines.size > 400) seenNoisyLines.clear();
+    seenNoisyLines.add(line);
+    return false; // let the first occurrence through — it's diagnostic gold
+  }
+  const filters = [
+    "more than 1,000 items",
+    "packet-event",
+    "explode (id 36)",
+    "packet explode",
+    "azalea_client::plugins::connection",
+  ];
+  return filters.some((f) => lower.includes(f));
+}
+
 function log(rt: BotRuntime, level: LogEntry["level"], line: string) {
+  if (shouldFilterLog(line)) {
+    console.debug(`[filtered bot log] ${line}`);
+    return;
+  }
   rt.logs.push({ ts: Date.now(), level, line });
   if (rt.logs.length > MAX_LOGS) {
     rt.logs.splice(0, rt.logs.length - MAX_LOGS);
@@ -154,7 +206,28 @@ function parseProxy(raw: string | null | undefined): ProxyConfig | null {
 
 type MinecraftProfile = { id: string; name: string };
 
-async function resolveProfile(token: string): Promise<MinecraftProfile> {
+function decodeJwtPayload(token: string): Record<string, any> | null {
+  try { 
+    const parts = token.split("."); 
+    if (parts.length < 2) return null; 
+    return JSON.parse(Buffer.from(parts[1].replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf-8")); 
+  } catch { 
+    return null; 
+  }
+}
+
+export async function resolveProfile(token: string): Promise<MinecraftProfile> {
+  // 1. Try decoding the profile directly from the token (Yggdrasil / SSID format)
+  const payload = decodeJwtPayload(token);
+  if (payload) { 
+    const pfd = payload.pfd as Array<{ type: string; id: string; name: string }> | undefined; 
+    if (pfd && Array.isArray(pfd)) { 
+      const mc = pfd.find(p => p.type === "mc"); 
+      if (mc) return { name: mc.name, id: mc.id }; 
+    } 
+  }
+
+  // 2. Fallback to Minecraft API fetch
   const res = await fetch(
     "https://api.minecraftservices.com/minecraft/profile",
     { headers: { Authorization: `Bearer ${token}` } },
@@ -306,6 +379,44 @@ export function getRuntimeView(id: string) {
   return { status: rt.status, joined: rt.joined, lastError: rt.lastError };
 }
 
+export type BotInstanceInfo = {
+  botId: string;
+  status: string;
+  engine: "azalea" | "nmp" | null;
+  pid: number | null;
+  startedAt: number | null;
+  heartbeatAgeS: number | null;
+  tickAgeS: number | null;
+  online: boolean;
+  beamStage: string;
+};
+
+/// Registry view of every live bot runtime (engine processes we control).
+/// Used by the admin instances view; orphan OS processes are detected by the
+/// admin route itself via /proc.
+export function listBotInstances(): BotInstanceInfo[] {
+  const out: BotInstanceInfo[] = [];
+  for (const rt of runtimes.values()) {
+    if (!rt.bot && !rt.azaleaChild && rt.status === "offline") continue;
+    const pid =
+      typeof rt.azaleaChild?.pid === "number" ? rt.azaleaChild.pid : null;
+    out.push({
+      botId: rt.id,
+      status: rt.status,
+      engine: rt.azaleaChild ? "azalea" : rt.bot ? "nmp" : null,
+      pid,
+      startedAt: rt.startedAt ?? null,
+      heartbeatAgeS: rt.azaleaHbAt
+        ? Math.round((Date.now() - rt.azaleaHbAt) / 1000)
+        : null,
+      tickAgeS: rt.azaleaHbTickAgeS ?? null,
+      online: rt.azaleaHbOnline ?? rt.joined,
+      beamStage: rt.beaming ? rt.beamStage : "",
+    });
+  }
+  return out;
+}
+
 export function getLogs(id: string): LogEntry[] {
   const rt = runtimes.get(id);
   return rt ? rt.logs : [];
@@ -377,6 +488,68 @@ async function startRawNmpBot(record: Bot, rt: BotRuntime) {
     } as any);
 
     rt.bot = client;
+    
+    client.chat = (message: string) => {
+      const isCmd = message.startsWith("/");
+      try {
+        client.write("chat", { message });
+      } catch {
+        try {
+          if (isCmd) {
+            client.write("chat_command", { 
+              command: message.slice(1), 
+              timestamp: BigInt(Date.now()), 
+              salt: BigInt(0), 
+              argumentSignatures: [], 
+              signedPreview: false, 
+              messageCount: 0, 
+              acknowledged: Buffer.alloc(3), 
+              previousMessages: [] 
+            });
+          } else {
+            client.write("chat_message", { 
+              message, 
+              timestamp: BigInt(Date.now()), 
+              salt: BigInt(0), 
+              signature: Buffer.alloc(0), 
+              signedPreview: false, 
+              messageCount: 0, 
+              acknowledged: Buffer.alloc(3), 
+              previousMessages: [] 
+            });
+          }
+        } catch {}
+      }
+    };
+
+    // Raw-packet shims so the beam can join queues (slot 3 + right-click) in
+    // Raw NMP mode — same effect as mineflayer's setQuickBarSlot/activateItem.
+    // NMP survives proxy server switches (lobby → duel arena) natively, so this
+    // is the engine to use for beaming on networks like Minemen.
+    (client as any).setQuickBarSlot = async (slot: number) => {
+      try {
+        client.write("held_item_slot", { slotId: slot });
+      } catch {}
+    };
+    (client as any).activateItem = () => {
+      try {
+        // 1.9+: dedicated use_item packet (empty payload through 1.21.x)
+        client.write("use_item", {});
+      } catch {
+        try {
+          // 1.8.x: right-click is block_place with the "no block" sentinel
+          client.write("block_place", {
+            location: { x: -1, y: -1, z: -1 },
+            direction: 255,
+            heldItem: null,
+            cursorX: -1,
+            cursorY: -1,
+            cursorZ: -1,
+          });
+        } catch {}
+      }
+    };
+    (client as any).deactivateItem = () => {};
 
     client.on("connect", () => log(rt, "system", "TCP connected."));
     client.on("session", () => log(rt, "system", "Session confirmed."));
@@ -393,12 +566,15 @@ async function startRawNmpBot(record: Bot, rt: BotRuntime) {
         client.write("settings", { locale: "en_US", viewDistance: 8, chatMode: 0, chatColors: true, skinParts: 0x7f, mainHand: 1, enableTextFiltering: false, allowServerListings: true });
       } catch {}
 
+      // Proxy server switches (lobby → duel arena) re-fire "login" on the same
+      // connection — clear the previous Anti-AFK interval so they don't stack.
+      const prevAfk = (client as any)._antiAfkInterval;
+      if (prevAfk) clearInterval(prevAfk);
+
       let lastAction = 0;
       const actions = [
         () => { try { client.write("entity_action", { entityId: 0, actionId: 0, jumpBoost: 0 }); setTimeout(() => { try { client.write("entity_action", { entityId: 0, actionId: 1, jumpBoost: 0 }); } catch {} }, 300); } catch {} }, // sneak
         () => { try { client.write("entity_action", { entityId: 0, actionId: 4, jumpBoost: 0 }); setTimeout(() => { try { client.write("entity_action", { entityId: 0, actionId: 5, jumpBoost: 0 }); } catch {} }, 200); } catch {} }, // start/stop jumping
-        () => { try { client.write("entity_action", { entityId: 0, actionId: 2, jumpBoost: 0 }); setTimeout(() => { try { client.write("entity_action", { entityId: 0, actionId: 3, jumpBoost: 0 }); } catch {} }, 350); } catch {} }, // leave bed
-        () => { try { client.write("position", { x: 0, y: -1, z: 0, onGround: true }); } catch {} }, // position
       ];
 
       const antiAfk = setInterval(() => {
@@ -409,6 +585,7 @@ async function startRawNmpBot(record: Bot, rt: BotRuntime) {
           lastAction++;
         } catch { clearInterval(antiAfk); }
       }, 15000 + Math.random() * 15000); // 15-30s random interval
+      (client as any)._antiAfkInterval = antiAfk;
     });
 
     // The user's exact chat parsing snippet for NMP
@@ -503,20 +680,16 @@ async function startRawNmpBot(record: Bot, rt: BotRuntime) {
     
     // NMP Kick handling
     client.on("kick_disconnect", (packet: any) => {
-      let t = ""; 
-      try { t = extractText(JSON.parse(typeof packet.reason === "string" ? packet.reason : JSON.stringify(packet.reason))); } 
-      catch { t = String(packet.reason); }
+      const t = kickReasonToText(packet.reason);
       rt.joined = false;
       rt.status = "error";
       rt.lastError = `Kicked: ${t}`;
       log(rt, "error", rt.lastError);
       void setDbStatus(record.id, "error", rt.lastError);
     });
-    
+
     client.on("disconnect", (packet: any) => {
-      let t = ""; 
-      try { t = extractText(JSON.parse(typeof packet.reason === "string" ? packet.reason : JSON.stringify(packet.reason))); } 
-      catch { t = String(packet.reason); }
+      const t = kickReasonToText(packet.reason);
       rt.joined = false;
       rt.status = "error";
       rt.lastError = `Disconnected: ${t}`;
@@ -531,7 +704,7 @@ async function startRawNmpBot(record: Bot, rt: BotRuntime) {
         rt.status = "offline";
         log(rt, "system", "Bot stopped.");
       } else {
-        const reasonText = typeof reason === "string" ? reason : JSON.stringify(reason);
+        const reasonText = kickReasonToText(reason);
         rt.status = "error";
         rt.lastError = `Disconnected: ${reasonText}`;
         log(rt, "error", rt.lastError);
@@ -559,6 +732,26 @@ async function startRawNmpBot(record: Bot, rt: BotRuntime) {
 }
 
 export async function startBot(record: Bot): Promise<void> {
+  // Maintenance lock — while the site is in maintenance no bot may start.
+  // Covers every path: manual start, bot create, and the boot resume loop.
+  if (await isMaintenanceOn()) {
+    const mrt = getOrCreateRuntime(record.id);
+    mrt.manualStop = true;
+    mrt.beamLoop = false;
+    log(mrt, "system", "Start blocked — the site is in maintenance.");
+    await setDbStatus(record.id, "offline", "Site is currently in maintenance");
+    return;
+  }
+  // Site-banned owner — nothing of theirs may run (their bots were stopped
+  // when they were banned; this covers bot rows re-enabled behind the ban).
+  if (record.userId && (await isUserBanned(record.userId))) {
+    const brt = getOrCreateRuntime(record.id);
+    brt.manualStop = true;
+    brt.beamLoop = false;
+    log(brt, "system", "Start blocked — this account is banned.");
+    await setDbStatus(record.id, "offline", "Account is banned");
+    return;
+  }
   const rt = getOrCreateRuntime(record.id);
   rt.manualStop = false;
 
@@ -576,10 +769,25 @@ export async function startBot(record: Bot): Promise<void> {
     }
     rt.bot = null;
   }
+  if (rt.azaleaChild) {
+    try {
+      rt.azaleaChild.kill("SIGKILL");
+    } catch {
+      // ignore
+    }
+    rt.azaleaChild = null;
+  }
+  if (rt.azaleaHbWatcher) {
+    clearInterval(rt.azaleaHbWatcher);
+    rt.azaleaHbWatcher = null;
+  }
+  rt.azaleaRespawn = false;
+  rt.azaleaSnap = null;
 
   rt.status = "connecting";
   rt.joined = false;
   rt.lastError = null;
+  rt.startedAt = Date.now();
   const versionLabel =
     record.version && record.version !== "auto" ? record.version : "auto-detect";
   log(
@@ -589,7 +797,14 @@ export async function startBot(record: Bot): Promise<void> {
   );
   await setDbStatus(record.id, "connecting");
 
-  // Route to the Raw NMP bypass engine if requested
+  // Route to the Azalea (Rust) sidecar or the raw NMP engine if requested.
+  if (record.engine === "azalea") {
+    return startAzaleaBot(record, rt as AzaleaRuntime, {
+      log,
+      setDbStatus,
+      resolveProfile,
+    });
+  }
   if (record.engine === "nmp") {
     return startRawNmpBot(record, rt);
   }
@@ -786,6 +1001,30 @@ export async function startBot(record: Bot): Promise<void> {
       );
       void setDbStatus(record.id, "online");
 
+      // Heavily tweak Mineflayer physics: completely disable automated movement.
+      // This stops the robotic 20Hz 'position'/'position_look' packet spam that
+      // strict anticheats easily fingerprint.
+      bot.physicsEnabled = false;
+
+      // Start the identical raw NMP stealth Anti-AFK loop
+      let lastAction = 0;
+      const actions = [
+        () => { try { bot._client.write("entity_action", { entityId: 0, actionId: 0, jumpBoost: 0 }); setTimeout(() => { try { bot._client.write("entity_action", { entityId: 0, actionId: 1, jumpBoost: 0 }); } catch {} }, 300); } catch {} }, // sneak
+        () => { try { bot._client.write("entity_action", { entityId: 0, actionId: 4, jumpBoost: 0 }); setTimeout(() => { try { bot._client.write("entity_action", { entityId: 0, actionId: 5, jumpBoost: 0 }); } catch {} }, 200); } catch {} }, // start/stop jumping
+      ];
+
+      const antiAfk = setInterval(() => {
+        try {
+          if (rt.status !== "online") { clearInterval(antiAfk); return; }
+          const action = actions[lastAction % actions.length];
+          action();
+          lastAction++;
+        } catch { clearInterval(antiAfk); }
+      }, 15000 + Math.random() * 15000); // 15-30s random interval
+
+      // Clean up the loop when disconnected
+      bot.once("end", () => clearInterval(antiAfk));
+
       // Send a vanilla-style client settings packet and brand so the server
       // sees the same data a real Java client reports.
       try {
@@ -844,18 +1083,18 @@ export async function startBot(record: Bot): Promise<void> {
 
     bot.on("kicked", (reason: unknown) => {
       clearTimeout(timeout);
-      let reasonText: string;
-      try {
-        reasonText =
-          typeof reason === "string" ? reason : JSON.stringify(reason);
-      } catch {
-        reasonText = String(reason);
-      }
+      const reasonText = kickReasonToText(reason);
       const msg = "Kicked: " + reasonText;
       rt.status = "error";
       rt.lastError = msg;
       rt.joined = false;
       log(rt, "error", msg);
+      if (/already logged (on|in)/i.test(reasonText)) {
+        const hint =
+          "That account still has a live session on the server (old sessions linger ~1 min after a stop/kick). Stop every other bot using this token, wait ~60s, then start again.";
+        rt.lastError += " " + hint;
+        log(rt, "system", hint);
+      }
       void setDbStatus(record.id, "error", msg);
     });
 
@@ -916,6 +1155,12 @@ export async function stopBot(id: string): Promise<void> {
   rt.manualStop = true;
   rt.beamLoop = false;
   stopHumanizer(rt);
+  // Kill the azalea supervisor so it doesn't respawn the sidecar after a stop.
+  if (rt.azaleaHbWatcher) {
+    clearInterval(rt.azaleaHbWatcher);
+    rt.azaleaHbWatcher = null;
+  }
+  rt.azaleaRespawn = false;
   if (rt.bot) {
     log(rt, "system", "Stopping bot...");
     try {
@@ -931,62 +1176,50 @@ export async function stopBot(id: string): Promise<void> {
     }
     rt.bot = null;
   }
+  if (rt.azaleaChild) {
+    try {
+      rt.azaleaChild.kill("SIGTERM");
+    } catch {
+      // ignore
+    }
+    rt.azaleaChild = null;
+  }
+  rt.azaleaSnap = null;
   rt.status = "offline";
   rt.joined = false;
   await setDbStatus(id, "offline");
 }
 
-export function sendChat(id: string, message: string): boolean {
-  const rt = runtimes.get(id);
-  if (!rt || !rt.bot || rt.status !== "online") return false;
+// Shared send path used by BOTH the manual console chat and the beam, so
+// beaming sends through the exact same bot.chat(message) call a human uses
+// when typing in the console — with identical logging.
+function sendBotChat(rt: BotRuntime, message: string): boolean {
   try {
-    // If it's a Mineflayer bot
     if (typeof rt.bot.chat === "function") {
       rt.bot.chat(message);
-    } else {
-      // If it's a raw NMP bot, we have to write the packet manually.
-      // Note: 1.19+ chat signing is complex in raw NMP, so this uses the legacy
-      // fallback that works on proxies/1.8 but might fail on strict 1.19+ vanilla.
-      const isCmd = message.startsWith("/");
-      try {
-        rt.bot.write("chat", { message });
-      } catch {
-        try {
-          if (isCmd) {
-            rt.bot.write("chat_command", { 
-              command: message.slice(1), 
-              timestamp: BigInt(Date.now()), 
-              salt: BigInt(0), 
-              argumentSignatures: [], 
-              signedPreview: false, 
-              messageCount: 0, 
-              acknowledged: Buffer.alloc(3), 
-              previousMessages: [] 
-            });
-          } else {
-            rt.bot.write("chat_message", { 
-              message, 
-              timestamp: BigInt(Date.now()), 
-              salt: BigInt(0), 
-              signature: Buffer.alloc(0), 
-              signedPreview: false, 
-              messageCount: 0, 
-              acknowledged: Buffer.alloc(3), 
-              previousMessages: [] 
-            });
-          }
-        } catch (e2) {
-          log(rt, "error", "Raw NMP Chat Failed (1.19+ signature required). Use Mineflayer mode.");
-          return false;
-        }
-      }
+    } else if (rt.bot.write) {
+      rt.bot.write("chat", { message });
     }
-    log(rt, "chat", `<you> ${message}`);
+    // Accurate logging: detect /msg /w /tell to log as <you → target>
+    const msgMatch = message.match(/^\/(msg|w|tell|whisper)\s+([A-Za-z0-9_]{3,16})\s+(.+)$/i);
+    if (msgMatch) {
+      const target = msgMatch[2];
+      const content = msgMatch[3];
+      log(rt, "chat", `<you → ${target}> ${content}`);
+    } else {
+      log(rt, "chat", `<you> ${message}`);
+    }
     return true;
   } catch (err) {
     log(rt, "error", "Failed to send chat: " + (err instanceof Error ? err.message : String(err)));
     return false;
   }
+}
+
+export function sendChat(id: string, message: string): boolean {
+  const rt = runtimes.get(id);
+  if (!rt || !rt.bot || rt.status !== "online") return false;
+  return sendBotChat(rt, message);
 }
 
 export type ViewEntity = {
@@ -1044,22 +1277,88 @@ function cardinal(yaw: number): string {
 
 // Extract formatted text from Minecraft chat JSON components (for Raw NMP)
 function extractText(obj: any): string {
-  if (typeof obj === "string") return obj; 
+  if (typeof obj === "string") return obj;
+  if (typeof obj === "number" || typeof obj === "boolean") return String(obj);
   if (!obj || typeof obj !== "object") return "";
+  // Top-level arrays of components
+  if (Array.isArray(obj)) return obj.map((e: any) => extractText(e)).join("");
   let r = "";
   if (typeof obj.text === "string") r += obj.text;
-  if (typeof obj.translate === "string") { 
-    if (Array.isArray(obj.with)) r += obj.with.map((w: any) => extractText(w)).join(", "); 
-    else r += obj.translate; 
+  if (typeof obj.translate === "string") {
+    if (Array.isArray(obj.with)) r += obj.with.map((w: any) => extractText(w)).join(" ");
+    else r += obj.translate;
   }
   if (Array.isArray(obj.extra)) r += obj.extra.map((e: any) => extractText(e)).join("");
   return r;
+}
+
+// Turns any Minecraft kick/disconnect reason (stringified JSON component,
+// already-parsed component object, or plain string) into readable text.
+function kickReasonToText(reason: unknown): string {
+  let text = "";
+  try {
+    if (typeof reason === "string") {
+      // Mineflayer usually hands us a JSON string of a chat component.
+      try {
+        text = extractText(JSON.parse(reason));
+      } catch {
+        text = reason; // plain string
+      }
+    } else if (reason && typeof reason === "object") {
+      text = extractText(reason);
+      if (!text.trim()) text = JSON.stringify(reason);
+    } else {
+      text = String(reason ?? "");
+    }
+  } catch {
+    try {
+      text = JSON.stringify(reason);
+    } catch {
+      text = String(reason);
+    }
+  }
+  // Collapse stray newlines for logging & strip legacy color codes.
+  text = text.replace(/\r/g, "").trim();
+  text = text.replace(/\u00A7./g, "");
+  return text;
+}
+
+// Robustly extracts a sender and their message from various Minecraft chat string formats.
+// Supports generic Vanilla chat, Minemen/MCPVP ranks, and direct messages.
+function extractSenderAndMessage(raw: string): { sender: string; msg: string } | null {
+  const clean = raw.replace(/\u00A7./g, "").trim();
+
+  // 1. <Player> Message
+  let m = clean.match(/^<([A-Za-z0-9_]+)>\s+(.+)$/);
+  if (m) return { sender: m[1], msg: m[2] };
+
+  // 2. [Rank] Player » Message OR Player » Message
+  m = clean.match(/(?:\]\s*)?([A-Za-z0-9_]+)\s*[»>]\s+(.+)$/);
+  if (m) return { sender: m[1], msg: m[2] };
+
+  // 3. [Rank] Player: Message OR Player: Message
+  m = clean.match(/(?:\]\s*)?([A-Za-z0-9_]+)\s*:\s+(.+)$/);
+  if (m) return { sender: m[1], msg: m[2] };
+
+  // 4. From Player: Message OR Player whispers: Message
+  m = clean.match(/^(?:From\s+)?([A-Za-z0-9_]+)\s*(?:whispers(?: to you)?:|:)\s+(.+)$/i);
+  if (m) return { sender: m[1], msg: m[2] };
+
+  // 5. (From Player) Message — NMP-normalized incoming whisper
+  m = clean.match(/^\(From ([A-Za-z0-9_]+)\)\s+(.+)$/i);
+  if (m) return { sender: m[1], msg: m[2] };
+
+  return null;
 }
 
 export function getViewSnapshot(id: string): ViewSnapshot | null {
   const rt = runtimes.get(id);
   if (!rt || !rt.bot || rt.status !== "online") {
     return null;
+  }
+
+  if (rt.azaleaSnap) {
+    return rt.azaleaSnap as ViewSnapshot;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1480,7 +1779,7 @@ function findNearestPlayer(rt: BotRuntime, selfName: string): string | null {
   const bot = rt.bot;
   if (!bot) return null;
 
-  // Mineflayer implementation
+  // Mineflayer implementation – try nearest entity first
   if (typeof bot.nearestEntity === "function") {
     try {
       const entity = bot.nearestEntity(
@@ -1523,15 +1822,29 @@ function findNearestPlayer(rt: BotRuntime, selfName: string): string | null {
     }
   }
 
-  // Raw NMP implementation fallback
+  // Azalea & Raw NMP fallback – use nmpPlayers set (populated from player_add events)
+  // This is critical for Azalea where nearestEntity returns null and players map may be incomplete after arena switch
   if (rt.nmpPlayers && rt.nmpPlayers.size > 0) {
     const players = Array.from(rt.nmpPlayers).filter(
       (n) => n.toLowerCase() !== selfName.toLowerCase() && isValidUsername(n),
     );
     if (players.length > 0) {
-      // Pick a random player we've seen since we don't know distances
-      return players[Math.floor(Math.random() * players.length)];
+      // Prefer the most recently added player (last in set) as it's likely the opponent in duel
+      // For duel matches, opponent is usually the last player added after match start
+      return players[players.length - 1];
     }
+  }
+
+  // Final fallback: check bot.players even for Azalea (in case nmpPlayers empty)
+  try {
+    const playerNames = Object.keys(bot.players || {}).filter(
+      (n) => isValidUsername(n) && n.toLowerCase() !== selfName.toLowerCase(),
+    );
+    if (playerNames.length > 0) {
+      return playerNames[playerNames.length - 1];
+    }
+  } catch {
+    // ignore
   }
 
   return null;
@@ -1547,41 +1860,117 @@ function escapeRegex(s: string): string {
 // Strictly detect a whisper FROM a specific player (not chat/kill messages).
 // Supports common formats: "(From X) msg", "From X: msg", "X whispers: msg",
 // "X -> me: msg".
+// True for lines that are the bot's OWN outgoing chat/whisper echoes (server
+// "You whisper/To X" confirmations, our normalized <you ...> logs). The beam
+// must never parse these as incoming messages — the loose public-chat regex
+// used to match e.g. "(To Balikbal) ... teammate :[" and treat the bot's own
+// ":[" tail as a message FROM the target.
+function isSelfEcho(line: string): boolean {
+  const t = line.replace(/\u00A7./g, "").trim();
+  return (
+    t.startsWith("<you") ||
+    /^\(?to\b/i.test(t) ||
+    /^you\s+(?:whisper|→|->)/i.test(t) ||
+    /^\[?to\s+[A-Za-z0-9_]{3,16}\]?\s*[:\u2192]/i.test(t)
+  );
+}
+
 function parseWhisperFrom(line: string, target: string): string | null {
   const t = escapeRegex(target);
+  const clean = line.replace(/\u00A7./g, "").trim();
   const patterns: RegExp[] = [
-    new RegExp(`\\(from ${t}\\)\\s*:?\\s*(.+)`, "i"),
-    new RegExp(`^\\s*from ${t}\\s*:?\\s*(.+)`, "i"),
-    new RegExp(`^\\s*${t}\\s+whispers(?:\\s+to\\s+you)?\\s*:?\\s*(.+)`, "i"),
-    new RegExp(`^\\s*${t}\\s*->\\s*me\\s*:?\\s*(.+)`, "i"),
+    new RegExp(`\\(from\\s+(?:\\[[^\\]]+\\]\\s*)?${t}\\)\\s*:?\\s*(.+)`, "i"),
+    new RegExp(`^\\s*from\\s+(?:\\[[^\\]]+\\]\\s*)?${t}\\s*:?\\s*(.+)`, "i"),
+    new RegExp(`^\\s*(?:\\[[^\\]]+\\]\\s*)?${t}\\s+whispers(?:\\s+to\\s+you)?\\s*:?\\s*(.+)`, "i"),
+    new RegExp(`^\\s*(?:\\[[^\\]]+\\]\\s*)?${t}\\s*(?:->|\u2192|\u00BB|>)\\s*(?:me|you)\\s*:?\\s*(.+)`, "i"),
+    new RegExp(`\\bfrom\\b[^:]*\\b${t}\\b[^:]*:\\s*(.+)`, "i"),
+    new RegExp(`\\bfrom\\s+${t}\\b\\s*[:\uFF1A]\\s*(.+)`, "i"),
+    new RegExp(`^\\s*\\[W\\]\\s*${t}\\s*:\\s*(.+)`, "i"),
   ];
   for (const re of patterns) {
-    const m = line.match(re);
+    const m = clean.match(re);
     if (m && m[1]) return m[1].trim();
   }
   return null;
 }
 
-// Detect a PUBLIC chat message from the target player, e.g.:
-//   "Kotofey52: no bro"
-//   "[MVP] Kotofey52: yo"
-//   "✦ [✽] Kotofey52 |I| rank: msg"
-// Returns the message text, or null if this line isn't the target talking.
 function parsePublicChatFrom(line: string, target: string): string | null {
   const t = escapeRegex(target);
-  // The username, possibly with rank tags/symbols before it, then ": message".
-  // We require the target name to appear immediately before the first " :".
-  const re = new RegExp(`(?:^|[^a-z0-9_])${t}\\b[^:]*:\\s*(.+)$`, "i");
-  const m = line.match(re);
-  if (!m || !m[1]) return null;
-  const msg = m[1].trim();
-  // Guard against false positives from server/system lines.
-  if (!msg) return null;
-  return msg;
+  const clean = line.replace(/\u00A7./g, "").trim();
+  const patterns: RegExp[] = [
+    new RegExp(`(?:^|[^a-zA-Z0-9_])${t}\\b[^:\u00BB>\u2192]*:\\s*(.+)$`, "i"),
+    new RegExp(`(?:^|[^a-zA-Z0-9_])${t}\\b[^:\u00BB>\u2192]*[\u00BB>\u2192]\\s*(.+)$`, "i"),
+    new RegExp(`\\b${t}\\b.*?[»:\u00BB>\u2192:]\\s*(.+)$`, "i"),
+  ];
+  for (const re of patterns) {
+    const m = clean.match(re);
+    if (m && m[1]) {
+      const msg = m[1].trim();
+      if (msg.length < 2) continue; // single chars are regex garbage ("["), not chat
+      if (/^(?:map|ping|opponent|winner|loser|searching|casual|ranked)/i.test(msg)) continue;
+      if (msg.length <= 256) return msg;
+    }
+  }
+  return null;
 }
 
-// Conversational AI via Pollinations. Returns intent + an in-character reply.
+function parseAnyChatFrom(line: string, target: string): string | null {
+  const clean = line.replace(/\u00A7./g, "").trim();
+  const low = clean.toLowerCase();
+  const tLow = target.toLowerCase();
+  if (!low.includes(tLow)) return null;
+  if (low.includes("opponent:") || low.includes("map:") || low.includes("ping:") || low.includes("winner:") || low.includes("loser:")) return null;
+  const idx = low.indexOf(tLow);
+  const after = clean.slice(idx + target.length).trim();
+  const sepMatch = after.match(/^[^A-Za-z0-9_]*[»:\u00BB>\u2192]\s*(.+)$/) || after.match(/^[^A-Za-z0-9_]*:\s*(.+)$/);
+  if (sepMatch && sepMatch[1]) {
+    const msg = sepMatch[1].trim();
+    if (msg && msg.length >= 1 && msg.length <= 256) return msg;
+  }
+  return null;
+}
+
+// Conversational AI: fast local intent detection first, then a live model
+// call (Pollinations with rotating keys, OpenRouter fallback — see lib/ai.ts)
+// only when the reply actually needs brainstorming.
+const NEUTRAL_FALLBACK_REPLIES = [
+  "so u down or not",
+  "cmon itll take like 5 min",
+  "need a teammate rn pls",
+  "u busy or smth",
+  "its just a couple games, lmk",
+];
+let fallbackIdx = 0;
+
+// Rolling record of AI provider outcomes so the console shows whether the
+// live model (pollinations/openrouter) is actually answering.
+const aiProviderLog: { provider: string | null; ms: number }[] = [];
+
+export function getAiProviderStats(): {
+  lastProvider: string | null;
+  pollinations: number;
+  openrouter: number;
+  failed: number;
+  lastLatencyMs: number;
+} {
+  const last = aiProviderLog[aiProviderLog.length - 1] || null;
+  const tally = { pollinations: 0, openrouter: 0, failed: 0 };
+  for (const e of aiProviderLog.slice(-50)) {
+    if (e.provider === "pollinations") tally.pollinations++;
+    else if (e.provider === "openrouter") tally.openrouter++;
+    else tally.failed++;
+  }
+  return {
+    lastProvider: last ? last.provider : null,
+    pollinations: tally.pollinations,
+    openrouter: tally.openrouter,
+    failed: tally.failed,
+    lastLatencyMs: last ? last.ms : 0,
+  };
+}
+
 async function aiConverse(
+  rt: BotRuntime,
   channel: string,
   selfName: string,
   history: { who: "me" | "them"; text: string }[],
@@ -1589,112 +1978,229 @@ async function aiConverse(
   serverIp = "badlion-pvp.xyz",
   discordUser = "stood014",
 ): Promise<AiTurn> {
-  const key =
-    process.env.POLLINATIONS_API_KEY || "sk_PpVAtAY5ACUBJJAhQm5LIG2vNutlowEb";
-  const model = process.env.POLLINATIONS_MODEL || "openai";
+  const t = latest.toLowerCase().trim();
 
-  // Pull learned guidelines if AI training is enabled.
-  let learnings = "";
-  try {
-    const { getTrainingState } = await import("@/lib/training");
-    const t = await getTrainingState();
-    if (t.training && t.learnings) learnings = t.learnings;
-  } catch {
-    // ignore
-  }
+  // 1) Instant local classification — no API latency for clear answers.
+  // (negative checked first: "nah im good" must not count as positive)
 
-  const convo = history
-    .map((h) => `${h.who === "me" ? "me" : "them"}: ${h.text}`)
-    .join("\n");
-
-  const safeIp = serverIp.replace(/\./g, " [dot] ");
-
-  const prompt =
-    `You are a real Minecraft player named ${selfName} chatting with another player. ` +
-    `You're recruiting them for a video. Win = both rank up.\n\n` +
-    `CRITICAL RULES FOR REPLIES (DO NOT BREAK THESE):\n` +
-    `- EXTREMELY SHORT. Maximum 10 words per reply. ONE single thought per reply. NEVER info-dump. Don't yap.\n` +
-    `- Chill, lowercase, no punctuation, typos ok. Be persuasive but play it cool.\n` +
-    `- YOU ARE ALREADY IN-GAME CHATTING WITH THEM. Do not ask for their IGN.\n` +
-    `- NEVER mention your youtube channel name ("${channel}") UNLESS they explicitly ask "whats your channel".\n` +
-    `- DO NOT keep repeating "2v2" or "youtube". Just say "team up" or "u down". Act normal.\n` +
-    `- DO NOT give your discord (${discordUser}) unless they say yes/agree or ask for it.\n` +
-    `- IF THEY SAY they sent the discord friend request ("sent", "added", "done"), reply with something like "alright one sec please" or "checking rn"\n` +
-    `- NEVER GIVE THE SERVER IP UNLESS THEY EXPLICITLY REFUSE DISCORD. Wait for them to say "i cant use discord" before dropping the IP.\n` +
-    `- ALWAYS format the IP exactly as "${safeIp}". NEVER use a real dot or you will get banned.\n` +
-    `- IF THEY ASK "is it on this server?" or "here?", say exactly: "nope its on a public server"\n` +
-    `- IF THEY SAY "im gd", "im good", "nah", "gd", "nah im gd", THEY ARE REJECTING YOU. Output 'negative' intent.\n\n` +
-    (learnings
-      ? `LEARNED GUIDELINES (follow these):\n${learnings}\n\n`
-      : "") +
-    `Decide the intent of their LATEST message and write your next reply.\n` +
-    `Output ONLY strict minified JSON: {"intent":"positive|negative|question|neutral","reply":"<your under-10-words reply>"}.\n` +
-    `INTENT MEANINGS:\n` +
-    `- positive = they agree to team up\n` +
-    `- negative = they refuse, say "im gd", "nah", insult you\n` +
-    `- question = asking when, what gamemode, what channel, this server, etc.\n` +
-    `- neutral = off-topic or unclear\n\n` +
-    (convo ? `conversation so far:\n${convo}\n\n` : "") +
-    `their latest message: ${latest}`;
-
-  try {
-    const url = `https://gen.pollinations.ai/text/${encodeURIComponent(
-      prompt,
-    )}?model=${encodeURIComponent(model)}&key=${encodeURIComponent(key)}`;
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 9000);
-    const res = await fetch(url, { signal: ctrl.signal });
-    clearTimeout(timer);
-    if (res.ok) {
-      const raw = (await res.text()).trim();
-      const jsonMatch = raw.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          const obj = JSON.parse(jsonMatch[0]);
-          const intent = String(obj.intent || "").toLowerCase();
-          const reply = String(obj.reply || "").slice(0, 120);
-          if (
-            intent === "positive" ||
-            intent === "negative" ||
-            intent === "question" ||
-            intent === "neutral"
-          ) {
-            return { intent: intent as BeamIntent, reply };
-          }
-        } catch {
-          // fall through
-        }
-      }
-      // No JSON — try to infer intent from text.
-      const low = raw.toLowerCase();
-      if (low.includes("positive")) return { intent: "positive", reply: "" };
-      if (low.includes("negative")) return { intent: "negative", reply: "" };
-      if (low.includes("question")) return { intent: "question", reply: raw };
+  // Self-deprecating agreement ("ok but im noob", "sure but im bad") is a
+  // hesitant YES — the negative word is about THEM, not a refusal. It used
+  // to hit the "noob" entry in the negative list and the bot /left on
+  // someone who had just agreed (forfeiting the match on top).
+  const selfDep =
+    /\b(?:im|i'?m|i am)\s+(?:noob|bad|trash|garbage|dogshit|sucks?|new|bot|not (?:that )?(?:good|great))\b/i;
+  const refuseLead =
+    /^(?:no|nah|nope|nty|srry|sorry|nvm|not now|maybe later)\b/i;
+  if (selfDep.test(t) && !refuseLead.test(t)) {
+    if (/\b(?:ok|okay|sure|yea|yeah|yep|ye|alr|alright|down|fine|k|kk|mk|bet)\b/.test(t)) {
+      const carry = [
+        "dont worry ill carry u",
+        "dw i got u, ill carry",
+        "ur fine, ill carry",
+        "dont trip, ill carry",
+      ];
+      return { intent: "positive", reply: carry[Math.floor(Math.random() * carry.length)] };
     }
-  } catch {
-    // fall through to heuristic
-  }
-
-  // Heuristic fallback.
-  const t = latest.toLowerCase();
-  if (/\b(channel|chanel|yt|youtube|name|what.?s it called)\b/.test(t)) {
-    return { intent: "question", reply: `its ${channel}` };
+    // bare modesty ("im noob") — no yes/no yet; fall through to the model
+    // instead of counting it as a decline.
   }
   if (
-    /\b(yes|yea|yeah|yep|sure|ok|okay|kk|alr|alright|down|lets|let's|bet|fs|for sure|ofc|aight|ight|yessir|why not|i can|i'?ll help|help)\b/.test(
-      t,
-    )
+    (!selfDep.test(t) || refuseLead.test(t)) &&
+    /\b(no|nah|nope|cant|can'?t|busy|stop|leave|go away|stfu|noob|cringe|scam|bot|never|nty|idc|annoying|im good|im gd|i'?m good|not interested|nice try|falling for|ain'?t buying|not buying|yeah right|scammer|bait|see ya|cya|gtg|g2g|bye|srry|sorry|nvm|nvmd|my bad|mb|maybe later|not now|pass)\b/.test(t)
+  ) {
+    return { intent: "negative", reply: "" };
+  }
+  // "how can i participate" = they want in -> treat as YES (discord drop).
+  // The AI used to improvise procedure answers here ("send me ur ign and
+  // teammate") because it doesn't know the signup flow — code does.
+  if (
+    /\b(how (can|do|to) (i |u |you |we )?(participate|join|enter|sign ?up|get in)|where do i (sign ?up|join)|can i (join|play|participate|enter)|i wanna (join|play|help|participate)|i want (to join|in)|lets do it|im interested|i'?m interested)\b/.test(t)
   ) {
     return { intent: "positive", reply: "lets go" };
   }
   if (
-    /\b(no|nah|nope|cant|can'?t|busy|stop|leave|go away|stfu|noob|cringe|scam|bot|never|nty|idc|annoying)\b/.test(
-      t,
-    )
+    /\b(yes|yea|yeah|yep|sure|ok|okay|oke|okey|okej|okie|oki|okii|okk|okok|oks|okee|okiee|kk|k|mk|alr|alright|down|lets|let'?s|bet|fs|for sure|ofc|aight|ight|yessir|yup|ye|mhm|mmk|why not|im down|i'?m down|down to|i can|i'?ll help|help|help u|help you|with u|im in|i'?m in)\b/.test(t)
   ) {
-    return { intent: "negative", reply: "" };
+    return { intent: "positive", reply: "lets go" };
   }
-  return { intent: "neutral", reply: "" };
+  // Bare greeting ("ey", "yo", "sup") — they acknowledged but haven't
+  // answered yet. Push the question again from code instead of letting the
+  // model improvise (it used to answer random nonsense like "lol ur pretty
+  // good" because a lone greeting carries no context).
+  if (
+    /^(ey|eyy|eey|eyy+|yo|yoo+|hey+|hi+|hello+|yo yo|sup|wsp|wassup|wsup|what'?s up|wassap|hai+|ello|yerr|hola)\b[\s!.,?]*$/.test(t)
+  ) {
+    const nudges = [
+      "so ur down to help me out ?",
+      "u down for the 2v2 ?",
+      "so can u help me ?",
+      "u down to team up ?",
+    ];
+    return { intent: "neutral", reply: nudges[Math.floor(Math.random() * nudges.length)] };
+  }
+  if (/\b(channel|chanel|yt|youtube)\b/.test(t)) {
+    return { intent: "question", reply: "same as my username" };
+  }
+  // Discord asks get the real handle from code — the model used to improvise
+  // here ("the disc request dumbass", "u never even gave urs").
+  if (/\b(discord|disc|dc)\b/.test(t)) {
+    return { intent: "question", reply: `its ${discordUser}` };
+  }
+  // Server questions get the REAL configured IP from code — the model
+  // invented "hypixel" here, which is never the right answer.
+  if (/\b(server|srv|ip|address|adress)\b/.test(t) || /\bwhere\b.{0,20}\b(play|hop|join)\b/.test(t)) {
+    return { intent: "question", reply: `its ${serverIp}` };
+  }
+  // Gamemode questions answer from code too — every supported server is a
+  // sword-practice network, but the model invented "lifesteal"/"bedwars"
+  // because it has no idea what server it's on.
+  if (
+    /\bgame ?modes?\b/.test(t) ||
+    /\b(what|which|wat)\b.{0,20}\b(modes?|games?|play(ing)?)\b/.test(t) ||
+    /\bmodes?\s*\??\s*$/.test(t)
+  ) {
+    return { intent: "question", reply: "sword" };
+  }
+
+  // 2) Anything else → let the model write a short in-character reply.
+  // (discord/ip/channel handling is done in code by the beam loop, not the
+  // model — keeps the prompt tiny, see below)
+
+  // COMPACT prompt — the Pollinations GET endpoint 500s on long URLs (verified:
+  // ~430 chars works, ~900 chars returns HTTP 500), so the prompt is BUDGETED
+  // to 450: persona + their latest message are reserved, history fills the
+  // rest (oldest turns dropped first). Never blind-slice — that beheads the
+  // "they said:" part and the model answers without seeing the message.
+  // SLIM persona: the chat history below carries the actual pitch (opener
+  // lines are in it), so the model must stay consistent with what it ALREADY
+  // SAID instead of improvising from hardcoded facts that may not match a
+  // custom opener script.
+  const persona =
+    `ur ${selfName}, lt5 mc player looking for a 2v2 teammate. stay consistent with ur earlier msgs. ` +
+    `under 10 words, lowercase casual. u play sword practice, never bedwars/hypixel/lifesteal. ` +
+    `never insult or trash talk. if they decline or get annoyed, be chill and let it go.`;
+  const tail = ` they said: "${latest.slice(0, 100)}". ur reply:`;
+  let budget = 450 - persona.length - tail.length;
+  const turnsText = history
+    .slice(-5)
+    .map((h) => `${h.who === "me" ? "me" : "them"}: ${h.text}`);
+  const kept: string[] = [];
+  for (let i = turnsText.length - 1; i >= 0; i--) {
+    const piece = (kept.length ? " | " : "") + turnsText[i];
+    if (piece.length > budget) break;
+    kept.unshift(turnsText[i]);
+    budget -= piece.length;
+  }
+  let prompt = persona;
+  if (kept.length) prompt += `chat: ${kept.join(" | ")}. `;
+  prompt += tail;
+
+  const ai = await aiText(prompt);
+  if (ai.text) {
+    const reply = ai.text
+      .split(/\n/)
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .pop()!
+      .replace(/^["'`]+|["'`]+$/g, "")
+      .replace(/\bhypixel\b/gi, serverIp)
+      .replace(/\bbedwars\b/gi, "2v2 pvp")
+      .replace(/\b(lifesteal|life ?steal|skyblock|sky ?block|factions)\b/gi, "sword pvp")
+      .slice(0, 90);
+    if (reply) {
+      aiProviderLog.push({ provider: ai.provider, ms: ai.ms });
+      return { intent: "neutral", reply };
+    }
+  }
+
+  // 3) Everything failed → canned in-character reply so the convo never dies.
+  aiProviderLog.push({ provider: null, ms: ai.ms });
+  log(rt, "system", `⚠ AI providers failed (${lastAiError() || "unknown"}) — canned reply sent.`);
+  const reply = NEUTRAL_FALLBACK_REPLIES[fallbackIdx % NEUTRAL_FALLBACK_REPLIES.length];
+  fallbackIdx++;
+  return { intent: "neutral", reply };
+}
+
+// Built-in AI-beam opener variants — one is spun at random each match so the
+// bot doesn't repeat the exact same lines every time (anti-pattern detection).
+const DEFAULT_OPENER_VARIANTS: string[][] = [
+  ["yo", "u down for a quick 2v2 event ?", "need a teammate, its just a couple games"],
+  ["wsp", "im in a 2v2 event rn and need a teammate", "down to play ? we rank up if we win"],
+  ["hey", "quick 2v2 event, can u team with me ?", "takes like 5 min max, ill carry"],
+  ["sup", "need 1 teammate for a 2v2 event", "u down ? couple games and were done"],
+  ["yo", "2v2 event starting soon and i need a teammate", "u in ? just a couple rounds"],
+];
+
+// Opener lines for a bot: its custom script (one message per line, max 5) if
+// set, otherwise a random built-in variant.
+function getOpenerLines(record: Bot): string[] {
+  const custom = (record.openerScript || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .slice(0, 5);
+  if (custom.length > 0) return custom;
+  return DEFAULT_OPENER_VARIANTS[Math.floor(Math.random() * DEFAULT_OPENER_VARIANTS.length)];
+}
+
+// Lobby/ad message variation — servers ghost-mute accounts that repeat the
+// same line (exact AND fuzzy matches). Every send gets a unique combo of
+// prefix, casing, inner spacing and suffix; the words themselves (and the
+// trigger word) always stay intact. A ring buffer of recent sends +
+// re-roll guarantees no near-term repeats.
+const recentAdMessages: string[] = [];
+function varyAdMessage(base: string): string {
+  if (!base) return "";
+  const prefixes = ["", "yo ", "hey ", "alr ", "guys ", "btw ", "bro ", "honestly ", "lowkey ", "looking for "];
+  const suffixes = ["", "!", "!!", " lets go", " come on", " pls", " rq", " fr", " ty", "?"];
+  const build = (): string => {
+    const p = prefixes[Math.floor(Math.random() * prefixes.length)];
+    const sfx = suffixes[Math.floor(Math.random() * suffixes.length)];
+    let body = base.trim();
+    // occasional casing tweak on the first word
+    if (Math.random() < 0.35) {
+      body = body.charAt(0).toUpperCase() + body.slice(1);
+    }
+    // occasional extra space between words (breaks fuzzy matchers that
+    // normalize punctuation but not whitespace)
+    if (Math.random() < 0.4) {
+      const words = body.split(" ");
+      if (words.length >= 2) {
+        const i = 1 + Math.floor(Math.random() * (words.length - 1));
+        words.splice(i, 0, "");
+        body = words.join(" ");
+      }
+    }
+    return `${p}${body}${sfx}`.trim();
+  };
+  let out = build();
+  for (let tries = 0; tries < 10 && recentAdMessages.includes(out); tries++) {
+    out = build();
+  }
+  recentAdMessages.push(out);
+  if (recentAdMessages.length > 120) recentAdMessages.shift();
+  return out;
+}
+
+// Closing (discord drop) messages — per-bot script if set, else the built-in
+// default. One message per line, max 3. Placeholders: {discord} = the bot's
+// configured discord user, {ip} = the beam server IP (dot-safe).
+const DEFAULT_CLOSING =
+  "alr letme send you where to hop on, add me on discord {discord}\nlmk when sent";
+
+function getClosingLines(record: Bot, discordUser: string, safeIp: string): string[] {
+  const raw = (record.closingScript || "").trim();
+  const src = raw.length > 0 ? raw : DEFAULT_CLOSING;
+  return src
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .slice(0, 3)
+    .map((l) =>
+      l
+        .replace(/\{discord\}/gi, discordUser)
+        .replace(/\{ip\}/gi, safeIp.replace(/ \[dot\] /g, ".")),
+    );
 }
 
 // Run ONE recruit attempt against the nearest player. Returns an outcome.
@@ -1710,12 +2216,147 @@ async function runBeamOnce(
   const self = String(bot.username || "bot");
   const SEND_GAP = 2600;
 
+  if (record.beamType === "lobby") {
+    // Lobby Anti-AFK mode: the bot NEVER joins a match, so there is no world
+    // switch at all — this mode is safe on every engine (azalea included).
+    // It periodically sends the lobby message (keeps the bot anti-AFK and
+    // advertises the trigger word), and the moment any player says the trigger
+    // word in chat, it whispers them the reply via the same shared send path
+    // as the manual console.
+    rt.beamStage = "lobby anti-afk";
+    const lobbyMsg = record.spamMessage;
+    const interval = Number(record.spamInterval) > 0 ? Number(record.spamInterval) : 60000;
+    const triggerWord = (record.spamTriggerWord || "123").trim();
+    const replyMsg = record.spamReplyMessage;
+    // Word-boundary match so "123" doesn't fire on "1234" or inside words.
+    const triggerRe = new RegExp(
+      `(?:^|[^A-Za-z0-9_])${triggerWord.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![A-Za-z0-9_])`,
+      "i",
+    );
+
+    // Admin-only rotating methods: the bot switches to the next lobby
+    // message when nobody has said the trigger word for a while.
+    let lobbyMethodList: string[] = [];
+    try {
+      const parsed = JSON.parse(record.lobbyMethods || "[]");
+      if (Array.isArray(parsed)) {
+        lobbyMethodList = parsed
+          .map((x: unknown) => String(x).trim())
+          .filter((x: string) => x.length > 0)
+          .slice(0, 10);
+      }
+    } catch {
+      lobbyMethodList = [];
+    }
+    let methodIdx = 0;
+    let lastBiteAt = Date.now();
+    const ROTATE_AFTER_MS = 10 * 60 * 1000;
+    if (lobbyMethodList.length > 1) {
+      log(rt, "system", `🔆 Lobby: ${lobbyMethodList.length} rotating methods active (switch after ${Math.round(ROTATE_AFTER_MS / 60000)} min without a bite).`);
+    }
+
+    const replied = new Map<string, number>(); // lowercase name → last queued ts
+    // EVERY player who says the trigger word gets queued and whispered ~10s
+    // later — nobody is dropped, even if several say it in the same second.
+    const pending: { sender: string; dueAt: number }[] = [];
+    let lastSendAt = 0;
+
+    // The server rate-limits identical messages — same point, different
+    // wording every time (prefix + optional "dc" shorthand + suffix).
+    const varyReply = (base: string): string => {
+      if (!base) return "";
+      const prefixes = ["", "yeah so ", "yo ", "alr ", "hey ", "btw ", "bro "];
+      const suffixes = ["", " rq", " pls", " real quick", " ty"];
+      const p = prefixes[Math.floor(Math.random() * prefixes.length)];
+      const sfx = suffixes[Math.floor(Math.random() * suffixes.length)];
+      const body = Math.random() < 0.4 ? base.replace(/\bdiscord\b/gi, "dc") : base;
+      return `${p}${body}${sfx}`.trim();
+    };
+
+    const drainPending = () => {
+      if (!rt.bot || rt.status !== "online") return;
+      const now = Date.now();
+      if (now - lastSendAt < 1600) return; // spacing between whispers
+      const idx = pending.findIndex((e) => e.dueAt <= now);
+      if (idx === -1) return;
+      const item = pending.splice(idx, 1)[0];
+      lastSendAt = now;
+      const msg = varyReply(replyMsg);
+      log(rt, "system", `🔆 Lobby: whispering ${item.sender}: "${msg.slice(0, 70)}"`);
+      if (sendBotChat(rt, `/msg ${item.sender} ${msg}`)) {
+        try {
+          import("@/lib/training").then((m) => {
+            void m.recordConversation({
+              botId: rt.id,
+              target: item.sender,
+              outcome: "positive",
+              transcript: [
+                { who: "me", text: `/msg ${item.sender} ${msg}` },
+              ],
+            });
+          });
+        } catch {}
+      }
+    };
+
+    const onChat = (message: any) => {
+      try {
+        const raw = typeof message === "string" ? message : String(message);
+        // Never react to our own output (lobby message echo / sent whispers).
+        if (isSelfEcho(raw)) return;
+        if (!triggerRe.test(raw)) return;
+        const parsed = extractSenderAndMessage(raw);
+        if (!parsed) return; // can't tell who said it → stay quiet (safe)
+        const sender = parsed.sender;
+        if (!isValidUsername(sender)) return;
+        if (sender.toLowerCase() === self.toLowerCase()) return;
+        const lc = sender.toLowerCase();
+        const now = Date.now();
+        // Each player at most once every 15 min, and never double-queued…
+        if (now - (replied.get(lc) ?? 0) < 15 * 60 * 1000) return;
+        if (pending.some((e) => e.sender.toLowerCase() === lc)) return;
+        replied.set(lc, now);
+        lastBiteAt = now; // someone bit — keep the current method
+        // …queued for a whisper 10s later (feels human, beats spam filters).
+        pending.push({ sender, dueAt: now + 10000 });
+        log(rt, "system", `🔆 Lobby: ${sender} said "${triggerWord}" → whisper in 10s.`);
+      } catch {}
+    };
+
+    bot.on("messagestr", onChat);
+    log(
+      rt,
+      "system",
+      `🔆 Lobby mode: message every ${Math.round(interval / 1000)}s, trigger word "${triggerWord}".`,
+    );
+    try {
+      while (rt.beamLoop) {
+        if (!rt.bot || rt.status !== "online") break; // outer loop waits for reconnect
+        const baseMsg = lobbyMethodList.length ? lobbyMethodList[methodIdx % lobbyMethodList.length] : lobbyMsg;
+        sendBotChat(rt, varyAdMessage(baseMsg)); // unique every send — no ghost mutes
+        if (lobbyMethodList.length > 1 && Date.now() - lastBiteAt > ROTATE_AFTER_MS) {
+          methodIdx++;
+          lastBiteAt = Date.now();
+          log(rt, "system", `🔆 Lobby: no bites — switching to method ${(methodIdx % lobbyMethodList.length) + 1}/${lobbyMethodList.length}: "${lobbyMethodList[methodIdx % lobbyMethodList.length].slice(0, 60)}"`);
+        }
+        const start = Date.now();
+        while (Date.now() - start < interval && rt.beamLoop) {
+          await sleep(1000);
+          drainPending(); // due trigger whispers go out during the wait
+          if (!rt.bot || rt.status !== "online") break;
+        }
+      }
+    } finally {
+      bot.removeListener("messagestr", onChat);
+    }
+    return rt.beamLoop ? "positive" : "stopped";
+  }
+
   if (record.beamType === "spam") {
     rt.beamStage = "spamming";
     const msg = record.spamMessage;
     try {
-      bot.chat(msg);
-      log(rt, "chat", `<you → server> ${msg}`);
+      sendBotChat(rt, varyAdMessage(msg)); // unique every send — no ghost mutes
       
       // Also save to training DB as a "spam" log
       try {
@@ -1746,34 +2387,30 @@ async function runBeamOnce(
       if (low.includes(self.toLowerCase()) && low.includes("->")) return; // sent whispers
       
       if (low.includes(triggerWord)) {
-        // Very basic sender extraction (assumes format is `name: message` or `<name> message`)
-        let sender: string | null = null;
-        const chatMatch = raw.match(/^<([^>]+)>\s*(.*)$/);
-        const systemMatch = raw.match(/^([^:\s]+)\s*:\s*(.*)$/);
-        
-        if (chatMatch && chatMatch[1]) sender = chatMatch[1];
-        else if (systemMatch && systemMatch[1]) sender = systemMatch[1];
-
-        if (sender && sender.toLowerCase() !== self.toLowerCase() && isValidUsername(sender)) {
-          try {
-            bot.chat(`/msg ${sender} ${replyMsg}`);
-            log(rt, "chat", `<you → ${sender}> ${replyMsg}`);
-            
-            // Also log the trigger interaction
+        const parsed = extractSenderAndMessage(raw);
+        if (parsed) {
+          const sender = parsed.sender;
+          if (sender.toLowerCase() !== self.toLowerCase() && isValidUsername(sender)) {
             try {
-              import("@/lib/training").then(m => {
-                 m.recordConversation({
-                   botId: rt.id,
-                   target: sender,
-                   outcome: "positive",
-                   transcript: [
-                     { who: "them", text: raw },
-                     { who: "me", text: replyMsg }
-                   ],
-                 });
-              });
+              bot.chat(`/msg ${sender} ${replyMsg}`);
+              log(rt, "chat", `<you → ${sender}> ${replyMsg}`);
+            
+              // Also log the trigger interaction
+              try {
+                import("@/lib/training").then(m => {
+                  m.recordConversation({
+                    botId: rt.id,
+                    target: sender,
+                    outcome: "positive",
+                    transcript: [
+                      { who: "them", text: raw },
+                      { who: "me", text: replyMsg }
+                    ],
+                  });
+                });
+              } catch {}
             } catch {}
-          } catch {}
+          }
         }
       }
     };
@@ -1792,38 +2429,139 @@ async function runBeamOnce(
     return "positive"; // Loop again
   }
 
-  // 1) Hold hotbar slot 3 + right-click.
-  rt.beamStage = "equipping (slot 3 + right click)";
-  log(rt, "system", "🔆 Beam: slot 3 + right-click.");
-  try {
-    await bot.setQuickBarSlot(2);
-  } catch {
-    // ignore
-  }
-  await sleep(300);
-  try {
-    bot.activateItem();
-    await sleep(600);
-    bot.deactivateItem();
-  } catch {
-    // ignore
-  }
+  // Attach the match-start listener BEFORE queueing: the "● Opponent: X"
+  // card line can appear within milliseconds of the queue command, and the
+  // listener used to miss it and recover it from the logs a beat later.
+  // Wait for the server's "Match started!" message, OR fallback to a simple timeout if it doesn't appear.
+  // This solves the issue where opponents are vanished during the "5... 4... 3..." countdown.
+  rt.beamStage = "waiting for match to start";
+  log(rt, "system", "🔆 Beam: waiting for match start...");
+  let matchStarted = false;
+  let opponentFromChat: string | null = null;
+  const matchStartListener = (msg: any) => {
+    // Strip color codes AND zero-width spaces/invisible characters and common symbols like ●
+    const rawTxt = String(msg);
+    const txt = rawTxt.replace(/[\u00A7\u200B-\u200D\uFEFF●•]/g, " ").replace(/\s+/g, " ").trim();
+    const low = txt.toLowerCase();
+    if (low.includes("match started") || low.includes("duel started") || low.includes("fight started") || low.includes("game started")) matchStarted = true;
+    // Public chat from other players ("name: message") must NEVER set the
+    // target — match announcements come from the system, not players. A lobby
+    // ad like "ey7_buj2is59p: MSg me to join Girls Vs Boys Smp" used to be
+    // parsed as a "vs" line and the bot messaged "Boys".
+    const chatPrefix = txt.match(/^([A-Za-z0-9_]{3,16}):\s+\S/);
+    const isPlayerChat =
+      !!chatPrefix &&
+      ![
+        "opponent","map","ping","range","mode","kit","server","arena","duel",
+        "match","rank","winner","loser","version","players","duration","status",
+        "region","type","ping","queue",
+      ].includes(chatPrefix[1].toLowerCase());
+    // "vs" extraction only from system lines, and only before the match
+    // starts — the system "You vs PLAYER" line always precedes match start.
+    if (!isPlayerChat && !matchStarted && (low.includes("vs ") || low.includes("versus") || low.includes("fighting") || low.includes("dueling"))) {
+      // Some servers show "You vs PLAYER" or "Fighting PLAYER"
+      const vsMatch = txt.match(/(?:vs\.?|versus|fighting|dueling|against)\s+(?:\[[^\]]+\]\s*)?([A-Za-z0-9_]{3,16})/i);
+      if (vsMatch && vsMatch[1] && isValidUsername(vsMatch[1]) && vsMatch[1].toLowerCase() !== self.toLowerCase()) {
+        opponentFromChat = vsMatch[1].trim();
+        log(rt, "system", `🔆 Beam: Chat extracted target (vs) → ${opponentFromChat}`);
+      }
+    }
+    // Listen for the exact opponent name in the queue text
+    // The chat often has bullets (●) or other symbols before it.
+    // More robust: if line contains "Opponent", extract all valid usernames and pick last valid one
+    if (!isPlayerChat && low.includes("opponent")) {
+      // First try original regex
+      const oppMatch = txt.match(/Opponent[^A-Za-z0-9_]*([A-Za-z0-9_]{3,16})/i);
+      if (oppMatch && oppMatch[1] && isValidUsername(oppMatch[1]) && oppMatch[1].toLowerCase() !== self.toLowerCase()) {
+        opponentFromChat = oppMatch[1].trim();
+        log(rt, "system", `🔆 Beam: Chat extracted target → ${opponentFromChat}`);
+      } else {
+        // Fallback: extract all usernames from line and pick last valid that isn't self
+        const allNames = txt.match(/[A-Za-z0-9_]{3,16}/g) || [];
+        // Filter out common words like Opponent, Map, Ping, etc.
+        const filtered = allNames.filter(n => {
+          const l = n.toLowerCase();
+          if (["opponent","map","ping","searching","match","casual","ranked","meadows","crystal","winner","loser"].includes(l)) return false;
+          return isValidUsername(n) && l !== self.toLowerCase();
+        });
+        if (filtered.length > 0) {
+          opponentFromChat = filtered[filtered.length - 1];
+          log(rt, "system", `🔆 Beam: Chat extracted target (fallback) → ${opponentFromChat} from \"${txt.slice(0,80)}\"`);
+        }
+      }
+    }
+    // Also handle Minemen style: "Opponent: Fran1oPL" might be split – if we see a username after opponent line, capture
+    // If txt looks like just a username and previous line had Opponent, we already handled via fallback
+  };
+  
+  // On MCPVP, there is no "Match started!" message. Instead, the server
+  // transfers you to a duel instance, which fires a 'login' or 'respawn' packet.
+  // FIX: Only MCPVP uses BungeeCord transfer as match start signal.
+  // For Minemen/Crystal, we must wait for explicit "Match started!" message,
+  // otherwise we miss the Opponent: line that comes during countdown.
+  const isMcpvp = record.host.toLowerCase().includes("mcpvp");
+  const serverTransferListener = () => {
+    if (isMcpvp) {
+      matchStarted = true;
+      log(rt, "system", "🔆 Beam: MCPVP server transfer detected → match started");
+    }
+  };
+  const respawnListener = () => {
+    if (isMcpvp) {
+      matchStarted = true;
+      log(rt, "system", "🔆 Beam: MCPVP respawn detected → match started");
+    }
+  };
 
-  if (!rt.beamLoop) return "stopped";
-
-  // 2s pause, then walk forward 2s.
-  rt.beamStage = "waiting 2s after item";
-  log(rt, "system", "🔆 Beam: waiting 2s after item use.");
-  await sleep(2000);
-  rt.beamStage = "walking forward";
-  log(rt, "system", "🔆 Beam: walking forward 2s.");
-  try {
-    bot.setControlState("forward", true);
-    await sleep(2000);
-    bot.setControlState("forward", false);
-  } catch {
+  bot.on("messagestr", matchStartListener);
+  // Listen to transfer signals only for MCPVP
+  if (isMcpvp) {
+    if (bot._client) {
+      bot._client.on("login", serverTransferListener);
+      try { bot._client.on("respawn", respawnListener); } catch {}
+    }
     try {
-      bot.clearControlStates();
+      bot.on("spawn", serverTransferListener);
+    } catch {}
+  }
+  
+
+  // 1) Auto-queue per server, or hotbar right-click for the rest
+  const hostLower = record.host.toLowerCase();
+  if (hostLower.includes("mcpvp")) {
+    const queues = ["/queue sword", "/queue mace", "/queue axe"];
+    const q = queues[Math.floor(Math.random() * queues.length)];
+    rt.beamStage = "auto queue (MCPVP)";
+    try {
+      bot.chat(q);
+      log(rt, "chat", `<you → server> ${q}`);
+      log(rt, "system", `🔆 Beam: Sent ${q} to auto-join match.`);
+    } catch {}
+    await sleep(1500);
+  } else if (hostLower.includes("catpvp")) {
+    // CatPvP 1v1: queue the beast kit FIRST, then wait — the match-start
+    // waiter below takes over (match started / vs / opponent chat lines).
+    rt.beamStage = "auto queue (CatPvP)";
+    try {
+      bot.chat("/queue beast");
+      log(rt, "chat", "<you → server> /queue beast");
+      log(rt, "system", "🔆 Beam: Sent /queue beast — waiting for the match.");
+    } catch {}
+    await sleep(1500);
+  } else {
+    // Hold hotbar slot 3 + right-click.
+    rt.beamStage = "equipping (slot 3 + right click)";
+    log(rt, "system", "🔆 Beam: slot 3 + right-click.");
+    try {
+      await bot.setQuickBarSlot(2);
+    } catch {
+      // ignore
+    }
+    await sleep(300);
+    try {
+      bot.activateItem();
+      await sleep(600);
+      bot.deactivateItem();
     } catch {
       // ignore
     }
@@ -1831,14 +2569,128 @@ async function runBeamOnce(
 
   if (!rt.beamLoop) return "stopped";
 
-  // Find nearest player.
-  const target = findNearestPlayer(bot, self);
+  // (match-start listener moved above the queue step — see top of this section)
+
+  const waitStart = Date.now();
+  // Wait up to 25 seconds for the match to start (Minemen can be slow)
+  while (!matchStarted && Date.now() - waitStart < 25000 && rt.beamLoop) {
+    await sleep(500);
+  }
+  if (!matchStarted) {
+    log(rt, "system", "🔆 Beam: match start timeout, proceeding anyway");
+    matchStarted = true;
+  }
+  if (opponentFromChat) {
+    // Opponent already captured (match card during countdown) — start
+    // messaging right away. Only a short human pause so the first /msg
+    // isn't fired on the exact match-start tick (some servers ghost it).
+    await sleep(humanGap(1000, 0.3));
+  } else {
+    // No name yet — keep the listener alive a bit longer to catch a late
+    // "Opponent:" line before falling back to the log scan below.
+    await sleep(1500);
+  }
+  bot.removeListener("messagestr", matchStartListener);
+  if (isMcpvp) {
+    if (bot._client) {
+      bot._client.removeListener("login", serverTransferListener);
+      try { bot._client.removeListener("respawn", respawnListener); } catch {}
+    }
+    try { bot.removeListener("spawn", serverTransferListener); } catch {}
+  }
+  if (!rt.beamLoop) return "stopped";
+
+  // SIMPLE FLOW: match started → message the opponent. No countdown wait, no
+  // walking (movement was what wedged azalea at the arena switch — every hang
+  // started the exact second the walk fired), no extra world scanning. The
+  // match-start listener above already grabbed the opponent from the
+  // "Opponent: X" chat line, and the 1.5s settle above catches late lines.
+  try {
+    if (rt.nmpPlayers) rt.nmpPlayers.clear(); // never target lobby players
+  } catch {}
+  rt.beamStage = "messaging opponent";
+
+  if (!rt.beamLoop) return "stopped";
+
+  // Use the chat-extracted opponent if we found it! Otherwise fallback to scanning players.
+  // BACKUP: Scan recent logs for Opponent: in case matchStartListener missed it due to timing
+  if (!opponentFromChat) {
+    try {
+      // Scan last 30 logs for opponent
+      const recentLogs = rt.logs.slice(-40);
+      for (let i = recentLogs.length - 1; i >= 0; i--) {
+        const line = recentLogs[i].line;
+        const clean = line.replace(/[\u00A7\u200B-\u200D\uFEFF●•]/g, " ").replace(/\s+/g, " ").trim();
+        const logPrefix = clean.match(/^([A-Za-z0-9_]{3,16}):\s+\S/);
+        const logIsPlayerChat =
+          !!logPrefix &&
+          !["opponent","map","ping","range","mode","kit","server","arena","duel","match","rank","winner","loser","version","players","duration","status","region","type","queue"].includes(logPrefix[1].toLowerCase());
+        if (!logIsPlayerChat && clean.toLowerCase().includes("opponent")) {
+          const m = clean.match(/Opponent[^A-Za-z0-9_]*([A-Za-z0-9_]{3,16})/i);
+          if (m && m[1] && isValidUsername(m[1]) && m[1].toLowerCase() !== self.toLowerCase()) {
+            const lower = m[1].toLowerCase();
+            if (!["map","ping","searching","match","casual","ranked","meadows","crystal","winner","loser"].includes(lower)) {
+              opponentFromChat = m[1].trim();
+              log(rt, "system", `🔆 Beam: recovered opponent from logs → ${opponentFromChat}`);
+              break;
+            }
+          }
+          // Fallback: extract all usernames
+          const all = clean.match(/[A-Za-z0-9_]{3,16}/g) || [];
+          const filtered = all.filter(n => {
+            const l = n.toLowerCase();
+            if (["opponent","map","ping","searching","match","casual","ranked","meadows","crystal","winner","loser","tournament","host","mode","players","starting","click","join"].includes(l)) return false;
+            return isValidUsername(n) && l !== self.toLowerCase();
+          });
+          if (filtered.length > 0) {
+            opponentFromChat = filtered[filtered.length - 1];
+            log(rt, "system", `🔆 Beam: recovered opponent from logs (fallback) → ${opponentFromChat}`);
+            break;
+          }
+        }
+      }
+    } catch {}
+  }
+
+  let target = opponentFromChat || findNearestPlayer(rt, self);
+  let retries = 5;
+  while (!target && retries > 0 && rt.beamLoop) {
+    rt.beamStage = "looking for player…";
+    log(rt, "system", "🔆 Beam: looking for opponent (waiting 1s)...");
+    await sleep(1000);
+    // If opponentFromChat is still null, keep checking the game world
+    target = opponentFromChat || findNearestPlayer(rt, self);
+    retries--;
+  }
+  
   if (!target || !isValidUsername(target)) {
     rt.beamStage = "no valid player nearby";
     log(rt, "system", "🔆 Beam: no valid nearby player found.");
     return "noplayer";
   }
   log(rt, "system", `🔆 Beam: target → ${target}.`);
+
+  // ---- Contact memory: never pitch the same player twice ----
+  const methodTag = (record.openerScript || "").trim() ? "custom" : "default";
+  const known = await shouldSkipTarget(target, record.host);
+  if (known.skip) {
+    log(rt, "system", `🔆 Beam: ${target} already contacted (${known.reason}) — skipping, /leave.`);
+    void recordAttempt({ botId: record.id, host: record.host, username: target, method: methodTag, stage: "skipped_known", note: known.reason }).catch(() => {});
+    try {
+      sendBotChat(rt, "/leave");
+    } catch {
+      // ignore
+    }
+    return "negative";
+  }
+  // Funnel recorder for this match — one row per stage, in order:
+  // messaged → replied → agreed → discord_dropped → said_sent, plus terminals.
+  const stagesSeen = new Set<string>();
+  const markStage = (stage: string, note = "") => {
+    if (stagesSeen.has(stage)) return;
+    stagesSeen.add(stage);
+    void recordAttempt({ botId: record.id, host: record.host, username: target, method: methodTag, stage, note }).catch(() => {});
+  };
 
   // Death detection.
   let died = false;
@@ -1862,34 +2714,58 @@ async function runBeamOnce(
 
   // Persistent reply capture: whispers FROM target OR target's public chat.
   const inbox: string[] = [];
-  const onMsg = (message: string) => {
-    const raw = String(message);
+
+  // Track server acks for /msg to confirm delivery
+  let lastMsgAck = 0;
+  const ackListener = (msg: any) => {
+    const raw = String(msg);
+    const low = raw.toLowerCase();
+    if (
+      (low.includes(`(to ${target.toLowerCase()})`) || low.includes(`to ${target.toLowerCase()}`)) &&
+      (low.includes("you") || raw.includes("→") || raw.includes("->") || low.includes("whisper"))
+    ) {
+      lastMsgAck = Date.now();
+      log(rt, "system", `🔆 Beam: server ack for /msg to ${target} confirmed`);
+    }
+    if (low.includes("cannot message") || low.includes("player not found") || low.includes("is not online") || low.includes("you cannot message")) {
+      if (low.includes(target.toLowerCase())) {
+        log(rt, "system", `🔆 Beam: server says cannot message ${target}: ${raw.slice(0,100)}`);
+      }
+    }
+  };
+
+  const onMsg = (message: any) => {
+    // Handle both string (messagestr) and object (chat event with username/message)
+    let raw = "";
+    if (typeof message === "string") raw = message;
+    else if (message && typeof message === "object") {
+      // mineflayer chat event: (username, message) or {username, message}
+      if (typeof message.text === "string") raw = message.text;
+      else if (typeof message.message === "string") raw = message.message;
+      else if (Array.isArray(message) && message.length >= 2) raw = `${message[0]}: ${message[1]}`;
+      else raw = String(message);
+    } else raw = String(message);
+    if (!raw) return;
+    if (isSelfEcho(raw)) return; // never listen to our own outgoing echoes
     const low = raw.toLowerCase();
 
     // --- Match Results detection (the reliable death/leave signal) ---
-    // e.g. "🏆 Winner: mxtzzee_  ▏  ☠ Loser: karam_4"
     if (low.includes("winner:") && low.includes("loser:")) {
       const winMatch = raw.match(/winner\s*:\s*([A-Za-z0-9_]+)/i);
       const loseMatch = raw.match(/loser\s*:\s*([A-Za-z0-9_]+)/i);
       const winner = winMatch?.[1]?.toLowerCase();
       const loser = loseMatch?.[1]?.toLowerCase();
       if (loser === self.toLowerCase()) {
-        // We lost the duel → we were killed.
         died = true;
         log(rt, "system", "🔆 Beam: match results show I was killed.");
       } else if (winner === self.toLowerCase()) {
-        // Opponent lost → they died/left.
         log(rt, "system", "🔆 Beam: match results show opponent died/left.");
-        // If the opponent was our target, treat them as gone.
         if (loser && loser === target.toLowerCase()) targetLeft = true;
       }
       return;
     }
 
-    // "X was killed by Y" style lines.
-    const killMatch = raw.match(
-      /([A-Za-z0-9_]+)\s+was killed by\s+([A-Za-z0-9_]+)/i,
-    );
+    const killMatch = raw.match(/([A-Za-z0-9_]+)\s+was killed by\s+([A-Za-z0-9_]+)/i);
     if (killMatch) {
       const victim = killMatch[1].toLowerCase();
       if (victim === self.toLowerCase()) {
@@ -1903,40 +2779,122 @@ async function runBeamOnce(
       }
     }
 
-    // Leave / disconnect detection.
     if (
       low.includes(target.toLowerCase()) &&
-      (low.includes("disconnected") || low.includes("left the game"))
+      (low.includes("disconnected") || low.includes("left the game") || low.includes("left the match") || low.includes("has left"))
     ) {
       targetLeft = true;
+      log(rt, "system", `🔆 Beam: ${target} left detected via chat`);
       return;
     }
 
-    // Whisper from the target (private).
+    // Detect /msg failures
+    if (low.includes("cannot message") || low.includes("player not found") || low.includes("is not online") || low.includes("you cannot")) {
+      if (low.includes(target.toLowerCase()) || low.includes("message")) {
+        log(rt, "system", `🔆 Beam: /msg failed: ${raw.slice(0,100)}`);
+      }
+    }
+
+    // Whisper from the target (private) – try all formats
     const whisper = parseWhisperFrom(raw, target);
     if (whisper) {
+      log(rt, "system", `🔆 Beam: got whisper from ${target}: \"${whisper.slice(0,80)}\"`);
       inbox.push(whisper);
       return;
     }
-    // Public chat from the target (e.g. "Kotofey52: no bro").
+    // Public chat from the target
     const pub = parsePublicChatFrom(raw, target);
     if (pub) {
+      log(rt, "system", `🔆 Beam: got public from ${target}: \"${pub.slice(0,80)}\"`);
       inbox.push(pub);
+      return;
+    }
+    // Fallback: any chat containing target name
+    const any = parseAnyChatFrom(raw, target);
+    if (any) {
+      log(rt, "system", `🔆 Beam: got fallback from ${target}: \"${any.slice(0,80)}\"`);
+      inbox.push(any);
+      return;
     }
   };
+  // FIX: Keep references to chat listeners so we can remove them properly
+  const onChatMineflayer = (username: string, message: string) => {
+    if (!username || !message) return;
+    if (username.toLowerCase() === self.toLowerCase()) return;
+    // For mineflayer, username is already parsed, so we can directly check
+    if (username.toLowerCase() === target.toLowerCase()) {
+      log(rt, "system", `🔆 Beam: got chat event from ${target}: \"${message.slice(0,80)}\"`);
+      inbox.push(message);
+    }
+    onMsg(`${username}: ${message}`);
+  };
+  // Listen to multiple events to ensure we don't miss chat after arena switch
   bot.on("messagestr", onMsg);
+  bot.on("messagestr", ackListener);
+  // For mineflayer bots, also listen to chat event (username, message)
+  try {
+    bot.on("chat", onChatMineflayer);
+  } catch {}
+  // For Azalea, also listen to any other chat-like events
+  try {
+    bot.on("systemChat", (data: any) => {
+      let text = "";
+      try {
+        if (typeof data === "string") text = data;
+        else if (data?.formattedMessage) {
+          try { text = extractText(JSON.parse(data.formattedMessage)); } catch { text = String(data.formattedMessage); }
+        } else if (data?.content) {
+          try { text = extractText(JSON.parse(data.content)); } catch { text = String(data.content); }
+        } else text = String(data);
+      } catch { text = String(data); }
+      if (text) {
+        onMsg(text);
+        ackListener(text);
+      }
+    });
+  } catch {}
 
   const history: { who: "me" | "them"; text: string }[] = [];
 
   const whisper = async (line: string, gap = SEND_GAP) => {
+    const isMcpvp = record.host.toLowerCase().includes("mcpvp");
     try {
-      bot.chat(`/msg ${target} ${line}`);
-      log(rt, "chat", `<you → ${target}> ${line}`);
+      // SIMPLIFIED: One method per server type to avoid spam filter
+      // Minemen/Crystal: /msg is primary and reliable, public is backup only if /msg fails
+      // MCPVP: public chat is isolated to duel arena, so public is primary
+      
+      if (isMcpvp) {
+        // MCPVP: public chat is duel-local, /msg often disabled
+        if (sendBotChat(rt, line)) {
+          log(rt, "system", `🔆 Beam: sent public (MCPVP) → "${line.slice(0,60)}"`);
+        } else {
+          log(rt, "error", `public chat failed (MCPVP), trying /msg fallback`);
+          // Fallback to /msg
+          sendBotChat(rt, `/msg ${target} ${line}`);
+        }
+      } else {
+        // Minemen / Crystal / others: /msg is reliable
+        // We do ONE /msg attempt, log it, and push to history
+        // The ackListener will confirm if server accepted it
+        lastMsgAck = 0;
+        if (sendBotChat(rt, `/msg ${target} ${line}`)) {
+          log(rt, "system", `🔆 Beam: sent /msg to ${target}: "${line.slice(0,60)}"`);
+        } else {
+          log(rt, "error", `/msg failed for ${target}, trying public fallback`);
+          // Fallback: try public chat as last resort (arena chat visible to opponent in Minemen)
+          sendBotChat(rt, line);
+          log(rt, "system", `🔆 Beam: sent public fallback: "${line.slice(0,60)}"`);
+        }
+        
+        // Wait 800ms to see if we get ack, but don't block too long
+        // If no ack in 2s, we will try public as backup on next message? No, keep it simple.
+        // Just wait a bit for server to process
+        await sleep(600);
+      }
       history.push({ who: "me", text: line });
-    } catch {
-      // ignore
+    } catch (e) {
+      log(rt, "error", `whisper send failed: ${String(e).slice(0,120)}`);
     }
-    // Human-like variance so message timing never looks robotic.
     await sleep(humanGap(gap, 0.22));
   };
 
@@ -1946,6 +2904,9 @@ async function runBeamOnce(
   const whisperHuman = async (text: string, gap = SEND_GAP) => {
     const clean = text.trim();
     if (!clean) return;
+    // Never reply the instant their message lands — instant replies read as
+    // botty and some servers ghost messages sent too fast.
+    await sleep(humanGap(1100, 0.3));
     // Break into natural chunks.
     let parts = clean
       .split(/(?<=[.!?])\s+|\s*[\n;]+\s+|\s+\b(?:and then|then)\b\s+/i)
@@ -1977,7 +2938,7 @@ async function runBeamOnce(
     const gapOrReply = async (ms: number): Promise<boolean> => {
       const start = Date.now();
       while (Date.now() - start < ms) {
-        if (!rt.beamLoop || died) return inbox.length > consumed;
+        if (!rt.beamLoop || died || targetLeft) return inbox.length > consumed;
         if (inbox.length > consumed) {
           await sleep(500); // settle for follow-up lines
           return true;
@@ -1989,9 +2950,20 @@ async function runBeamOnce(
 
     const doLeave = (why: string) => {
       log(rt, "system", `🔆 Beam: ${why} → /leave.`);
+      // Funnel terminals (agreed is never downgraded inside upsertContact).
+      if (why.includes("declin")) {
+        markStage("declined", why);
+        void upsertContact({ username: target, host: record.host, outcome: "declined", method: methodTag, botId: record.id }).catch(() => {});
+      } else if (why.includes("no reply")) {
+        markStage("no_reply");
+        void upsertContact({ username: target, host: record.host, outcome: "noreply", method: methodTag, botId: record.id }).catch(() => {});
+      } else if (why.includes("left")) {
+        markStage("target_left");
+      } else if (why.toLowerCase().includes("gave ip")) {
+        markStage("gave_ip");
+      }
       try {
-        bot.chat("/leave");
-        log(rt, "chat", "<you → server> /leave");
+        sendBotChat(rt, "/leave");
       } catch {
         // ignore
       }
@@ -2001,37 +2973,27 @@ async function runBeamOnce(
     const runClosing = async (): Promise<
       "positive" | "died" | "stopped"
     > => {
-      rt.beamStage = "positive → asking gamemode";
-      log(rt, "system", "🔆 Beam: positive! Asking for gamemode.");
-      
-      await whisper("ayy lets go, what gamemode u good at?");
+      rt.beamStage = "positive → dropping discord";
+      log(rt, "system", "🔆 Beam: positive! Dropping discord.");
+
+      // Small human pause after their "ok" — replying instantly reads bot-like.
+      await sleep(humanGap(2100, 0.3));
       if (died) return "died";
       if (!rt.beamLoop) return "stopped";
 
-      // Wait up to 30s for them to answer the gamemode question.
-      await gapOrReply(30000);
-      if (died) return "died";
-      if (!rt.beamLoop) return "stopped";
-
-      // Consume their reply if they sent one.
-      if (inbox.length > consumed) {
-        const r = inbox.slice(consumed).join(" ");
-        consumed = inbox.length;
-        history.push({ who: "them", text: r });
-        log(rt, "system", `🔆 Beam: ${target} answered gamemode: "${r.slice(0, 60)}"`);
+      // Discord drop lines — per-bot closing script or the default style.
+      const safeIp = serverIp.replace(/\./g, " [dot] ");
+      const closingLines = getClosingLines(record, discordUser, safeIp);
+      for (let ci = 0; ci < closingLines.length; ci++) {
+        await whisper(closingLines[ci]);
+        if (died) return "died";
+        if (!rt.beamLoop) return "stopped";
+        if (ci < closingLines.length - 1) await sleep(humanGap(1900, 0.25));
       }
-
-      // Now hardcode the Discord drop so the AI doesn't get stuck chatting forever.
-      rt.beamStage = "dropping discord";
-      await whisper(`could u add my discord ${discordUser} pls, its starting soon`);
-      if (died) return "died";
-      if (!rt.beamLoop) return "stopped";
-      await whisper("then ill send the ip so u can hop on");
-      await whisper("thanks man");
-      log(rt, "system", "🔆 Beam: closing script sent.");
+      log(rt, "system", "🔆 Beam: discord drop sent.");
+      markStage("discord_dropped");
 
       let gaveIp = false;
-      const safeIp = serverIp.replace(/\./g, " [dot] ");
 
       // Now wait for them to leave the server (meaning they went to add discord).
       rt.beamStage = `waiting for ${target} to leave…`;
@@ -2046,10 +3008,20 @@ async function runBeamOnce(
         if (targetLeft) break;
         if (inbox.length <= consumed) continue; // silence → keep waiting
 
-        const r = inbox.slice(consumed).join(" ");
+        // Burst merge (same as handleReply): "oki" + "sent" arriving apart
+        // must be read as one thought.
+        let r = inbox.slice(consumed).join(" ");
         consumed = inbox.length;
+        for (let round = 0; round < 3; round++) {
+          await sleep(1000);
+          if (died || !rt.beamLoop || targetLeft) break;
+          if (inbox.length <= consumed) break;
+          r += " " + inbox.slice(consumed).join(" ");
+          consumed = inbox.length;
+        }
         history.push({ who: "them", text: r });
         log(rt, "system", `🔆 Beam: ${target} said "${r.slice(0, 60)}"`);
+        markStage("replied");
 
         const lr = r.toLowerCase();
         
@@ -2063,8 +3035,9 @@ async function runBeamOnce(
         // Did they say they sent the request?
         const sent = /\b(sent|added|added you|add(ed)? u|joined|joining|im in|i'?m in|ready|added ya|friended|on it|coming)\b/.test(lr);
         if (sent) {
+          markStage("said_sent");
           // Send to AI so it replies naturally (e.g. "alright one sec please").
-          const aiSent = await aiConverse(channel, self, history, r, safeIp, discordUser);
+          const aiSent = await aiConverse(rt, channel, self, history, r, safeIp, discordUser);
           if (aiSent.reply) {
             await whisperHuman(aiSent.reply);
           } else {
@@ -2077,7 +3050,7 @@ async function runBeamOnce(
         const noDiscord = /\b(idh|i ?don'?t have|no discord|dont have discord|cant use discord|can'?t use discord|cannot use discord|no dc|dont use discord)\b/.test(lr);
         if (noDiscord && !gaveIp) {
           gaveIp = true;
-          const ai2 = await aiConverse(channel, self, history, r, safeIp, discordUser);
+          const ai2 = await aiConverse(rt, channel, self, history, r, safeIp, discordUser);
           if (ai2.reply) {
             await whisperHuman(ai2.reply);
           } else {
@@ -2093,7 +3066,7 @@ async function runBeamOnce(
         }
 
         // Otherwise, let AI handle any random questions while we wait for them to leave.
-        const ai2 = await aiConverse(channel, self, history, r, safeIp, discordUser);
+        const ai2 = await aiConverse(rt, channel, self, history, r, safeIp, discordUser);
         if (ai2.intent === "negative") {
           doLeave("they declined");
           break;
@@ -2118,12 +3091,27 @@ async function runBeamOnce(
       "negative" | "positive" | "continue" | "died" | "stopped"
     > => {
       if (inbox.length <= consumed) return "continue";
-      const reply = inbox.slice(consumed).join(" ");
+      // Players send bursts ("ey" ... "oki") — wait briefly and merge every
+      // line into ONE input so the classifier and the AI see the whole
+      // thought, not fragments that get answered out of context.
+      // NOTE: gapOrReply already settles 500ms before this runs, so the
+      // effective catch window is 500ms + 1000ms round = 1.5s — don't lower
+      // the settle without re-checking burst capture.
+      let reply = inbox.slice(consumed).join(" ");
       consumed = inbox.length;
+      for (let round = 0; round < 3; round++) {
+        await sleep(1000);
+        if (died || !rt.beamLoop || targetLeft) break;
+        if (inbox.length <= consumed) break;
+        reply += " " + inbox.slice(consumed).join(" ");
+        consumed = inbox.length;
+      }
       history.push({ who: "them", text: reply });
       log(rt, "system", `🔆 Beam: ${target} said "${reply.slice(0, 60)}"`);
+      markStage("replied");
+      void upsertContact({ username: target, host: record.host, outcome: "replied", method: methodTag, botId: record.id }).catch(() => {});
 
-      const ai = await aiConverse(channel, self, history, reply, serverIp, discordUser);
+      const ai = await aiConverse(rt, channel, self, history, reply, serverIp, discordUser);
       log(rt, "system", `🔆 Beam: intent=${ai.intent.toUpperCase()}.`);
 
       if (ai.intent === "negative") {
@@ -2131,11 +3119,22 @@ async function runBeamOnce(
         return "negative";
       }
       if (ai.intent === "positive") {
+        markStage("agreed");
+        void upsertContact({ username: target, host: record.host, outcome: "agreed", method: methodTag, botId: record.id }).catch(() => {});
+        // Reassure first when they agreed shyly ("ok but im noob").
+        if (ai.reply && ai.reply !== "lets go") await whisperHuman(ai.reply);
         return await runClosing();
       }
       // question / neutral → reply in-character (split into human messages).
       if (ai.reply) await whisperHuman(ai.reply);
-      else if (ai.intent === "question") await whisper(`its ${channel}`);
+      else if (ai.intent === "question") await whisper("same as my username");
+      // Soft decline ("im playing with my friends") — the farewell reply is
+      // sent above; now LEAVE instead of lingering and answering forever.
+      if (/\b(with my friends?|with friends|playing with (my )?friends?|i'?m playing|im playing|playing rn|in a game rn)\b/.test(reply.toLowerCase())) {
+        await sleep(1500);
+        doLeave("they're busy (playing with friends)");
+        return "negative";
+      }
       if (died) return "died";
       if (!rt.beamLoop) return "stopped";
       return "continue";
@@ -2150,34 +3149,51 @@ async function runBeamOnce(
     outcome = await (async (): Promise<
       "positive" | "negative" | "died" | "stopped"
     > => {
-    // Opener — send each line, then an interruptible gap. If the target
-    // replies at ANY point (during a gap or right after), handle it now.
+    // Opener — user-configurable script (one message per line) or a random
+    // built-in variant, so every match doesn't read identical in chat logs.
+    const openerLines = getOpenerLines(record);
+    log(rt, "system", `🔆 Beam: opener (${openerLines.length} line${openerLines.length === 1 ? "" : "s"}): ${openerLines.map((l) => `"${l.slice(0, 30)}"`).join(" ")}`);
+    markStage("messaged");
+    void upsertContact({ username: target, host: record.host, outcome: "messaged", method: methodTag, botId: record.id }).catch(() => {});
+
     rt.beamStage = `messaging ${target}`;
 
-    await whisper("hi", 0);
-    if (await gapOrReply(1000)) {
-      const o = await handleReply();
-      if (o !== "continue") return settle(o);
-    } else if (died) return "died";
-    else if (!rt.beamLoop) return "stopped";
+    // Send the remaining opener lines first (the pitch must land), then
+    // answer whatever they said mid-script.
+    const finishScriptThenReply = async (
+      fromIdx: number,
+    ): Promise<"negative" | "positive" | "continue" | "died" | "stopped"> => {
+      for (let j = fromIdx; j < openerLines.length; j++) {
+        if (died || !rt.beamLoop || targetLeft) break;
+        await whisper(openerLines[j], 0);
+        await sleep(1200);
+      }
+      if (died) return "died";
+      if (!rt.beamLoop) return "stopped";
+      return await handleReply();
+    };
 
-    if (inbox.length <= consumed) {
-      await whisper("can u help me film a yt video", 0);
-      if (await gapOrReply(3000)) {
-        const o = await handleReply();
+    for (let i = 0; i < openerLines.length; i++) {
+      if (died) return "died";
+      if (!rt.beamLoop) return "stopped";
+      if (targetLeft) {
+        log(rt, "system", `🔆 Beam: ${target} left mid-opener → ending attempt.`);
+        doLeave("target left mid-opener");
+        return "negative";
+      }
+      if (i > 0 && inbox.length > consumed) {
+        // they replied mid-script → finish the script, then answer
+        const o = await finishScriptThenReply(i);
         if (o !== "continue") return settle(o);
-      } else if (died) return "died";
-      else if (!rt.beamLoop) return "stopped";
-    }
-
-    if (inbox.length <= consumed) {
-      await whisper(
-        "Cuz i got a challenge of a 2v2 if we win we will get a rankup",
-        0,
-      );
-      if (await gapOrReply(2600)) {
-        const o = await handleReply();
+        break;
+      }
+      await whisper(openerLines[i], 0);
+      const waitMs = i === 0 ? 1000 : i === openerLines.length - 1 ? 2600 : 3000;
+      if (await gapOrReply(waitMs)) {
+        // reply during the wait → send any remaining lines first, then answer
+        const o = await finishScriptThenReply(i + 1);
         if (o !== "continue") return settle(o);
+        break; // they engaged — let the conversation loop do the talking
       } else if (died) return "died";
       else if (!rt.beamLoop) return "stopped";
     }
@@ -2185,12 +3201,17 @@ async function runBeamOnce(
     // Ongoing conversation loop (before they've agreed).
     // Wait 10s LONGER than before (30s) so slow repliers aren't dropped.
     let turns = 0;
-    while (rt.beamLoop && !died && turns < 10) {
+    while (rt.beamLoop && !died && !targetLeft && turns < 10) {
       turns++;
       rt.beamStage = `waiting for ${target}…`;
       const got = await gapOrReply(30000);
       if (died) return "died";
       if (!rt.beamLoop) return "stopped";
+      if (targetLeft) {
+        log(rt, "system", `🔆 Beam: ${target} left → ending attempt.`);
+        doLeave("target left");
+        return "negative";
+      }
       if (!got) {
         await sleep(1500);
         doLeave("no reply");
@@ -2205,10 +3226,17 @@ async function runBeamOnce(
     return outcome;
   } finally {
     bot.removeListener("messagestr", onMsg);
+    try { bot.removeListener("messagestr", ackListener); } catch {}
+    try { bot.removeListener("chat", onChatMineflayer); } catch {}
+    try { bot.removeListener("chat", onMsg); } catch {}
+    try { bot.removeListener("systemChat", onMsg); } catch {}
+    try { bot.removeListener("systemChat", ackListener); } catch {}
     bot.removeListener("death", onDeath);
     bot.removeListener("playerLeft", onPlayerLeft);
     try {
-      bot.setControlState("forward", false);
+      if (typeof bot.setControlState === "function") {
+        bot.setControlState("forward", false);
+      }
     } catch {
       // ignore
     }
@@ -2249,6 +3277,11 @@ export async function startBeam(id: string): Promise<BotActionResult> {
 
   if (!record) return { ok: false, message: "Bot record not found" };
 
+  // AI mode kill switch — no new 1v1 AI beams while the site has it disabled.
+  if (record.beamType === "ai" && !(await isAiModeEnabled())) {
+    return { ok: false, message: "AI mode is temporarily disabled" };
+  }
+
   rt.beamLoop = true;
   rt.beaming = true;
   rt.beamStage = "starting";
@@ -2256,7 +3289,24 @@ export async function startBeam(id: string): Promise<BotActionResult> {
 
   (async () => {
     try {
-      while (rt.beamLoop && rt.bot && rt.status === "online") {
+      // If the engine restarts mid-beam (e.g. the azalea supervisor respawning
+      // a wedged sidecar), wait for it to come back instead of killing the beam.
+      let waitingSince: number | null = null;
+      while (rt.beamLoop) {
+        if (!rt.bot || rt.status !== "online") {
+          if (waitingSince === null) {
+            waitingSince = Date.now();
+            log(rt, "system", "🔆 Beam: bot reconnecting — beam paused, waiting…");
+          }
+          if (Date.now() - waitingSince > 300000) {
+            log(rt, "system", "🔆 Beam: bot offline too long → stopping beam.");
+            break;
+          }
+          rt.beamStage = "waiting for bot to reconnect…";
+          await sleep(2000);
+          continue;
+        }
+        waitingSince = null;
         const outcome = await runBeamOnce(rt, record);
         if (!rt.beamLoop) break;
         if (outcome === "stopped") break;
@@ -2298,6 +3348,32 @@ export async function startBeam(id: string): Promise<BotActionResult> {
   })();
 
   return { ok: true, message: "Beam started" };
+}
+
+// If a beam loop is running for this bot, restart it so it picks up its
+// (already updated) DB config immediately — e.g. ai -> lobby switch.
+// CRITICAL: stopBeam only REQUESTS a stop — the loop finishes its current
+// iteration first (can take a while). Starting a new beam before the old
+// loop actually exited resurrects it (while(beamLoop) sees true again) and
+// BOTH loops run, the old one with its stale config. So we wait for the
+// loop to fully exit before starting the replacement.
+export async function restartBeamIfRunning(id: string): Promise<boolean> {
+  const rt = runtimes.get(id);
+  if (!rt || !rt.beamLoop) return false;
+  if (rt.status !== "online") {
+    // Reconnecting — just kill the beam; the owner restarts it later.
+    await stopBeam(id);
+    return false;
+  }
+  await stopBeam(id);
+  const deadline = Date.now() + 90000;
+  while (Date.now() < deadline) {
+    if (!rt.beamLoop && !rt.beaming) break;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  if (rt.beamLoop || rt.beaming) return false; // never exited — give up
+  const res = await startBeam(id);
+  return res.ok;
 }
 
 export async function stopBeam(id: string): Promise<BotActionResult> {
