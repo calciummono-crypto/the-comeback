@@ -1,4 +1,6 @@
 import crypto from "crypto";
+import { spawn, type ChildProcessWithoutNullStreams } from "child_process";
+import { existsSync } from "fs";
 import { db } from "@/db";
 import { bots, type Bot } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -558,6 +560,229 @@ async function startRawNmpBot(record: Bot, rt: BotRuntime) {
   }
 }
 
+function findAzaleaBridge(): string | null {
+  const candidates = [
+    process.env.AZALEA_BRIDGE_PATH || "",
+    "/usr/local/bin/azalea-bridge",
+    `${process.cwd()}/azalea-bridge/target/release/azalea-bridge`,
+  ].filter(Boolean);
+  return candidates.find((p) => existsSync(p)) ?? null;
+}
+
+function makeAzaleaBot(proc: ChildProcessWithoutNullStreams, username: string) {
+  const write = (payload: Record<string, unknown>) => {
+    if (!proc.killed && proc.stdin.writable) {
+      proc.stdin.write(`${JSON.stringify(payload)}\n`);
+    }
+  };
+  const wrapper: any = {
+    __engine: "azalea",
+    process: proc,
+    username,
+    azaleaSnapshot: null,
+    nmpPlayers: new Set<string>(),
+    get pid() {
+      return proc.pid ?? null;
+    },
+    get heldItem() {
+      const held = wrapper.azaleaSnapshot?.heldItem;
+      return held ? { name: String(held), displayName: String(held) } : null;
+    },
+    get currentWindow() {
+      const w = wrapper.azaleaSnapshot?.window;
+      return w ? { title: w.title, slots: w.slots ?? [] } : null;
+    },
+    chat(message: string) {
+      write({ op: "chat", text: message });
+    },
+    write(_packet: string, payload: any) {
+      if (_packet === "chat" && typeof payload?.message === "string") {
+        write({ op: "chat", text: payload.message });
+      }
+    },
+    quit() {
+      write({ op: "disconnect" });
+      setTimeout(() => {
+        if (!proc.killed) proc.kill("SIGTERM");
+      }, 1500).unref?.();
+    },
+    end() {
+      wrapper.quit();
+    },
+    removeAllListeners() {
+      proc.removeAllListeners();
+      proc.stdout.removeAllListeners();
+      proc.stderr.removeAllListeners();
+    },
+    setQuickBarSlot(slot: number) {
+      write({ op: "select", slot });
+    },
+    activateItem() {
+      write({ op: "use" });
+    },
+    deactivateItem() {
+      write({ op: "use_stop" });
+    },
+    tossStack() {
+      write({ op: "drop" });
+    },
+    setControlState(dir: string, on: boolean) {
+      const azaleaDir = dir === "back" ? "back" : dir === "left" ? "left" : dir === "right" ? "right" : "forward";
+      write({ op: "walk", dir: azaleaDir, on, ms: on ? 650 : undefined });
+    },
+    clickWindow(slot: number) {
+      write({ op: "clickWindow", slot });
+    },
+    closeWindow() {
+      write({ op: "closeWindow" });
+    },
+  };
+  return wrapper;
+}
+
+async function startAzaleaBot(record: Bot, rt: BotRuntime, profile: MinecraftProfile): Promise<void> {
+  const bridge = findAzaleaBridge();
+  if (!bridge) {
+    const msg = "Azalea bridge binary not found. Railway must build the Dockerfile, or set AZALEA_BRIDGE_PATH.";
+    rt.status = "error";
+    rt.lastError = msg;
+    log(rt, "error", msg);
+    await setDbStatus(record.id, "error", msg);
+    return;
+  }
+
+  log(rt, "system", `Starting Azalea bridge: ${bridge}`);
+  const child = spawn(bridge, [], {
+    stdio: ["pipe", "pipe", "pipe"],
+    env: { ...process.env, RUST_LOG: process.env.RUST_LOG || "warn" },
+  });
+  const bot = makeAzaleaBot(child, profile.name);
+  rt.bot = bot;
+  rt.status = "connecting";
+  rt.joined = false;
+  rt.lastError = null;
+  await setDbStatus(record.id, "connecting");
+
+  const startPayload = {
+    op: "start",
+    host: record.host,
+    port: record.port,
+    username: profile.name,
+    uuid: profile.id,
+    token: record.token,
+    proxy: record.proxy || undefined,
+  };
+  child.stdin.write(`${JSON.stringify(startPayload)}\n`);
+
+  const timeout = setTimeout(() => {
+    if (!rt.joined && rt.status === "connecting") {
+      const msg = "Azalea connection timed out (no spawn/status after 60s).";
+      rt.status = "error";
+      rt.lastError = msg;
+      log(rt, "error", msg);
+      void setDbStatus(record.id, "error", msg);
+      try { child.kill("SIGTERM"); } catch {}
+    }
+  }, 60_000);
+
+  let stdoutBuf = "";
+  child.stdout.on("data", (chunk) => {
+    stdoutBuf += chunk.toString("utf8");
+    let idx: number;
+    while ((idx = stdoutBuf.indexOf("\n")) >= 0) {
+      const line = stdoutBuf.slice(0, idx).trim();
+      stdoutBuf = stdoutBuf.slice(idx + 1);
+      if (!line) continue;
+      try {
+        const ev = JSON.parse(line) as any;
+        const kind = String(ev.ev || "");
+        if (kind === "log") {
+          log(rt, ev.level === "error" ? "error" : "system", String(ev.line || ""));
+        } else if (kind === "chat") {
+          const chatLine = String(ev.line || "");
+          log(rt, "chat", chatLine);
+          const chatMatch = chatLine.match(/^<?([A-Za-z0-9_]{3,16})>?[: ]/);
+          if (chatMatch?.[1]) rt.nmpPlayers.add(chatMatch[1]);
+        } else if (kind === "status") {
+          if (ev.status === "online") {
+            clearTimeout(timeout);
+            rt.status = "online";
+            rt.joined = true;
+            rt.lastError = null;
+            void setDbStatus(record.id, "online");
+          }
+        } else if (kind === "snapshot") {
+          bot.azaleaSnapshot = ev;
+          clearTimeout(timeout);
+          if (!rt.joined) {
+            rt.status = "online";
+            rt.joined = true;
+            rt.lastError = null;
+            void setDbStatus(record.id, "online");
+          }
+        } else if (kind === "player_add") {
+          if (typeof ev.name === "string") rt.nmpPlayers.add(ev.name);
+        } else if (kind === "player_remove") {
+          if (typeof ev.name === "string") rt.nmpPlayers.delete(ev.name);
+        } else if (kind === "error") {
+          const msg = String(ev.line || "Azalea error");
+          rt.status = "error";
+          rt.lastError = msg;
+          rt.joined = false;
+          log(rt, "error", msg);
+          void setDbStatus(record.id, "error", msg);
+        } else if (kind === "end") {
+          const msg = String(ev.line || "azalea ended");
+          if (!rt.manualStop && rt.status !== "error") {
+            rt.status = rt.joined ? "offline" : "error";
+            rt.lastError = rt.joined ? null : msg;
+            log(rt, rt.joined ? "system" : "error", `Azalea ended: ${msg}`);
+            void setDbStatus(record.id, rt.status, rt.lastError);
+          }
+          rt.joined = false;
+          rt.bot = null;
+        } else if (kind === "hb") {
+          // heartbeat is used by the instance panel later
+        }
+      } catch {
+        log(rt, "system", line);
+      }
+    }
+  });
+
+  child.stderr.on("data", (chunk) => {
+    const line = chunk.toString("utf8").trim();
+    if (line) log(rt, "system", `[azalea] ${line}`);
+  });
+
+  child.on("error", (err) => {
+    clearTimeout(timeout);
+    const msg = `Azalea bridge failed: ${err.message}`;
+    rt.status = "error";
+    rt.lastError = msg;
+    rt.joined = false;
+    log(rt, "error", msg);
+    void setDbStatus(record.id, "error", msg);
+  });
+
+  child.on("exit", (code, signal) => {
+    clearTimeout(timeout);
+    if (rt.bot === bot) rt.bot = null;
+    rt.joined = false;
+    if (rt.manualStop) {
+      rt.status = "offline";
+      log(rt, "system", "Azalea bot stopped.");
+      void setDbStatus(record.id, "offline");
+    } else if (rt.status !== "error") {
+      const msg = `Azalea exited (${signal || (code ?? "unknown")}).`;
+      rt.status = "error";
+      rt.lastError = msg;
+      log(rt, "error", msg);
+      void setDbStatus(record.id, "error", msg);
+    }
+  });
+}
+
 async function resolveConnectionVersion(
   record: Bot,
   rt: BotRuntime,
@@ -655,6 +880,10 @@ export async function startBot(record: Bot): Promise<void> {
     log(rt, "error", msg);
     await setDbStatus(record.id, "error", msg);
     return;
+  }
+
+  if (record.engine === "azalea") {
+    return startAzaleaBot(record, rt, profile);
   }
 
   let mineflayer: typeof import("mineflayer");
@@ -1090,6 +1319,10 @@ export function getViewSnapshot(id: string): ViewSnapshot | null {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const bot: any = rt.bot;
+
+  if (bot.__engine === "azalea" && bot.azaleaSnapshot) {
+    return bot.azaleaSnapshot as ViewSnapshot;
+  }
 
   // Raw NMP Fallback: Return a valid but empty snapshot so UI renders buttons
   if (!bot.entity) {
@@ -2347,9 +2580,9 @@ export function listBotInstances() {
   const now = Date.now();
   return Array.from(runtimes.values()).map((rt) => ({
     botId: rt.id,
-    engine: rt.bot ? "mineflayer" : "nmp",
+    engine: rt.bot?.__engine ?? (rt.bot ? "mineflayer" : "nmp"),
     status: rt.status,
-    pid: null as number | null,
+    pid: typeof rt.bot?.pid === "number" ? rt.bot.pid : null,
     startedAt: null as number | null,
     heartbeatAgeS: 0,
     tickAgeS: 0,
