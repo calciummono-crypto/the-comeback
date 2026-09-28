@@ -10,7 +10,7 @@
 const POLLINATIONS_BASE = "https://gen.pollinations.ai/text";
 
 const DEFAULT_POLLINATIONS_KEYS = [
-  "sk_vJX96vllkS0ErOcbmdSe2avyyxA9jSFE",
+  "sk_2v71KHgtGXfsHlXkJVpzrV37BtXC2YiF",
 ];
 const DEFAULT_OPENROUTER_KEY = "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";
 // "deepseek-pro" is live-verified fast/reliable on both keys; the earlier
