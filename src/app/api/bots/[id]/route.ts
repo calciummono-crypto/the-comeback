@@ -1,11 +1,30 @@
 import { db } from "@/db";
+import { whenCreated } from "@/lib/webhook";
+import { logDiscordEvent } from "@/lib/eventLog";
 import { bots } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { stopBot, startBot } from "@/lib/botManager";
+import { isAiModeEnabled } from "@/lib/maintenance";
 import { authorizeBot } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  const auth = await authorizeBot(id);
+  if (!auth.ok) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+  const [bot] = await db.select().from(bots).where(eq(bots.id, id));
+  if (!bot) {
+    return Response.json({ error: "Not found" }, { status: 404 });
+  }
+  return Response.json({ bot });
+}
 
 export async function DELETE(
   _req: Request,
@@ -16,8 +35,19 @@ export async function DELETE(
   if (!auth.ok) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
+  const [existing] = await db.select().from(bots).where(eq(bots.id, id));
   await stopBot(id);
   await db.delete(bots).where(eq(bots.id, id));
+  logDiscordEvent("bot", {
+    title: "Bot deleted",
+    color: 0xf43f5e,
+    fields: [
+      { name: "Bot", value: existing?.name ?? id, inline: true },
+      { name: "Deleted by", value: auth.user?.username ?? "unknown", inline: true },
+      { name: "Server", value: existing ? `${existing.host}:${existing.port}` : "?", inline: true },
+      { name: "When", value: whenCreated() },
+    ],
+  });
   return Response.json({ ok: true });
 }
 
@@ -47,6 +77,9 @@ export async function PATCH(
     spamInterval?: number;
     spamTriggerWord?: string;
     spamReplyMessage?: string;
+    openerScript?: string;
+    closingScript?: string;
+    lobbyMethods?: unknown;
   };
   try {
     body = await req.json();
@@ -83,16 +116,47 @@ export async function PATCH(
   if (typeof body.discordUser === "string" && body.discordUser.trim()) {
     updates.discordUser = body.discordUser.trim();
   }
-  if (body.engine === "mineflayer" || body.engine === "nmp") {
+  if (
+    body.engine === "mineflayer" ||
+    body.engine === "nmp" ||
+    body.engine === "azalea"
+  ) {
     updates.engine = body.engine;
   }
-  if (body.beamType === "ai" || body.beamType === "spam") {
+  if (body.beamType === "ai" || body.beamType === "spam" || body.beamType === "lobby") {
+    if (body.beamType === "ai" && !(await isAiModeEnabled())) {
+      return Response.json(
+        { error: "AI mode is temporarily disabled — use the lobby adbot mode instead" },
+        { status: 403 },
+      );
+    }
     updates.beamType = body.beamType;
   }
   if (typeof body.spamMessage === "string") updates.spamMessage = body.spamMessage;
   if (typeof body.spamInterval === "number") updates.spamInterval = body.spamInterval;
   if (typeof body.spamTriggerWord === "string") updates.spamTriggerWord = body.spamTriggerWord;
   if (typeof body.spamReplyMessage === "string") updates.spamReplyMessage = body.spamReplyMessage;
+  if (typeof body.openerScript === "string") updates.openerScript = body.openerScript.trim();
+  if (typeof body.closingScript === "string") updates.closingScript = body.closingScript.trim().slice(0, 500);
+  if (body.lobbyMethods !== undefined) {
+    if (auth.user?.role !== "admin") {
+      return Response.json({ error: "Only admins can set rotating methods." }, { status: 403 });
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let arr: any = body.lobbyMethods;
+    if (typeof arr === "string") {
+      try {
+        arr = JSON.parse(arr);
+      } catch {
+        arr = arr.split("\n");
+      }
+    }
+    if (Array.isArray(arr)) {
+      updates.lobbyMethods = JSON.stringify(
+        arr.map((x) => String(x).trim()).filter(Boolean).slice(0, 10).map((x) => x.slice(0, 200)),
+      );
+    }
+  }
 
   // Change the target server (host, with optional "host:port", or explicit port).
   if (typeof body.host === "string" && body.host.trim()) {

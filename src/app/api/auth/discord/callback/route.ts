@@ -4,6 +4,7 @@ import {
   attachSessionCookie,
   upsertDiscordUser,
 } from "@/lib/auth";
+import { getClientIp, recordUserIp } from "@/lib/ip";
 import { publicOrigin } from "@/lib/origin";
 import { DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET } from "@/lib/config";
 
@@ -74,7 +75,8 @@ export async function GET(req: Request) {
         : null,
     });
 
-    const res = NextResponse.redirect(`${origin}/`);
+    const res = NextResponse.redirect(`${origin}/?login=success`);
+    void recordUserIp(user.id, getClientIp(req));
     attachSessionCookie(res, user.id);
     return res;
   } catch (err) {

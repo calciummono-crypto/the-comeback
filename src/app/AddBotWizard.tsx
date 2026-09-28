@@ -1,0 +1,768 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { PlusIcon, SwordsIcon, MegaphoneIcon } from "./Icons";
+
+// ---------------------------------------------------------------------------
+// Add-bot wizard (quick flow for everyone):
+//   1. paste session ID -> the account's IGN is fetched and shown
+//   2. pick a server   (minemen.club / mcpvp.club, with their icons)
+//   3. pick a proxy    (eu / as / na)
+//   4. pick beaming mode:
+//      - 1v1 Player Method -> opener script (editable default) + discord
+//      - Adbot (standing)  -> lobby message, trigger word, reply message
+//   5. create & connect (engine defaults to azalea)
+// The old advanced form lives in the admin-only "Add Bots" tab.
+// ---------------------------------------------------------------------------
+
+type Profile = { name: string; id: string };
+
+type ServerRegion = {
+  id: string;
+  label: string;
+  blurb: string;
+  // full hostname to connect to (some networks use east./west. instead of na.)
+  host: string;
+};
+
+const SERVERS = [
+  {
+    id: "minemen",
+    domain: "minemen.club",
+    label: "Minemen Club",
+    accent: "from-fuchsia-500/20 to-purple-500/5",
+    ring: "ring-fuchsia-500/40",
+    text: "text-fuchsia-300",
+    iconHost: "eu.minemen.club",
+    regions: [
+      { id: "eu", label: "EU", blurb: "Europe proxy", host: "eu.minemen.club" },
+      { id: "na", label: "NA", blurb: "North America proxy", host: "na.minemen.club" },
+      { id: "as", label: "AS", blurb: "Asia proxy", host: "as.minemen.club" },
+    ] as ServerRegion[],
+  },
+  {
+    id: "mcpvp",
+    domain: "mcpvp.club",
+    label: "MCPVP Club",
+    accent: "from-rose-500/20 to-red-500/5",
+    ring: "ring-rose-500/40",
+    text: "text-rose-300",
+    iconHost: "eu.mcpvp.club",
+    regions: [
+      { id: "eu", label: "EU", blurb: "Europe proxy", host: "eu.mcpvp.club" },
+      { id: "na", label: "NA", blurb: "US proxy", host: "mcpvp.club" },
+      { id: "as", label: "AS", blurb: "Asia proxy", host: "as.mcpvp.club" },
+    ] as ServerRegion[],
+  },
+  {
+    id: "catpvp",
+    domain: "catpvp.xyz",
+    label: "CatPvP",
+    accent: "from-amber-500/20 to-orange-500/5",
+    ring: "ring-amber-500/40",
+    text: "text-amber-300",
+    iconHost: "catpvp.com",
+    regions: [
+      { id: "eu", label: "EU", blurb: "Europe — Germany", host: "eu.catpvp.xyz" },
+      { id: "east", label: "US East", blurb: "NA East proxy", host: "east.catpvp.xyz" },
+      { id: "west", label: "US West", blurb: "NA West proxy", host: "west.catpvp.xyz" },
+      { id: "as", label: "AS", blurb: "Asia proxy", host: "as.catpvp.xyz" },
+      { id: "au", label: "AU", blurb: "Australia proxy", host: "au.catpvp.xyz" },
+    ] as ServerRegion[],
+  },
+  {
+    id: "pvphq",
+    domain: "pvphq.com",
+    label: "PvP HQ",
+    accent: "from-indigo-500/20 to-blue-500/5",
+    ring: "ring-indigo-500/40",
+    text: "text-indigo-300",
+    iconHost: "pvphq.com",
+    regions: [
+      { id: "na", label: "NA", blurb: "North America proxy", host: "na.pvphq.com" },
+      { id: "eu", label: "EU", blurb: "Europe proxy", host: "eu.pvphq.com" },
+      { id: "as", label: "AS", blurb: "Asia proxy", host: "as.pvphq.com" },
+      { id: "au", label: "AU", blurb: "Oceania proxy", host: "au.pvphq.com" },
+    ] as ServerRegion[],
+  },
+];
+
+const BEAM_MODES: { id: string; title: string; blurb: string; icon: React.ReactNode }[] = [
+  {
+    id: "ai",
+    title: "1v1 Player Method",
+    blurb:
+      "Joins matches, chats with AI to recruit a teammate, gets their discord.",
+    icon: <SwordsIcon size={18} />,
+  },
+  {
+    id: "lobby",
+    title: "Adbot (Standing Method)",
+    blurb:
+      "Stays in the lobby, advertises the trigger word, whispers repliers.",
+    icon: <MegaphoneIcon size={18} />,
+  },
+];
+
+const DEFAULT_CLOSING =
+  "alr letme send you where to hop on, add me on discord {discord}\nlmk when sent";
+
+const DEFAULT_OPENER =
+  "yo\nsup, could you help me ?\ncause im in a 2v2 event and i need a teamate ;[";
+
+const STEP_LABELS = ["Session", "Server", "Proxy", "Beaming", "Setup"];
+
+export default function AddBotWizard({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const [step, setStep] = useState(0);
+  const [token, setToken] = useState("");
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [sessionError, setSessionError] = useState<string | null>(null);
+  const [serverId, setServerId] = useState<string | null>(null);
+  const [region, setRegion] = useState<string | null>(null);
+  const [beamMode, setBeamMode] = useState<string | null>(null);
+  // AI mode can be disabled site-wide from the admin panel — grey it out.
+  const [aiDisabled, setAiDisabled] = useState(false);
+  // Account login mode: paste a session ID, or email + password.
+  const [loginMode, setLoginMode] = useState<"session" | "msa">("session");
+  const [mcEmail, setMcEmail] = useState("");
+  const [mcPassword, setMcPassword] = useState("");
+  const [msaBusy, setMsaBusy] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/ai-mode")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (alive && d && d.enabled === false) setAiDisabled(true);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+  // 1v1 method config
+  const [opener, setOpener] = useState(DEFAULT_OPENER);
+  const [closing, setClosing] = useState(DEFAULT_CLOSING);
+  const [discordUser, setDiscordUser] = useState("");
+  // adbot config
+  const [lobbyMsg, setLobbyMsg] = useState("type 123 in chat for tier test all mode");
+  const [triggerWord, setTriggerWord] = useState("123");
+  const [replyMsg, setReplyMsg] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const server = SERVERS.find((s) => s.id === serverId) ?? null;
+
+  function onTokenChange(v: string) {
+    setToken(v);
+    setProfile(null);
+    setSessionError(null);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const val = v.trim();
+    if (!val) return;
+    debounceRef.current = setTimeout(() => void checkSession(val), 500);
+  }
+
+  async function checkSession(val: string) {
+    setChecking(true);
+    setSessionError(null);
+    try {
+      const res = await fetch("/api/bots/resolve-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: val }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setProfile(null);
+        setSessionError(data.error ?? "Could not verify this session ID");
+      } else {
+        setProfile({ name: data.name, id: data.id });
+      }
+    } catch {
+      setSessionError("Network error while checking the session ID");
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  // Email + password -> server runs the Microsoft login chain and returns
+  // the SAME kind of bearer token the session ID method uses.
+  async function loginWithEmail() {
+    if (msaBusy) return;
+    setMsaBusy(true);
+    setSessionError(null);
+    setProfile(null);
+    try {
+      const res = await fetch("/api/auth/mc-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: mcEmail.trim(), password: mcPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSessionError(data.error ?? "Login failed");
+      } else {
+        setToken(data.token);
+        setProfile({ name: data.name, id: data.id });
+        setMcPassword("");
+      }
+    } catch {
+      setSessionError("Network error while logging in");
+    } finally {
+      setMsaBusy(false);
+    }
+  }
+
+  async function create() {
+    if (!profile || !server || !region || !beamMode) return;
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const payload: Record<string, unknown> = {
+        name: profile.name,
+        token: token.trim(),
+        host: server.regions.find((r) => r.id === region)?.host ?? server.domain,
+        port: 25565,
+        version: "auto",
+        engine: "azalea",
+        beamType: beamMode,
+      };
+      if (beamMode === "ai") {
+        payload.openerScript = opener;
+        payload.closingScript = closing;
+        payload.discordUser = discordUser.trim();
+      } else {
+        payload.spamMessage = lobbyMsg;
+        payload.spamTriggerWord = triggerWord;
+        payload.spamReplyMessage = replyMsg;
+      }
+      const res = await fetch("/api/bots", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCreateError(data.error ?? "Failed to create bot");
+        return;
+      }
+      onCreated();
+    } catch {
+      setCreateError("Network error while creating bot");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  function canNext(): boolean {
+    if (step === 0) return profile !== null;
+    if (step === 1) return serverId !== null;
+    if (step === 2) return region !== null;
+    if (step === 3) return beamMode !== null && !(beamMode === "ai" && aiDisabled);
+    return true;
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] grid place-items-center p-4 sm:p-6">
+      <div
+        className="absolute inset-0 animate-fade-in bg-[#030712]/80 backdrop-blur-xl"
+        onClick={onClose}
+      />
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative z-10 flex w-full animate-pop-in items-center justify-center"
+      >
+        <div className="absolute -inset-1 z-[-1] rounded-[2rem] bg-gradient-to-b from-emerald-500/20 to-indigo-500/10 opacity-60 blur-xl" />
+        <div className="premium-modal flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-[24px]">
+          {/* header */}
+          <div className="flex items-center justify-between border-b border-white/5 bg-white/[0.02] px-6 py-5">
+            <div className="flex items-center gap-4">
+              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white shadow-[0_0_20px_-5px_color-mix(in_srgb,var(--color-emerald-500)_50%,transparent)]">
+                <PlusIcon size={22} />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold tracking-tight text-white">
+                  Add a bot
+                </h2>
+                <p className="text-xs font-medium text-slate-400">
+                  Session ID → server → proxy → beaming mode
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="grid h-8 w-8 place-items-center rounded-full bg-white/5 text-slate-400 transition hover:bg-white/10 hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* step dots */}
+          <div className="flex items-center gap-2 border-b border-white/5 px-6 py-3">
+            {STEP_LABELS.map((label, i) => (
+              <div key={label} className="flex flex-1 items-center gap-2">
+                <div
+                  className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold transition ${
+                    i < step
+                      ? "bg-emerald-500/20 text-emerald-300"
+                      : i === step
+                        ? "scale-110 bg-emerald-500 text-emerald-950 shadow-[0_0_12px_color-mix(in_srgb,var(--color-emerald-500)_50%,transparent)]"
+                        : "bg-slate-800 text-slate-500"
+                  }`}
+                >
+                  {i < step ? "✓" : i + 1}
+                </div>
+                <span
+                  className={`hidden text-xs font-medium sm:block ${
+                    i === step ? "text-slate-200" : "text-slate-500"
+                  }`}
+                >
+                  {label}
+                </span>
+                {i < STEP_LABELS.length - 1 && (
+                  <div
+                    className={`h-px flex-1 ${i < step ? "bg-emerald-500/40" : "bg-slate-800"}`}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* body — keyed by step so each pane animates in */}
+          <div key={step} className="flex-1 overflow-y-auto p-6 animate-fade-in">
+            {step === 0 && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      { id: "session", label: "Session ID" },
+                      { id: "msa", label: "Email + Password" },
+                    ] as const
+                  ).map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => {
+                        setLoginMode(m.id);
+                        setSessionError(null);
+                      }}
+                      className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                        loginMode === m.id
+                          ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300 ring-1 ring-emerald-500/30"
+                          : "border-slate-700/80 bg-slate-950/60 text-slate-400 hover:border-slate-500"
+                      }`}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+
+                {loginMode === "session" ? (
+                  <Field label="Session ID">
+                    <textarea
+                      value={token}
+                      onChange={(e) => onTokenChange(e.target.value)}
+                      placeholder="Paste your session ID…"
+                      rows={3}
+                      className={`${inputClass} resize-none font-mono text-xs`}
+                    />
+                  </Field>
+                ) : (
+                  <div className="space-y-3">
+                    <Field label="Minecraft account email">
+                      <input
+                        value={mcEmail}
+                        onChange={(e) => setMcEmail(e.target.value)}
+                        placeholder="you@example.com"
+                        type="email"
+                        autoComplete="off"
+                        className={inputClass}
+                      />
+                    </Field>
+                    <Field label="Password">
+                      <input
+                        value={mcPassword}
+                        onChange={(e) => setMcPassword(e.target.value)}
+                        onKeyDown={(e) =>
+                          e.key === "Enter" &&
+                          mcEmail.trim() &&
+                          mcPassword &&
+                          void loginWithEmail()
+                        }
+                        placeholder="Your Minecraft password"
+                        type="password"
+                        autoComplete="off"
+                        className={inputClass}
+                      />
+                    </Field>
+                    <button
+                      type="button"
+                      onClick={() => void loginWithEmail()}
+                      disabled={msaBusy || !mcEmail.trim() || !mcPassword}
+                      className="w-full rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-bold text-emerald-950 transition hover:bg-emerald-400 disabled:opacity-50"
+                    >
+                      {msaBusy ? "Logging in…" : "Log in"}
+                    </button>
+                    <p className="text-[11px] leading-relaxed text-slate-500">
+                      The password is used once to sign you in and is never
+                      stored — the bot keeps only the access token, same as
+                      the session ID method. Accounts with 2FA need the
+                      session ID method.
+                    </p>
+                  </div>
+                )}
+                {checking && (
+                  <p className="flex items-center gap-2 text-sm text-slate-400">
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-600 border-t-emerald-400" />
+                    Checking session…
+                  </p>
+                )}
+                {sessionError && (
+                  <p className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-300 ring-1 ring-rose-500/20">
+                    {sessionError}
+                  </p>
+                )}
+                {profile && (
+                  <div className="flex items-center gap-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+                    <HeadAvatar name={profile.name} />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate text-lg font-bold text-white">
+                          {profile.name}
+                        </span>
+                        <span className="text-emerald-400">✓</span>
+                      </div>
+                      <div className="truncate font-mono text-[11px] text-slate-400">
+                        {profile.id}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {step === 1 && (
+              <div className="grid grid-cols-2 gap-3">
+                {SERVERS.map((s) => {
+                  const on = serverId === s.id;
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => {
+                        setServerId(s.id);
+                        setRegion(s.regions[0]?.id ?? null);
+                      }}
+                      className={`flex flex-col items-center gap-3 rounded-2xl border bg-gradient-to-b p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/30 ${s.accent} ${
+                        on
+                          ? `border-white/20 ring-2 ${s.ring}`
+                          : "border-slate-700/80 hover:border-slate-500"
+                      }`}
+                    >
+                      <ServerLogo key={s.iconHost} host={s.iconHost} label={s.label} />
+                      <div className="text-center">
+                        <div className="text-sm font-bold text-white">
+                          {s.domain}
+                        </div>
+                        <div className={`text-[11px] font-medium ${s.text}`}>
+                          {s.label}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {step === 2 && (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {(server?.regions ?? []).map((r) => {
+                  const on = region === r.id;
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => setRegion(r.id)}
+                      className={`rounded-xl border px-3 py-4 text-center transition-all duration-200 hover:-translate-y-0.5 ${
+                        on
+                          ? "border-emerald-500/50 bg-emerald-500/10 ring-1 ring-emerald-500/30"
+                          : "border-slate-700/80 bg-slate-950/60 hover:border-slate-500"
+                      }`}
+                    >
+                      <div className="text-lg font-bold text-white">{r.label}</div>
+                      <div className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                        {r.blurb}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {step === 3 && (
+              <div className="grid gap-2">
+                {BEAM_MODES.map((m) => {
+                  const on = beamMode === m.id;
+                  const disabled = m.id === "ai" && aiDisabled;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => !disabled && setBeamMode(m.id)}
+                      className={`rounded-xl border px-3.5 py-3 text-left transition-all duration-200 ${
+                        disabled
+                          ? "cursor-not-allowed border-slate-800 bg-slate-950/40 opacity-50"
+                          : `hover:-translate-y-0.5 ${
+                              on
+                                ? "border-emerald-500/50 bg-emerald-500/10 ring-1 ring-emerald-500/30"
+                                : "border-slate-700/80 bg-slate-950/60 hover:border-slate-500"
+                            }`
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-lg">{m.icon}</span>
+                        <span className="text-sm font-semibold text-slate-100">
+                          {m.title}
+                        </span>
+                        {disabled && (
+                          <span className="ml-auto text-[10px] font-bold uppercase tracking-wide text-rose-400">
+                            disabled
+                          </span>
+                        )}
+                        {on && !disabled && (
+                          <span className="ml-auto text-[10px] font-bold uppercase tracking-wide text-emerald-400">
+                            selected
+                          </span>
+                        )}
+                      </div>
+                      <span className="mt-1 block pl-7 text-xs text-slate-400">
+                        {m.blurb}
+                      </span>
+                      {disabled && (
+                        <span className="mt-1 block pl-7 text-xs text-rose-300/80">
+                          Temporarily disabled by the site admin — use the adbot
+                          mode for now.
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {step === 4 && beamMode === "ai" && (
+              <div className="space-y-4">
+                <Field
+                  label="Opener script"
+                  hint="One message per line — the bot sends these to the teammate it finds. Edit freely."
+                >
+                  <textarea
+                    value={opener}
+                    onChange={(e) => setOpener(e.target.value)}
+                    rows={4}
+                    className={`${inputClass} resize-none`}
+                  />
+                </Field>
+                <Field
+                  label="Closing messages"
+                  hint="Sent after they agree — one per line, up to 3. {discord} = your discord below, {ip} = the server IP. Leave as-is for the default."
+                >
+                  <textarea
+                    value={closing}
+                    onChange={(e) => setClosing(e.target.value)}
+                    rows={2}
+                    className={`${inputClass} resize-none`}
+                  />
+                </Field>
+                <Field
+                  label="Your Discord username"
+                  hint="The bot asks the teammate to add this on discord."
+                >
+                  <input
+                    value={discordUser}
+                    onChange={(e) => setDiscordUser(e.target.value)}
+                    placeholder="your discord"
+                    className={inputClass}
+                  />
+                </Field>
+              </div>
+            )}
+
+            {step === 4 && beamMode === "lobby" && (
+              <div className="space-y-4">
+                <Field
+                  label="Lobby message"
+                  hint="Sent in the lobby periodically — advertises the trigger word."
+                >
+                  <textarea
+                    value={lobbyMsg}
+                    onChange={(e) => setLobbyMsg(e.target.value)}
+                    rows={2}
+                    className={`${inputClass} resize-none`}
+                  />
+                </Field>
+                <Field label="Trigger word">
+                  <input
+                    value={triggerWord}
+                    onChange={(e) => setTriggerWord(e.target.value)}
+                    placeholder="123"
+                    className={inputClass}
+                  />
+                </Field>
+                <Field
+                  label="Reply message"
+                  hint="Whispered ~10s after someone says the trigger word."
+                >
+                  <textarea
+                    value={replyMsg}
+                    onChange={(e) => setReplyMsg(e.target.value)}
+                    rows={2}
+                    placeholder="add my discord to join"
+                    className={`${inputClass} resize-none`}
+                  />
+                </Field>
+              </div>
+            )}
+
+            {step === 4 && server && region && (
+              <div className="mt-5 rounded-xl border border-slate-700/80 bg-slate-950/60 p-4 text-sm">
+                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Summary
+                </div>
+                <ul className="space-y-1.5 text-slate-300">
+                  <li>
+                    Account: <b className="text-white">{profile?.name}</b>
+                  </li>
+                  <li>
+                    Server:{" "}
+                    <b className="text-white">
+                      {server.regions.find((r) => r.id === region)?.host ?? server.domain}
+                    </b>
+                  </li>
+                  <li>
+                    Mode:{" "}
+                    <b className="text-white">
+                      {BEAM_MODES.find((m) => m.id === beamMode)?.title}
+                    </b>
+                  </li>
+                </ul>
+              </div>
+            )}
+
+            {step === 4 && createError && (
+              <p className="mt-4 rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-300 ring-1 ring-rose-500/20">
+                {createError}
+              </p>
+            )}
+          </div>
+
+          {/* footer */}
+          <div className="flex items-center justify-between gap-3 border-t border-white/5 bg-black/20 p-5">
+            <button
+              onClick={() => (step === 0 ? onClose() : setStep(step - 1))}
+              className="rounded-xl border border-white/10 px-5 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
+            >
+              {step === 0 ? "Cancel" : "← Back"}
+            </button>
+            {step < 4 ? (
+              <button
+                onClick={() => canNext() && setStep(step + 1)}
+                disabled={!canNext() || checking}
+                className="btn-primary rounded-xl bg-gradient-to-b from-emerald-400 to-emerald-500 px-5 py-2.5 text-sm font-bold text-emerald-950 shadow-[0_0_20px_-5px_color-mix(in_srgb,var(--color-emerald-500)_40%,transparent)] transition-all duration-150 hover:from-emerald-300 hover:to-emerald-400 active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100"
+              >
+                Next
+              </button>
+            ) : (
+              <button
+                onClick={() => void create()}
+                disabled={creating}
+                className="btn-primary rounded-xl bg-gradient-to-b from-emerald-400 to-emerald-500 px-5 py-2.5 text-sm font-bold text-emerald-950 shadow-[0_0_20px_-5px_color-mix(in_srgb,var(--color-emerald-500)_40%,transparent)] transition-all duration-150 hover:from-emerald-300 hover:to-emerald-400 active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100"
+              >
+                {creating ? "Creating…" : "Create & connect"}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Player head avatar with graceful fallback to initials.
+function HeadAvatar({ name }: { name: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 text-lg font-bold text-white">
+        {name.slice(0, 2).toUpperCase()}
+      </div>
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`https://mc-heads.net/avatar/${encodeURIComponent(name)}/64`}
+      alt={name}
+      onError={() => setFailed(true)}
+      className="h-14 w-14 shrink-0 rounded-xl ring-1 ring-white/10"
+    />
+  );
+}
+
+// Server icon straight from the live server ping (what the multiplayer
+// screen shows). Falls back to a clean wordmark tile if unreachable.
+function ServerLogo({ host, label }: { host: string; label: string }) {
+  const [stage, setStage] = useState(0);
+  const sources = [
+    `https://api.mcsrvstat.us/3/icon/${host}`,
+    `https://api.mcstatus.io/v2/icon/${host}`,
+  ];
+  if (stage >= sources.length) {
+    return (
+      <div className="grid h-14 w-14 place-items-center rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 text-xl font-black text-white ring-1 ring-white/10">
+        {label.slice(0, 1)}
+      </div>
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={sources[stage]}
+      alt={label}
+      onError={() => setStage(stage + 1)}
+      className="h-14 w-14 rounded-xl ring-1 ring-white/10 [image-rendering:pixelated]"
+    />
+  );
+}
+
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="block">
+      <span className="mb-1.5 block text-sm font-medium text-slate-300">
+        {label}
+      </span>
+      {children}
+      {hint && <span className="mt-1 block text-xs text-slate-500">{hint}</span>}
+    </div>
+  );
+}
+
+const inputClass =
+  "w-full rounded-xl border border-slate-700/80 bg-slate-950/60 px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 outline-none transition focus:border-emerald-500/60 focus:bg-slate-950/80 focus:ring-2 focus:ring-emerald-500/20";

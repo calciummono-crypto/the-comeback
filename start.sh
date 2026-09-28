@@ -5,12 +5,12 @@ set -e
 
 if [ -z "$DATABASE_URL" ]; then
   echo "ERROR: DATABASE_URL is not set."
-  echo "In Railway: open the web service -> Variables -> New Variable -> Add Reference ->"
-  echo "choose your PostgreSQL database's DATABASE_URL."
+  echo "In Railway: service -> Variables -> New Variable -> Add Reference ->"
+  echo "choose the PostgreSQL database's DATABASE_URL."
   exit 1
 fi
 
-echo ">> waiting for PostgreSQL to accept connections..."
+echo ">> waiting for the database to accept connections..."
 n=0
 until node -e "
 const { Client } = require('pg');
@@ -19,16 +19,14 @@ c.connect().then(() => c.end()).then(() => process.exit(0)).catch(() => process.
 " 2>/dev/null; do
   n=$((n + 1))
   if [ "$n" -ge 30 ]; then
-    echo "ERROR: database not reachable after 90s."
-    echo "Check that PostgreSQL exists in the same Railway project/environment"
-    echo "and that DATABASE_URL is referenced by this web service."
+    echo "ERROR: database not reachable after 90s — check DATABASE_URL."
     exit 1
   fi
   sleep 3
 done
 
-echo ">> database is up; pushing Drizzle schema..."
+echo ">> database is up; pushing schema..."
 npx drizzle-kit push --config=drizzle.config.ts --force
 
-echo ">> starting app on 0.0.0.0:$PORT"
+echo ">> starting MC Bot Manager on port $PORT"
 exec npx next start -H 0.0.0.0 -p "$PORT"

@@ -31,6 +31,9 @@ export async function GET() {
       botsOnline: online,
       isGuest: u.discordId?.startsWith("dev:") ?? false,
       discordId: u.discordId,
+      lastIp: u.lastIp,
+      hasPassword: u.passwordHash !== "",
+      banned: u.banned === "true",
       createdAt: u.createdAt,
     };
   });

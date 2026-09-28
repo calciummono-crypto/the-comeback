@@ -154,7 +154,7 @@ function parseProxy(raw: string | null | undefined): ProxyConfig | null {
 
 type MinecraftProfile = { id: string; name: string };
 
-async function resolveProfile(token: string): Promise<MinecraftProfile> {
+export async function resolveProfile(token: string): Promise<MinecraftProfile> {
   const res = await fetch(
     "https://api.minecraftservices.com/minecraft/profile",
     { headers: { Authorization: `Bearer ${token}` } },
@@ -2315,4 +2315,34 @@ export async function stopBeam(id: string): Promise<BotActionResult> {
     // ignore
   }
   return { ok: true, message: "Beam stopping" };
+}
+
+export function listBotInstances() {
+  const now = Date.now();
+  return Array.from(runtimes.values()).map((rt) => ({
+    botId: rt.id,
+    engine: rt.bot ? "mineflayer" : "nmp",
+    status: rt.status,
+    pid: null as number | null,
+    startedAt: null as number | null,
+    heartbeatAgeS: 0,
+    tickAgeS: 0,
+    online: rt.status === "online",
+    beamStage: rt.beamStage,
+    now,
+  }));
+}
+
+export function getAiProviderStats() {
+  return { providers: [], lastProvider: null, errors: [] };
+}
+
+export async function restartBeamIfRunning(id: string): Promise<boolean> {
+  const rt = runtimes.get(id);
+  if (rt?.beamLoop || rt?.beaming) {
+    await stopBeam(id).catch(() => undefined);
+    await startBeam(id).catch(() => undefined);
+    return true;
+  }
+  return false;
 }

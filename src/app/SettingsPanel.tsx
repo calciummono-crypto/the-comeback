@@ -1,6 +1,16 @@
 "use client";
 
 import { Logo } from "./Logo";
+import { useState } from "react";
+import { THEME_PRESETS, applyThemePreset, loadThemeId, saveThemeId } from "@/lib/theme";
+import { toast } from "./toast";
+import {
+  GearIcon,
+  BotFaceIcon,
+  MessageIcon,
+  TargetIcon,
+  EyeIcon,
+} from "./Icons";
 
 type Me = {
   id: string;
@@ -24,14 +34,36 @@ export default function SettingsPanel({
     onChange();
   }
 
+  const [activeTheme, setActiveTheme] = useState<string | null>(null);
+  const currentTheme = activeTheme ?? loadThemeId();
+
+  function pickTheme(id: string) {
+    applyThemePreset(id);
+    saveThemeId(id);
+    setActiveTheme(id);
+    const preset = THEME_PRESETS.find((p) => p.id === id);
+    toast(preset ? `${preset.label} theme applied` : "Theme applied", "success");
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="relative space-y-6">
+      {/* background glow — matches the other pages */}
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute left-[-40px] top-[-40px] h-[240px] w-[240px] rounded-full bg-slate-500/[0.08] blur-[80px]" />
+        <div className="absolute right-[-20px] top-[100px] h-[180px] w-[180px] rounded-full bg-emerald-400/[0.06] blur-[80px]" />
+      </div>
+
       <div className="flex items-center gap-3">
-        <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-slate-600 to-slate-800 text-lg ring-1 ring-slate-600/50">
-          ⚙
+        <div className="relative">
+          <div className="absolute inset-0 rounded-[14px] bg-gradient-to-br from-slate-400 to-slate-600 blur-[12px] opacity-40" />
+          <div className="relative grid h-11 w-11 place-items-center rounded-[14px] bg-gradient-to-br from-slate-500 to-slate-700 text-white shadow-lg ring-1 ring-white/10">
+            <GearIcon size={22} />
+          </div>
         </div>
         <div>
-          <h2 className="text-lg font-semibold tracking-tight">Settings</h2>
+          <h2 className="text-xl font-bold tracking-tight text-white">
+            Settings
+          </h2>
           <p className="text-sm text-slate-400">
             Your account and app preferences.
           </p>
@@ -39,11 +71,11 @@ export default function SettingsPanel({
       </div>
 
       {/* Profile card */}
-      <section className="glass rounded-2xl p-5">
+      <section className="glass rounded-2xl p-5 transition-colors hover:border-slate-700">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Account
         </h3>
-        <div className="mt-4 flex items-center gap-4">
+        <div className="mt-4 flex flex-wrap items-center gap-4">
           {me.avatar ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -56,9 +88,11 @@ export default function SettingsPanel({
               {me.username.slice(0, 2).toUpperCase()}
             </div>
           )}
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-lg font-semibold">{me.username}</span>
+              <span className="text-lg font-semibold text-white">
+                {me.username}
+              </span>
               {me.role === "admin" && (
                 <span className="rounded-md bg-fuchsia-500/15 px-2 py-0.5 text-xs font-medium text-fuchsia-300 ring-1 ring-fuchsia-500/30">
                   admin
@@ -71,63 +105,95 @@ export default function SettingsPanel({
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="mt-5 grid grid-cols-3 gap-3">
           <InfoTile label="Role" value={me.role} />
           <InfoTile label="Bot slots" value={String(me.botSlots)} />
-          <InfoTile
-            label="Bots used"
-            value={`${me.botCount}/${me.botSlots}`}
-          />
+          <InfoTile label="Bots used" value={`${me.botCount}/${me.botSlots}`} />
         </div>
       </section>
 
       {/* Beam AI info */}
-      <section className="glass rounded-2xl p-5">
+      <section className="glass rounded-2xl p-5 transition-colors hover:border-slate-700">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Beam &amp; AI
         </h3>
         <p className="mt-3 text-sm leading-relaxed text-slate-400">
-          The Beam feature recruits the nearest player via private messages,
-          handles their replies with AI (Pollinations), and loops until you stop
-          it. Set each bot&apos;s YouTube channel name in the bot&apos;s{" "}
-          <span className="text-slate-200">Manage</span> panel.
+          The Beam feature finds the nearest player, recruits them with private
+          messages, handles their replies with AI, and closes with your discord
+          when they agree. Pick the beaming mode when creating each bot.
         </p>
-        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
           <FeatureRow
-            icon="🤖"
-            title="Humanized movement"
-            desc="Subtle idle head movement + timing variance"
+            icon={<BotFaceIcon size={18} />}
+            title="Humanized behavior"
+            desc="Natural message pacing + timing variance"
           />
           <FeatureRow
-            icon="💬"
+            icon={<MessageIcon size={18} />}
             title="AI conversations"
-            desc="Polite, natural, in-character replies"
+            desc="In-character replies that stay on script"
           />
           <FeatureRow
-            icon="🎯"
+            icon={<TargetIcon size={18} />}
             title="Smart targeting"
-            desc="Nearest valid player, auto-restart on deny/death"
+            desc="Nearest valid player, auto-restart on deny"
           />
           <FeatureRow
-            icon="👁"
+            icon={<EyeIcon size={18} />}
             title="Live bot view"
             desc="Radar, hotbar, and item control"
           />
         </div>
       </section>
 
+      {/* Appearance */}
+      <section className="glass rounded-2xl p-5 transition-colors hover:border-slate-700">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Appearance
+        </h3>
+        <p className="mt-1 text-sm text-slate-400">
+          Accent color — applies to the whole site instantly and is remembered
+          on this device.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2.5">
+          {THEME_PRESETS.map((preset) => {
+            const on = currentTheme === preset.id;
+            return (
+              <button
+                key={preset.id}
+                onClick={() => pickTheme(preset.id)}
+                title={preset.label}
+                className={`group flex items-center gap-2.5 rounded-xl border px-3 py-2 transition ${
+                  on
+                    ? "border-slate-500 bg-slate-800/70"
+                    : "border-slate-800 bg-slate-900/40 hover:border-slate-600"
+                }`}
+              >
+                <span
+                  className="h-4 w-4 rounded-full ring-2 ring-white/10"
+                  style={{ backgroundColor: preset.ramp["500"] }}
+                />
+                <span className={`text-xs font-medium ${on ? "text-white" : "text-slate-400"}`}>
+                  {preset.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
       {/* Danger / session */}
-      <section className="glass rounded-2xl p-5">
+      <section className="glass rounded-2xl p-5 transition-colors hover:border-rose-500/20">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Session
         </h3>
-        <div className="mt-3 flex items-center justify-between gap-4">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
           <p className="text-sm text-slate-400">
             Sign out of this device. You can sign back in anytime.
           </p>
           <button
             onClick={logout}
-            className="shrink-0 rounded-xl border border-slate-700 px-4 py-2 text-sm font-medium text-slate-300 transition hover:border-rose-500/40 hover:text-rose-300"
+            className="shrink-0 rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-300 active:scale-[0.98]"
           >
             Logout
           </button>
@@ -143,11 +209,11 @@ export default function SettingsPanel({
 
 function InfoTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-950/40 px-4 py-3">
+    <div className="rounded-xl border border-slate-800 bg-slate-950/40 px-4 py-3 transition-colors hover:border-slate-700">
       <div className="text-[10px] uppercase tracking-wide text-slate-500">
         {label}
       </div>
-      <div className="mt-0.5 font-semibold capitalize text-slate-200">
+      <div className="mt-1 text-[15px] font-semibold capitalize text-slate-100">
         {value}
       </div>
     </div>
@@ -159,16 +225,18 @@ function FeatureRow({
   title,
   desc,
 }: {
-  icon: string;
+  icon: React.ReactNode;
   title: string;
   desc: string;
 }) {
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-950/40 px-4 py-3">
-      <span className="text-lg">{icon}</span>
+    <div className="flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-950/40 px-4 py-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-700">
+      <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-emerald-500/10 text-emerald-300 ring-1 ring-emerald-500/20">
+        {icon}
+      </span>
       <div>
         <div className="text-sm font-medium text-slate-200">{title}</div>
-        <div className="text-xs text-slate-500">{desc}</div>
+        <div className="mt-0.5 text-xs text-slate-500">{desc}</div>
       </div>
     </div>
   );

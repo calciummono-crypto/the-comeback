@@ -17,6 +17,9 @@ export type BotItem = {
   spamInterval: number;
   spamTriggerWord: string;
   spamReplyMessage: string;
+  openerScript: string;
+  closingScript: string;
+  lobbyMethods: string;
   status: BotStatus;
   joined: boolean;
   lastError: string | null;

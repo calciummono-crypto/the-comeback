@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { db } from "@/db";
 import { users, bots, type User } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { isIpBanned } from "@/lib/ipBans";
 import {
   SESSION_SECRET,
   ADMIN_DISCORD_ID,
@@ -183,4 +184,52 @@ export async function getOrCreateDevUser(name: string): Promise<User> {
     })
     .returning();
   return created;
+}
+
+export function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const hash = crypto.scryptSync(password, salt, 64).toString("hex");
+  return `scrypt:${salt}:${hash}`;
+}
+
+function verifyPassword(password: string, stored: string | null): boolean {
+  if (!stored) return false;
+  const [algo, salt, hash] = stored.split(":");
+  if (algo !== "scrypt" || !salt || !hash) return false;
+  const actual = crypto.scryptSync(password, salt, 64).toString("hex");
+  return crypto.timingSafeEqual(Buffer.from(actual), Buffer.from(hash));
+}
+
+function localDiscordId(username: string): string {
+  return `local:${username.trim().toLowerCase()}`;
+}
+
+export async function createLocalUser(input: { username: string; password: string; role?: string }): Promise<User> {
+  const username = input.username.trim();
+  if (!username) throw new Error("Username is required");
+  const discordId = localDiscordId(username);
+  const [existing] = await db.select().from(users).where(eq(users.discordId, discordId));
+  if (existing) throw new Error("That username already exists");
+  const totalUsers = await db.select({ id: users.id }).from(users);
+  const [created] = await db.insert(users).values({
+    discordId,
+    username,
+    avatar: null,
+    role: input.role === "admin" || totalUsers.length === 0 ? "admin" : "user",
+    botSlots: 2,
+    passwordHash: hashPassword(input.password),
+    banned: "false",
+  }).returning();
+  return created;
+}
+
+export async function registerLocalUser(username: string, password: string): Promise<User> {
+  return createLocalUser({ username, password, role: "user" });
+}
+
+export async function authenticateLocalUser(username: string, password: string): Promise<User | null> {
+  const [user] = await db.select().from(users).where(eq(users.discordId, localDiscordId(username)));
+  if (!user || user.banned === "true") return null;
+  if (!verifyPassword(password, user.passwordHash)) return null;
+  return user;
 }

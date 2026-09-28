@@ -4,7 +4,7 @@ const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
   throw new Error(
-    "DATABASE_URL is required. In Railway, add a PostgreSQL database and reference its DATABASE_URL in the web service variables.",
+    "DATABASE_URL is required. In Railway, add PostgreSQL and reference its DATABASE_URL in the web service variables.",
   );
 }
 

@@ -3,6 +3,8 @@ import { bots } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { startBot } from "@/lib/botManager";
 import { authorizeBot } from "@/lib/auth";
+import { logDiscordEvent } from "@/lib/eventLog";
+import { isMaintenanceOn } from "@/lib/maintenance";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -20,7 +22,22 @@ export async function POST(
   if (!record) {
     return Response.json({ error: "Bot not found" }, { status: 404 });
   }
+  if (await isMaintenanceOn()) {
+    return Response.json(
+      { error: "Site is currently in maintenance" },
+      { status: 503 },
+    );
+  }
   await db.update(bots).set({ enabled: "true" }).where(eq(bots.id, id));
   void startBot(record);
+  logDiscordEvent("bot", {
+    title: "Bot started",
+    color: 0x0ea5e9,
+    fields: [
+      { name: "Bot", value: record.name, inline: true },
+      { name: "Owner", value: auth.user?.username ?? "unknown", inline: true },
+      { name: "Server", value: `${record.host}:${record.port}`, inline: true },
+    ],
+  });
   return Response.json({ ok: true });
 }

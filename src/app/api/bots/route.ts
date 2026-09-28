@@ -1,22 +1,23 @@
 import { db } from "@/db";
+import { whenCreated } from "@/lib/webhook";
+import { logDiscordEvent } from "@/lib/eventLog";
 import { bots } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { getRuntimeView, startBot, resumeEnabledBots } from "@/lib/botManager";
+import { isAiModeEnabled } from "@/lib/maintenance";
 import { getCurrentUser } from "@/lib/auth";
+import { getUserLicenseStatus, canUserCreateBot } from "@/lib/license";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET() {
-  // Safety net: ensure enabled bots are resumed even if instrumentation
-  // didn't run (no-op after the first call).
   void resumeEnabledBots();
 
   const user = await getCurrentUser();
   if (!user) {
     return Response.json({ error: "Not authenticated" }, { status: 401 });
   }
-  // Each user only sees their own bots.
   const rows = await db
     .select()
     .from(bots)
@@ -41,17 +42,24 @@ export async function GET() {
       spamInterval: b.spamInterval,
       spamTriggerWord: b.spamTriggerWord,
       spamReplyMessage: b.spamReplyMessage,
+      openerScript: b.openerScript,
+      closingScript: b.closingScript,
+      lobbyMethods: b.lobbyMethods,
       status: rt.status,
       joined: rt.joined,
       lastError: rt.lastError ?? b.lastError,
       createdAt: b.createdAt,
     };
   });
+
+  // Use license system - 0 slots by default
+  const licenseStatus = await getUserLicenseStatus(user.id);
   return Response.json({
     bots: data,
-    slots: user.botSlots,
+    slots: licenseStatus.totalSlots,
     used: data.length,
-  });
+    licenseStatus,
+  }, { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(req: Request) {
@@ -60,15 +68,12 @@ export async function POST(req: Request) {
     return Response.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  // Enforce per-user bot-slot limit.
-  const owned = await db
-    .select({ id: bots.id })
-    .from(bots)
-    .where(eq(bots.userId, user.id));
-  if (owned.length >= user.botSlots) {
+  // Enforce license-based slot limit (0 by default)
+  const check = await canUserCreateBot(user.id);
+  if (!check.allowed) {
     return Response.json(
       {
-        error: `You've used all ${user.botSlots} of your bot slots. Ask an admin for more.`,
+        error: check.reason || "No slots available. Get a license.",
       },
       { status: 403 },
     );
@@ -90,6 +95,9 @@ export async function POST(req: Request) {
     spamInterval?: number;
     spamTriggerWord?: string;
     spamReplyMessage?: string;
+    openerScript?: string;
+    closingScript?: string;
+    lobbyMethods?: unknown;
   };
   try {
     body = await req.json();
@@ -128,12 +136,42 @@ export async function POST(req: Request) {
   const ytChannel = (body.ytChannel ?? "").trim() || "Alight.z";
   const beamIp = (body.beamIp ?? "").trim() || "badlion-pvp.xyz";
   const discordUser = (body.discordUser ?? "").trim() || "stood014";
-  const engine = (body.engine === "nmp") ? "nmp" : "mineflayer";
-  const beamType = (body.beamType === "spam") ? "spam" : "ai";
-  const spamMessage = (body.spamMessage ?? "").trim() || "join my smp guys /msg me";
+  const engine =
+    body.engine === "nmp" || body.engine === "azalea" || body.engine === "mineflayer"
+      ? body.engine
+      : "azalea";
+  const beamType = (body.beamType === "spam" || body.beamType === "lobby") ? body.beamType : "ai";
+  if (beamType === "ai" && !(await isAiModeEnabled())) {
+    return Response.json(
+      { error: "AI mode is temporarily disabled — use the lobby adbot mode instead" },
+      { status: 403 },
+    );
+  }
+  const spamMessage = (body.spamMessage ?? "").trim() || "type 123 in chat for tier test all mode";
   const spamInterval = Number.isFinite(Number(body.spamInterval)) ? Number(body.spamInterval) : 60000;
   const spamTriggerWord = (body.spamTriggerWord ?? "").trim() || "123";
   const spamReplyMessage = (body.spamReplyMessage ?? "").trim() || "add my discord stood014 to join";
+  const openerScript = (body.openerScript ?? "").trim();
+  const closingScript = (body.closingScript ?? "").trim().slice(0, 500);
+  // Rotating lobby methods are admin-only for now; silently ignored for
+  // normal users (the field isn't shown in their UI).
+  let lobbyMethods = "";
+  if (user.role === "admin" && body.lobbyMethods !== undefined) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let arr: any = body.lobbyMethods;
+    if (typeof arr === "string") {
+      try {
+        arr = JSON.parse(arr);
+      } catch {
+        arr = arr.split("\n");
+      }
+    }
+    if (Array.isArray(arr)) {
+      lobbyMethods = JSON.stringify(
+        arr.map((x) => String(x).trim()).filter(Boolean).slice(0, 10).map((x) => x.slice(0, 200)),
+      );
+    }
+  }
 
   const [inserted] = await db
     .insert(bots)
@@ -154,6 +192,9 @@ export async function POST(req: Request) {
       spamInterval,
       spamTriggerWord,
       spamReplyMessage,
+      openerScript,
+      closingScript,
+      lobbyMethods,
       status: "connecting",
       enabled: "true",
     })
@@ -161,6 +202,20 @@ export async function POST(req: Request) {
 
   // Kick off the connection (don't block the HTTP response on the full join).
   void startBot(inserted);
+
+  logDiscordEvent("bot", {
+    title: "Bot created",
+    color: 0x0ea5e9,
+    fields: [
+      { name: "Bot", value: inserted.name, inline: true },
+      { name: "Owner", value: user.username, inline: true },
+      { name: "Status", value: "connecting", inline: true },
+      { name: "Server", value: `${inserted.host}:${inserted.port}`, inline: true },
+      { name: "Engine", value: inserted.engine, inline: true },
+      { name: "Beam", value: inserted.beamType, inline: true },
+      { name: "When", value: whenCreated() },
+    ],
+  });
 
   return Response.json({ id: inserted.id }, { status: 201 });
 }
