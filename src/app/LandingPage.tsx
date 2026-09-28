@@ -54,7 +54,7 @@ export default function LandingPage() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(99,102,241,.22),transparent_34rem)]" />
       <div className="pointer-events-none absolute left-1/2 top-0 h-px w-[min(960px,80vw)] -translate-x-1/2 bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
-      <nav className="sticky top-4 z-40 mx-auto mt-3 flex w-[min(1180px,calc(100%_-_24px))] items-center justify-between rounded-[1.6rem] border border-white/10 bg-[#0b1020]/70 px-4 py-3 shadow-2xl shadow-black/25 backdrop-blur-2xl sm:px-5">
+      <nav className="fixed left-1/2 top-4 z-50 flex w-[min(1180px,calc(100%_-_24px))] -translate-x-1/2 items-center justify-between rounded-[1.6rem] border border-white/10 bg-[#0b1020]/78 px-4 py-3 shadow-[0_22px_70px_-28px_rgba(0,0,0,.9)] ring-1 ring-white/[0.03] backdrop-blur-2xl sm:px-5">
         <Link href="/" className="group flex items-center gap-3">
           <div className="grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/[0.04] shadow-2xl shadow-indigo-950/40 backdrop-blur-xl transition group-hover:border-indigo-300/30 group-hover:bg-white/[0.07]">
             <Logo size={28} />
@@ -78,17 +78,17 @@ export default function LandingPage() {
         </Link>
       </nav>
 
-      <section className="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-12 px-5 pb-16 pt-12 sm:px-8 lg:grid-cols-[1.02fr_.98fr] lg:pb-20 lg:pt-20">
+      <section className="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-12 px-5 pb-16 pt-32 sm:px-8 lg:grid-cols-[1.02fr_.98fr] lg:pb-20 lg:pt-32">
         <div className="animate-slide-up">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-slate-300 backdrop-blur-xl">
             <span className="h-1.5 w-1.5 rounded-full bg-indigo-300 shadow-[0_0_16px_rgba(165,180,252,.9)]" />
-            Smooth controls · real bot sessions · cleaner workflow
+            Pinned navigation · real bot sessions · cleaner workflow
           </div>
           <h1 className="max-w-4xl text-balance text-5xl font-semibold tracking-[-0.055em] text-white sm:text-6xl lg:text-7xl">
             Run Minecraft bots from the Z-BEAM command center.
           </h1>
           <p className="mt-6 max-w-2xl text-pretty text-base leading-8 text-slate-400 sm:text-lg">
-            Start accounts, choose engines, watch join logs, run beam flows and manage slots without opening terminal logs every time something happens.
+            Start accounts, choose engines, watch join logs, run beam flows and manage slots from a dashboard that stays readable while you move through it.
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <Link
@@ -249,70 +249,122 @@ function BotCardShowcase() {
 }
 
 function DashboardPreview() {
+  const sidebarItems = ["Dashboard", "Add Bots", "License", "Settings"];
+
   return (
     <div className="landing-cut-card relative mx-auto overflow-hidden rounded-[2.25rem] border border-white/10 bg-[#070b16]/85 p-3 shadow-[0_40px_100px_-35px_rgba(0,0,0,.9)] backdrop-blur-2xl">
       <div className="absolute -left-24 top-16 h-44 w-44 rounded-full bg-indigo-400/20 blur-3xl" />
-      <div className="absolute -right-20 bottom-10 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl" />
-      <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-indigo-200/60 to-transparent" />
-      <div className="relative overflow-hidden rounded-[1.7rem] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,.92),rgba(2,6,23,.96))] p-4">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-5">
-          <div className="flex items-center gap-3">
-            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-emerald-300 to-indigo-500 shadow-2xl shadow-indigo-600/25">
-              <div className="h-5 w-5 rounded-lg bg-white/80" />
+      <div className="absolute -right-20 bottom-10 h-48 w-48 rounded-full bg-emerald-300/10 blur-3xl" />
+      <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-emerald-200/60 to-transparent" />
+
+      <div className="relative grid overflow-hidden rounded-[1.7rem] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,.92),rgba(2,6,23,.96))] lg:grid-cols-[210px_1fr]">
+        <aside className="hidden border-r border-white/10 bg-slate-950/55 p-4 lg:block">
+          <div className="mb-7 flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-2xl border border-white/10 bg-white/[0.04]">
+              <Logo size={26} />
             </div>
             <div>
-              <div className="h-3 w-36 rounded-full bg-white/80" />
-              <div className="mt-2 h-2 w-24 rounded-full bg-white/20" />
+              <Wordmark height={22} />
+              <p className="mt-0.5 text-[10px] text-slate-500">control center</p>
             </div>
           </div>
-          <div className="flex rounded-full border border-white/10 bg-white/[0.035] p-1 text-xs text-slate-500">
-            {['Bots', 'License', 'Shop'].map((x, i) => (
-              <span key={x} className={`rounded-full px-4 py-2 ${i === 0 ? 'bg-white text-slate-950' : ''}`}>{x}</span>
-            ))}
-          </div>
-        </div>
-        <div className="grid gap-4 pt-4 lg:grid-cols-[.55fr_1fr]">
-          <div className="space-y-3">
-            {botCards.slice(0, 3).map((bot) => (
-              <div key={bot.name} className="rounded-3xl border border-white/10 bg-white/[0.035] p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 overflow-hidden rounded-2xl border border-white/10 bg-slate-900">
-                    <img src={`https://minotar.net/helm/${bot.skin}/80.png`} alt="" className="h-full w-full object-cover" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-white">{bot.name}</p>
-                    <p className="truncate text-xs text-slate-500">{bot.server} · {bot.engine}</p>
-                  </div>
-                </div>
+
+          <div className="space-y-2">
+            {sidebarItems.map((item, i) => (
+              <div
+                key={item}
+                className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-xs font-medium ${
+                  i === 0 ? "border border-emerald-200/15 bg-white text-slate-950" : "border border-white/5 bg-white/[0.025] text-slate-400"
+                }`}
+              >
+                <span className={`h-2 w-2 rounded-full ${i === 0 ? "bg-emerald-500" : "bg-slate-700"}`} />
+                {item}
               </div>
             ))}
           </div>
-          <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 shadow-inner shadow-white/[0.02]">
-            <div className="mb-5 flex items-center justify-between">
+
+          <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.035] p-4">
+            <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">health</p>
+            <div className="mt-4 h-2 rounded-full bg-slate-800">
+              <div className="h-full w-[78%] rounded-full bg-gradient-to-r from-emerald-300 to-indigo-300" />
+            </div>
+            <p className="mt-3 text-xs text-slate-400">3 online bots</p>
+          </div>
+        </aside>
+
+        <div className="min-w-0 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-5">
+            <div className="flex items-center gap-3">
+              <div className="grid h-12 w-12 place-items-center rounded-2xl border border-white/10 bg-white/[0.04] shadow-2xl shadow-emerald-600/10 lg:hidden">
+                <Logo size={30} />
+              </div>
               <div>
-                <div className="h-3 w-32 rounded-full bg-white/70" />
-                <div className="mt-2 h-2 w-52 rounded-full bg-white/15" />
-              </div>
-              <div className="h-9 w-28 rounded-full bg-indigo-400/25 ring-1 ring-indigo-300/20" />
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-3xl border border-indigo-300/15 bg-indigo-400/10 p-5">
-                <p className="text-xs text-indigo-200">Session log</p>
-                <div className="mt-6 space-y-2">
-                  <div className="h-2 w-4/5 rounded-full bg-indigo-200/35" />
-                  <div className="h-2 w-2/3 rounded-full bg-indigo-200/20" />
+                <div className="flex items-center gap-2">
+                  <Wordmark height={24} />
+                  <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-200">LIVE</span>
                 </div>
-              </div>
-              <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
-                <p className="text-xs text-slate-300">Live controls</p>
-                <div className="mt-6 grid grid-cols-3 gap-2">
-                  {Array.from({ length: 6 }).map((_, i) => <span key={i} className="h-8 rounded-xl bg-white/[0.06]" />)}
-                </div>
+                <p className="mt-1 text-xs text-slate-500">Dashboard preview using the same Z-BEAM mark and sidebar structure.</p>
               </div>
             </div>
-            <div className="mt-4 rounded-3xl border border-white/10 bg-slate-950/60 p-4">
-              <div className="h-2 w-full rounded-full bg-slate-800"><div className="h-full w-[72%] rounded-full bg-gradient-to-r from-indigo-300/60 to-cyan-300/30" /></div>
-              <div className="mt-3 h-2 w-full rounded-full bg-slate-800"><div className="h-full w-[48%] rounded-full bg-gradient-to-r from-emerald-300/50 to-indigo-300/20" /></div>
+            <div className="flex rounded-full border border-white/10 bg-white/[0.035] p-1 text-xs text-slate-500">
+              {['Bots', 'Console', 'Beam'].map((x, i) => (
+                <span key={x} className={`rounded-full px-4 py-2 ${i === 0 ? 'bg-white text-slate-950' : ''}`}>{x}</span>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-4 pt-4 xl:grid-cols-[.58fr_1fr]">
+            <div className="space-y-3">
+              {botCards.slice(0, 3).map((bot, i) => (
+                <div key={bot.name} className="rounded-3xl border border-white/10 bg-white/[0.035] p-4 shadow-inner shadow-white/[0.02]">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 overflow-hidden rounded-2xl border border-white/10 bg-slate-900">
+                      <img src={`https://minotar.net/helm/${bot.skin}/80.png`} alt="" className="h-full w-full object-cover" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-white">{bot.name}</p>
+                      <p className="truncate text-xs text-slate-500">{bot.server} · {bot.engine}</p>
+                    </div>
+                    <span className={`h-2.5 w-2.5 rounded-full ${i === 1 ? "bg-indigo-300" : "bg-emerald-300"} shadow-[0_0_14px_rgba(110,231,183,.7)]`} />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 shadow-inner shadow-white/[0.02]">
+              <div className="mb-5 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-white">Session console</p>
+                  <p className="mt-1 text-xs text-slate-500">Readable logs, quick controls and beam status.</p>
+                </div>
+                <div className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs font-semibold text-emerald-200">stable</div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-3xl border border-indigo-300/15 bg-indigo-400/10 p-5">
+                  <p className="text-xs font-semibold text-indigo-100">Join log</p>
+                  <div className="mt-5 space-y-2 font-mono text-[11px] text-slate-400">
+                    <p>› resolving profile</p>
+                    <p className="text-emerald-200">› connected to server</p>
+                    <p>› inventory synced</p>
+                  </div>
+                </div>
+                <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
+                  <p className="text-xs font-semibold text-slate-300">Live controls</p>
+                  <div className="mt-5 grid grid-cols-3 gap-2">
+                    {Array.from({ length: 6 }).map((_, i) => <span key={i} className="h-8 rounded-xl bg-white/[0.06] ring-1 ring-white/[0.03]" />)}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-3xl border border-white/10 bg-slate-950/60 p-4">
+                <div className="flex items-center justify-between text-xs text-slate-500">
+                  <span>Queue progress</span>
+                  <span>72%</span>
+                </div>
+                <div className="mt-3 h-2 w-full rounded-full bg-slate-800"><div className="h-full w-[72%] rounded-full bg-gradient-to-r from-emerald-300/70 to-indigo-300/45" /></div>
+                <div className="mt-3 h-2 w-full rounded-full bg-slate-800"><div className="h-full w-[48%] rounded-full bg-gradient-to-r from-indigo-300/60 to-emerald-300/25" /></div>
+              </div>
             </div>
           </div>
         </div>

@@ -18,7 +18,7 @@ export default function FeaturesPage() {
       <div className="app-bg" aria-hidden />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(99,102,241,.20),transparent_36rem)]" />
 
-      <nav className="sticky top-4 z-40 mx-auto mt-3 flex w-[min(1180px,calc(100%_-_24px))] items-center justify-between rounded-[1.6rem] border border-white/10 bg-[#0b1020]/70 px-4 py-3 shadow-2xl shadow-black/25 backdrop-blur-2xl sm:px-5">
+      <nav className="fixed left-1/2 top-4 z-50 flex w-[min(1180px,calc(100%_-_24px))] -translate-x-1/2 items-center justify-between rounded-[1.6rem] border border-white/10 bg-[#0b1020]/78 px-4 py-3 shadow-[0_22px_70px_-28px_rgba(0,0,0,.9)] ring-1 ring-white/[0.03] backdrop-blur-2xl sm:px-5">
         <Link href="/" className="flex items-center gap-3">
           <div className="grid h-10 w-10 place-items-center rounded-2xl border border-white/10 bg-white/[0.04]">
             <Logo size={26} />
@@ -34,7 +34,7 @@ export default function FeaturesPage() {
         </div>
       </nav>
 
-      <section className="relative z-10 mx-auto max-w-7xl px-5 py-20 sm:px-8">
+      <section className="relative z-10 mx-auto max-w-7xl px-5 pb-20 pt-32 sm:px-8">
         <div className="mx-auto max-w-3xl text-center animate-slide-up">
           <p className="text-sm font-medium text-indigo-300">User-facing features</p>
           <h1 className="mt-3 text-5xl font-semibold tracking-[-0.05em] text-white sm:text-6xl">
