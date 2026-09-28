@@ -1,7 +1,7 @@
 export type TestableProvider = "pollinations" | "openrouter";
 
 const POLLINATIONS_API_KEY =
-  process.env.POLLINATIONS_API_KEY || "sk_PpVAtAY5ACUBJJAhQm5LIG2vNutlowEb";
+  process.env.POLLINATIONS_API_KEY || "sk_2v71KHgtGXfsHlXkJVpzrV37BtXC2YiF";
 const POLLINATIONS_MODEL = process.env.POLLINATIONS_MODEL || "deepseek-pro";
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "openai/gpt-oss-20b:free";
 

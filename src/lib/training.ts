@@ -115,8 +115,8 @@ export async function clearConversations(): Promise<void> {
 // Analyze recent conversations with the AI and distill concise tips that get
 // appended to the learnings, which are then injected into future beam prompts.
 const POLL_KEY =
-  process.env.POLLINATIONS_API_KEY || "sk_PpVAtAY5ACUBJJAhQm5LIG2vNutlowEb";
-const POLL_MODEL = process.env.POLLINATIONS_MODEL || "openai";
+  process.env.POLLINATIONS_API_KEY || "sk_2v71KHgtGXfsHlXkJVpzrV37BtXC2YiF";
+const POLL_MODEL = process.env.POLLINATIONS_MODEL || "deepseek-pro";
 
 export async function analyzeAndImprove(): Promise<{
   ok: boolean;

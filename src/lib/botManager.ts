@@ -1616,8 +1616,8 @@ async function aiConverse(
   discordUser = "stood014",
 ): Promise<AiTurn> {
   const key =
-    process.env.POLLINATIONS_API_KEY || "sk_PpVAtAY5ACUBJJAhQm5LIG2vNutlowEb";
-  const model = process.env.POLLINATIONS_MODEL || "openai";
+    process.env.POLLINATIONS_API_KEY || "sk_2v71KHgtGXfsHlXkJVpzrV37BtXC2YiF";
+  const model = process.env.POLLINATIONS_MODEL || "deepseek-pro";
 
   // Pull learned guidelines if AI training is enabled.
   let learnings = "";
