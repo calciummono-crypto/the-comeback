@@ -1,7 +1,7 @@
-import AppShell from "./AppShell";
+import LandingPage from "./LandingPage";
 
 export const dynamic = "force-dynamic";
 
 export default function HomePage() {
-  return <AppShell />;
+  return <LandingPage />;
 }

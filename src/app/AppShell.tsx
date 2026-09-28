@@ -29,7 +29,7 @@ type Tab = "dashboard" | "license" | "shop" | "admin" | "addbot" | "train" | "se
 // Tabs are URL-driven: /shop, /license, /admin… so links are shareable and
 // the Discord buttons (…/#shop) land on the right tab.
 const TAB_PATHS: Record<Tab, string> = {
-  dashboard: "/",
+  dashboard: "/dashboard",
   license: "/license",
   shop: "/shop",
   admin: "/admin",
@@ -188,7 +188,7 @@ export default function AppShell() {
       try {
         window.opener.postMessage({ type: "mcbm:login-success" }, "*");
       } catch {}
-      window.history.replaceState({}, "", "/");
+      window.history.replaceState({}, "", "/dashboard");
       setTimeout(() => {
         try {
           window.close();
