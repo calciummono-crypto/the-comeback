@@ -7,6 +7,8 @@ const stats = [
   ["Deploy-ready", "Railway startup and Postgres handled cleanly"],
 ];
 
+const proofPoints = ["token to control", "server-aware engines", "live console", "license slots"];
+
 export const features = [
   {
     title: "Add bots without guessing",
@@ -106,7 +108,14 @@ export default function LandingPage() {
               See bot cards
             </a>
           </div>
-          <div className="mt-10 grid gap-3 sm:grid-cols-3">
+          <div className="mt-8 flex flex-wrap gap-2 text-xs font-medium text-slate-400">
+            {proofPoints.map((point) => (
+              <span key={point} className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1.5 backdrop-blur-xl">
+                {point}
+              </span>
+            ))}
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
             {stats.map(([value, label]) => (
               <div key={value} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 backdrop-blur-xl">
                 <p className="text-sm font-semibold text-white">{value}</p>
@@ -128,19 +137,28 @@ export default function LandingPage() {
             Add the bot, pick the engine, watch the join, then control the session without jumping between tabs or terminal logs.
           </p>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {features.map((f, i) => (
             <article
               key={f.title}
-              className="group animate-slide-up rounded-[1.75rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-xl hover:border-indigo-200/20 hover:bg-white/[0.055]"
+              className={`group animate-slide-up rounded-[1.75rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-xl hover:border-indigo-200/20 hover:bg-white/[0.055] ${
+                i === 0 ? "md:col-span-2 xl:col-span-2 xl:row-span-2 xl:p-8" : ""
+              } ${i === 1 ? "xl:col-span-2" : ""}`}
               style={{ animationDelay: `${i * 55}ms` }}
             >
               <div className="mb-7 flex items-center justify-between">
                 <span className="rounded-full border border-indigo-200/15 bg-indigo-300/10 px-3 py-1 text-xs font-semibold text-indigo-200">{f.tag}</span>
                 <span className="grid h-9 w-9 place-items-center rounded-2xl bg-white/[0.04] text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-white">→</span>
               </div>
-              <h3 className="text-lg font-bold tracking-tight text-white">{f.title}</h3>
-              <p className="mt-3 text-sm leading-7 text-slate-400">{f.text}</p>
+              <h3 className={`${i === 0 ? "text-2xl" : "text-lg"} font-bold tracking-tight text-white`}>{f.title}</h3>
+              <p className={`${i === 0 ? "mt-4 max-w-xl text-base leading-8" : "mt-3 text-sm leading-7"} text-slate-400`}>{f.text}</p>
+              {i === 0 && (
+                <div className="mt-8 rounded-3xl border border-white/10 bg-slate-950/45 p-4 font-mono text-xs text-slate-400">
+                  <p className="text-emerald-200">› session resolved</p>
+                  <p className="mt-1">› engine selected from server profile</p>
+                  <p className="mt-1 text-indigo-200">› bot ready for live control</p>
+                </div>
+              )}
             </article>
           ))}
         </div>
@@ -196,7 +214,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="preview" className="relative z-10 mx-auto w-full max-w-7xl scroll-mt-24 px-5 pb-24 pt-16 sm:px-8">
+      <section id="preview" className="relative z-10 mx-auto w-full max-w-7xl scroll-mt-24 px-5 pb-16 pt-16 sm:px-8">
         <div className="section-orb left-1/2 top-10" aria-hidden />
         <div className="mb-8 flex items-end justify-between gap-4">
           <div>
@@ -207,6 +225,46 @@ export default function LandingPage() {
         </div>
         <DashboardPreview />
       </section>
+
+      <section className="relative z-10 mx-auto w-full max-w-7xl px-5 pb-10 pt-8 sm:px-8">
+        <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,.075),rgba(255,255,255,.025))] p-6 shadow-[0_35px_100px_-55px_rgba(99,102,241,.7)] backdrop-blur-2xl sm:p-8">
+          <div className="grid items-center gap-6 lg:grid-cols-[1fr_auto]">
+            <div>
+              <p className="text-sm font-medium text-indigo-300">Ready when the bot is</p>
+              <h2 className="mt-2 max-w-3xl text-3xl font-black leading-tight tracking-[-0.045em] text-white sm:text-5xl">
+                Open the panel, add a session, and keep the whole run visible.
+              </h2>
+              <p className="landing-copy mt-4 max-w-2xl text-sm leading-7 text-slate-400 sm:text-base">
+                Z-BEAM is built to feel quiet until you need control — then the console, cards, and beam tools are already in reach.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
+              <Link href="/dashboard" className="btn-primary inline-flex justify-center rounded-2xl bg-white px-6 py-3.5 text-sm font-bold text-slate-950 hover:bg-indigo-100">
+                Enter dashboard
+              </Link>
+              <Link href="/features" className="inline-flex justify-center rounded-2xl border border-white/10 bg-white/[0.035] px-6 py-3.5 text-sm font-semibold text-slate-200 hover:bg-white/[0.06]">
+                View features
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-4 px-5 pb-10 pt-2 text-xs text-slate-500 sm:px-8 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-3">
+          <Logo size={26} />
+          <div>
+            <Wordmark height={18} />
+            <p className="mt-1">Minecraft bot control, without the messy tabs.</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-4">
+          <Link href="/features" className="hover:text-slate-200">Features</Link>
+          <Link href="/dashboard" className="hover:text-slate-200">Dashboard</Link>
+          <Link href="/license" className="hover:text-slate-200">License</Link>
+          <Link href="/shop" className="hover:text-slate-200">Shop</Link>
+        </div>
+      </footer>
     </main>
   );
 }
