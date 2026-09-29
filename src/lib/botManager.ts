@@ -1949,20 +1949,23 @@ const aiProviderLog: { provider: string | null; ms: number }[] = [];
 export function getAiProviderStats(): {
   lastProvider: string | null;
   pollinations: number;
+  tokenharbor: number;
   openrouter: number;
   failed: number;
   lastLatencyMs: number;
 } {
   const last = aiProviderLog[aiProviderLog.length - 1] || null;
-  const tally = { pollinations: 0, openrouter: 0, failed: 0 };
+  const tally = { pollinations: 0, tokenharbor: 0, openrouter: 0, failed: 0 };
   for (const e of aiProviderLog.slice(-50)) {
     if (e.provider === "pollinations") tally.pollinations++;
+    else if (e.provider === "tokenharbor") tally.tokenharbor++;
     else if (e.provider === "openrouter") tally.openrouter++;
     else tally.failed++;
   }
   return {
     lastProvider: last ? last.provider : null,
     pollinations: tally.pollinations,
+    tokenharbor: tally.tokenharbor,
     openrouter: tally.openrouter,
     failed: tally.failed,
     lastLatencyMs: last ? last.ms : 0,
@@ -2149,36 +2152,43 @@ function getOpenerLines(record: Bot): string[] {
 // trigger word) always stay intact. A ring buffer of recent sends +
 // re-roll guarantees no near-term repeats.
 const recentAdMessages: string[] = [];
-function varyAdMessage(base: string): string {
-  if (!base) return "";
-  const prefixes = ["", "yo ", "hey ", "alr ", "guys ", "btw ", "bro ", "honestly ", "lowkey ", "looking for "];
-  const suffixes = ["", "!", "!!", " lets go", " come on", " pls", " rq", " fr", " ty", "?"];
-  const build = (): string => {
-    const p = prefixes[Math.floor(Math.random() * prefixes.length)];
-    const sfx = suffixes[Math.floor(Math.random() * suffixes.length)];
-    let body = base.trim();
-    // occasional casing tweak on the first word
-    if (Math.random() < 0.35) {
-      body = body.charAt(0).toUpperCase() + body.slice(1);
-    }
-    // occasional extra space between words (breaks fuzzy matchers that
-    // normalize punctuation but not whitespace)
-    if (Math.random() < 0.4) {
-      const words = body.split(" ");
-      if (words.length >= 2) {
-        const i = 1 + Math.floor(Math.random() * (words.length - 1));
-        words.splice(i, 0, "");
-        body = words.join(" ");
-      }
-    }
-    return `${p}${body}${sfx}`.trim();
-  };
-  let out = build();
-  for (let tries = 0; tries < 10 && recentAdMessages.includes(out); tries++) {
-    out = build();
-  }
-  recentAdMessages.push(out);
+
+function isCatPvpHost(host: string | null | undefined): boolean {
+  return /cat\s*[-.]?\s*pvp/i.test(String(host || ""));
+}
+
+function rememberAdMessage(msg: string): void {
+  recentAdMessages.push(msg);
   if (recentAdMessages.length > 120) recentAdMessages.shift();
+}
+
+function varyAdMessage(base: string, opts: { exact?: boolean } = {}): string {
+  const clean = base.trim();
+  if (!clean) return "";
+  if (opts.exact) {
+    rememberAdMessage(clean);
+    return clean;
+  }
+
+  // Keep the anti-rate-limit humanizer, but make it less goofy. Previously it
+  // could output both a slang prefix and a slang suffix ("alr ... ty"), which
+  // looked robotic. Now one small decoration is used at most, and the chosen
+  // ad text stays readable.
+  const starters = ["", "yo ", "hey ", "btw ", "quick ", "anyone ", "looking for "];
+  const endings = ["", "!", " rq", " pls", " fr", "?"];
+  const build = (): string => {
+    const useStarter = Math.random() < 0.38;
+    const useEnding = !useStarter && Math.random() < 0.34;
+    const p = useStarter ? starters[Math.floor(Math.random() * starters.length)] : "";
+    const sfx = useEnding ? endings[Math.floor(Math.random() * endings.length)] : "";
+    let body = clean;
+    if (!p && Math.random() < 0.25) body = body.charAt(0).toUpperCase() + body.slice(1);
+    return `${p}${body}${sfx}`.replace(/\s+/g, " ").trim();
+  };
+
+  let out = build();
+  for (let tries = 0; tries < 10 && recentAdMessages.includes(out); tries++) out = build();
+  rememberAdMessage(out);
   return out;
 }
 
@@ -2228,6 +2238,10 @@ async function runBeamOnce(
     const interval = Number(record.spamInterval) > 0 ? Number(record.spamInterval) : 60000;
     const triggerWord = (record.spamTriggerWord || "123").trim();
     const replyMsg = record.spamReplyMessage;
+    const exactAdCopy = isCatPvpHost(serverIp);
+    if (exactAdCopy) {
+      log(rt, "system", "🔆 Lobby: CatPvP detected — exact ad/reply text enabled (no prefix/suffix humanizer).");
+    }
     // Word-boundary match so "123" doesn't fire on "1234" or inside words.
     const triggerRe = new RegExp(
       `(?:^|[^A-Za-z0-9_])${triggerWord.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![A-Za-z0-9_])`,
@@ -2333,7 +2347,7 @@ async function runBeamOnce(
       while (rt.beamLoop) {
         if (!rt.bot || rt.status !== "online") break; // outer loop waits for reconnect
         const baseMsg = lobbyMethodList.length ? lobbyMethodList[methodIdx % lobbyMethodList.length] : lobbyMsg;
-        sendBotChat(rt, varyAdMessage(baseMsg)); // unique every send — no ghost mutes
+        sendBotChat(rt, varyAdMessage(baseMsg, { exact: exactAdCopy })); // exact on CatPvP; varied elsewhere to avoid ghost mutes
         if (lobbyMethodList.length > 1 && Date.now() - lastBiteAt > ROTATE_AFTER_MS) {
           methodIdx++;
           lastBiteAt = Date.now();
@@ -2355,8 +2369,12 @@ async function runBeamOnce(
   if (record.beamType === "spam") {
     rt.beamStage = "spamming";
     const msg = record.spamMessage;
+    const exactAdCopy = isCatPvpHost(serverIp);
+    if (exactAdCopy) {
+      log(rt, "system", "🔆 Spam: CatPvP detected — exact ad/reply text enabled (no prefix/suffix humanizer).");
+    }
     try {
-      sendBotChat(rt, varyAdMessage(msg)); // unique every send — no ghost mutes
+      sendBotChat(rt, varyAdMessage(msg, { exact: exactAdCopy })); // exact on CatPvP; varied elsewhere to avoid ghost mutes
       
       // Also save to training DB as a "spam" log
       try {
@@ -2392,8 +2410,7 @@ async function runBeamOnce(
           const sender = parsed.sender;
           if (sender.toLowerCase() !== self.toLowerCase() && isValidUsername(sender)) {
             try {
-              bot.chat(`/msg ${sender} ${replyMsg}`);
-              log(rt, "chat", `<you → ${sender}> ${replyMsg}`);
+              sendBotChat(rt, `/msg ${sender} ${replyMsg}`);
             
               // Also log the trigger interaction
               try {

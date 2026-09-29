@@ -2588,7 +2588,7 @@ export default function AdminPanel({ meId }: { meId: string }) {
                 <h3 className="text-sm font-bold text-white">Test AI</h3>
                 <p className="mt-0.5 text-xs text-slate-500">
                   Sends a plain hello to ONE provider — no fallback — so the result proves
-                  exactly which one is live. Beams use Pollinations, OpenRouter as emergency backup.
+                  exactly which one is live. Beams can use Pollinations, Token Harbor, then OpenRouter.
                 </p>
               </div>
             </div>
@@ -2598,6 +2598,7 @@ export default function AdminPanel({ meId }: { meId: string }) {
             ? aiProviders
             : [
                 { id: "pollinations", label: "Pollinations", model: "deepseek-pro" },
+                { id: "tokenharbor", label: "Token Harbor", model: "deepseek-v4.1-flash:free" },
                 { id: "openrouter", label: "OpenRouter", model: "nvidia/nemotron-3.5-lightning:free" },
               ]
           ).map((p, i) => {
