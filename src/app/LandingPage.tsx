@@ -2,9 +2,9 @@ import Link from "next/link";
 import { Logo, Wordmark } from "./Logo";
 
 const stats = [
-  ["Azalea + MF", "Pick the engine that fits the server"],
-  ["Live console", "Chat, logs, hotbar and actions in one place"],
-  ["Fast deploy", "Railway + Postgres startup handled"],
+  ["3 engines", "Mineflayer, Azalea, and NMP per server"],
+  ["Live ops", "Console, actions, and session state in one view"],
+  ["Deploy-ready", "Railway startup and Postgres handled cleanly"],
 ];
 
 export const features = [
@@ -53,6 +53,7 @@ export default function LandingPage() {
       <div className="app-bg" aria-hidden />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(99,102,241,.22),transparent_34rem)]" />
       <div className="pointer-events-none absolute left-1/2 top-0 h-px w-[min(960px,80vw)] -translate-x-1/2 bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+      <div className="landing-story-rail" aria-hidden />
 
       <nav className="fixed left-1/2 top-4 z-50 flex w-[min(1180px,calc(100%_-_24px))] -translate-x-1/2 items-center justify-between rounded-[1.6rem] border border-white/10 bg-[#0b1020]/78 px-4 py-3 shadow-[0_22px_70px_-28px_rgba(0,0,0,.9)] ring-1 ring-white/[0.03] backdrop-blur-2xl sm:px-5">
         <Link href="/" className="group flex items-center gap-3">
@@ -80,15 +81,15 @@ export default function LandingPage() {
 
       <section className="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-12 px-5 pb-16 pt-32 sm:px-8 lg:grid-cols-[1.02fr_.98fr] lg:pb-20 lg:pt-32">
         <div className="animate-slide-up">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-slate-300 backdrop-blur-xl">
+          <div className="landing-kicker mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-slate-300 backdrop-blur-xl">
             <span className="h-1.5 w-1.5 rounded-full bg-indigo-300 shadow-[0_0_16px_rgba(165,180,252,.9)]" />
-            Pinned navigation · real bot sessions · cleaner workflow
+            Pinned navigation · live sessions · clean control
           </div>
           <h1 className="max-w-4xl text-balance text-5xl font-black leading-[0.94] tracking-[-0.065em] text-white sm:text-6xl lg:text-7xl">
-            Run Minecraft bots from the Z-BEAM command center.
+            Launch and steer Minecraft bots from one sharp command center.
           </h1>
-          <p className="mt-6 max-w-2xl text-pretty text-base font-medium leading-8 text-slate-400 sm:text-lg">
-            Start accounts, choose engines, watch join logs, run beam flows and manage slots from a dashboard that stays readable while you move through it.
+          <p className="landing-lede mt-6 max-w-2xl text-pretty text-base font-medium leading-8 text-slate-400 sm:text-lg">
+            Z-BEAM keeps sessions, logs, controls, and beam flows in one calm interface — fast enough for live servers, clean enough to trust every day.
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <Link
@@ -119,11 +120,12 @@ export default function LandingPage() {
       </section>
 
       <section id="features" className="relative z-10 mx-auto w-full max-w-7xl scroll-mt-24 px-5 py-16 sm:px-8">
+        <div className="section-orb left-8 top-10" aria-hidden />
         <div className="mx-auto mb-10 max-w-3xl text-center">
-          <p className="text-sm font-medium text-indigo-300">What the dashboard actually does</p>
-          <h2 className="mt-2 text-3xl font-black tracking-[-0.04em] text-white sm:text-5xl">Useful features, no filler.</h2>
-          <p className="mt-4 text-sm leading-7 text-slate-400 sm:text-base">
-            The public page should explain the product, not list owner/admin internals. These are the things users feel every session.
+          <p className="text-sm font-medium text-indigo-300">From setup to control</p>
+          <h2 className="mt-2 text-3xl font-black tracking-[-0.04em] text-white sm:text-5xl">Everything flows in the right order.</h2>
+          <p className="landing-copy mt-4 text-sm leading-7 text-slate-400 sm:text-base">
+            Add the bot, pick the engine, watch the join, then control the session without jumping between tabs or terminal logs.
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -145,12 +147,13 @@ export default function LandingPage() {
       </section>
 
       <section id="showcase" className="relative z-10 mx-auto w-full max-w-7xl scroll-mt-24 px-5 py-16 sm:px-8">
+        <div className="section-orb right-10 top-16" aria-hidden />
         <div className="grid items-center gap-10 lg:grid-cols-[.82fr_1.18fr]">
           <div>
-            <p className="text-sm font-medium text-indigo-300">Live session showcase</p>
-            <h2 className="mt-2 text-4xl font-black tracking-[-0.045em] text-white">Player cards that feel alive.</h2>
-            <p className="mt-4 text-sm leading-7 text-slate-400">
-              Random player skins, real server targets, engine labels and status chips move like an actual session queue — not a static mockup.
+            <p className="text-sm font-medium text-indigo-300">Live session cards</p>
+            <h2 className="mt-2 text-4xl font-black tracking-[-0.045em] text-white">Player cards stay readable under pressure.</h2>
+            <p className="landing-copy mt-4 text-sm leading-7 text-slate-400">
+              Names, skins, server targets, engine labels, and status chips are arranged like the live queue users actually watch.
             </p>
             <Link href="/dashboard" className="mt-7 inline-flex rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-indigo-100">
               Open dashboard
@@ -194,10 +197,11 @@ export default function LandingPage() {
       </section>
 
       <section id="preview" className="relative z-10 mx-auto w-full max-w-7xl scroll-mt-24 px-5 pb-24 pt-16 sm:px-8">
+        <div className="section-orb left-1/2 top-10" aria-hidden />
         <div className="mb-8 flex items-end justify-between gap-4">
           <div>
-            <p className="text-sm font-medium text-indigo-300">Interface preview</p>
-            <h2 className="mt-2 text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl">A calmer dashboard layout.</h2>
+            <p className="text-sm font-medium text-indigo-300">Product preview</p>
+            <h2 className="mt-2 text-3xl font-black leading-tight tracking-[-0.045em] text-white sm:text-4xl">The dashboard feels like the product.</h2>
           </div>
           <Link href="/dashboard" className="hidden rounded-2xl border border-white/10 px-5 py-3 text-sm font-semibold text-slate-300 hover:bg-white/[0.05] sm:inline-flex">Go to dashboard</Link>
         </div>

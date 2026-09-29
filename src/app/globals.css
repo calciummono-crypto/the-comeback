@@ -52,11 +52,12 @@
   --panel: rgba(17, 24, 39, 0.6);
   --border: rgba(148, 163, 184, 0.12);
   --accent: #6366f1;
+  --font-body: "Inter", "SF Pro Text", "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Satoshi", "Inter", "SF Pro Display", "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
 * {
-  font-family:
-    ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-family: var(--font-body);
 }
 
 html {
@@ -70,12 +71,57 @@ body {
 body {
   font-feature-settings: "cv02", "cv03", "cv04", "ss01";
   text-rendering: geometricPrecision;
+  letter-spacing: -0.011em;
 }
 
 h1,
 h2,
 h3 {
-  letter-spacing: -0.035em;
+  font-family: var(--font-display);
+  letter-spacing: -0.04em;
+}
+
+
+/* Landing refinement: subtle connective tissue, not a redesign. */
+.landing-story-rail {
+  pointer-events: none;
+  position: absolute;
+  left: 50%;
+  top: 42rem;
+  bottom: 8rem;
+  z-index: 0;
+  width: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(to bottom, transparent, rgba(165, 180, 252, 0.18), rgba(148, 163, 184, 0.06), transparent);
+  mask-image: linear-gradient(to bottom, transparent, black 10%, black 88%, transparent);
+}
+
+.landing-kicker {
+  font-family: var(--font-display);
+  letter-spacing: 0.01em;
+}
+
+.landing-lede,
+.landing-copy {
+  letter-spacing: -0.015em;
+}
+
+.section-orb {
+  pointer-events: none;
+  position: absolute;
+  height: 9rem;
+  width: 9rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(165, 180, 252, 0.12), transparent 68%);
+  filter: blur(6px);
+  opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+  .landing-story-rail,
+  .section-orb {
+    display: none;
+  }
 }
 
 /* Ambient animated background with premium grid */
