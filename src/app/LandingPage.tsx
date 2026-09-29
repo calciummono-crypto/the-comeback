@@ -304,6 +304,12 @@ function BotCardShowcase() {
               </div>
             </div>
           ))}
+          <div className="absolute bottom-0 left-0 right-0 rounded-3xl border border-white/10 bg-slate-950/70 p-3 shadow-2xl shadow-black/30 backdrop-blur-xl">
+            <div className="flex items-center justify-between gap-3 text-xs">
+              <span className="font-mono text-slate-400">/beam start --engine auto</span>
+              <span className="rounded-full bg-emerald-300/10 px-2.5 py-1 font-semibold text-emerald-200 ring-1 ring-emerald-300/20">ready</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -375,6 +381,19 @@ function DashboardPreview() {
             </div>
           </div>
 
+          <div className="grid gap-3 border-b border-white/10 py-4 sm:grid-cols-3">
+            {[
+              ["Online", "3 bots"],
+              ["Latency", "41 ms"],
+              ["Queue", "auto"],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{label}</p>
+                <p className="mt-1 text-sm font-bold text-white">{value}</p>
+              </div>
+            ))}
+          </div>
+
           <div className="grid gap-4 pt-4 xl:grid-cols-[.58fr_1fr]">
             <div className="space-y-3">
               {botCards.slice(0, 3).map((bot, i) => (
@@ -388,6 +407,10 @@ function DashboardPreview() {
                       <p className="truncate text-xs text-slate-500">{bot.server} · {bot.engine}</p>
                     </div>
                     <span className={`h-2.5 w-2.5 rounded-full ${i === 1 ? "bg-indigo-300" : "bg-emerald-300"} shadow-[0_0_14px_rgba(110,231,183,.7)]`} />
+                  </div>
+                  <div className="mt-3 flex gap-2 text-[11px] font-semibold">
+                    <span className="rounded-full bg-white px-2.5 py-1 text-slate-950">view</span>
+                    <span className="rounded-full border border-white/10 px-2.5 py-1 text-slate-400">stop</span>
                   </div>
                 </div>
               ))}
@@ -406,15 +429,17 @@ function DashboardPreview() {
                 <div className="rounded-3xl border border-indigo-300/15 bg-indigo-400/10 p-5">
                   <p className="text-xs font-semibold text-indigo-100">Join log</p>
                   <div className="mt-5 space-y-2 font-mono text-[11px] text-slate-400">
-                    <p>› resolving profile</p>
-                    <p className="text-emerald-200">› connected to server</p>
-                    <p>› inventory synced</p>
+                    <p>12:55 resolving profile</p>
+                    <p className="text-emerald-200">12:56 connected to eu.minemen.club</p>
+                    <p>12:56 inventory synced · slot 3 ready</p>
                   </div>
                 </div>
                 <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
                   <p className="text-xs font-semibold text-slate-300">Live controls</p>
-                  <div className="mt-5 grid grid-cols-3 gap-2">
-                    {Array.from({ length: 6 }).map((_, i) => <span key={i} className="h-8 rounded-xl bg-white/[0.06] ring-1 ring-white/[0.03]" />)}
+                  <div className="mt-5 grid grid-cols-3 gap-2 text-[10px] font-semibold text-slate-400">
+                    {['chat', 'slot', 'use', 'drop', 'move', 'beam'].map((x) => (
+                      <span key={x} className="grid h-8 place-items-center rounded-xl bg-white/[0.06] ring-1 ring-white/[0.03]">{x}</span>
+                    ))}
                   </div>
                 </div>
               </div>
