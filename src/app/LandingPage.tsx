@@ -9,6 +9,15 @@ const stats = [
 
 const proofPoints = ["token to control", "server-aware engines", "live console", "license slots"];
 
+const workflowSteps = [
+  ["01", "Resolve", "Paste the session, pull the IGN, and confirm the server before launch."],
+  ["02", "Launch", "Choose Mineflayer, Azalea, or NMP with version hints already surfaced."],
+  ["03", "Watch", "Join logs, queue state, and reconnects stay readable while the bot moves."],
+  ["04", "Control", "Chat, hotbar, item use, beam flows, and license slots stay within reach."],
+];
+
+const serverBadges = ["Minemen", "Hypixel", "CatPvP", "MCPVP", "Custom IP"];
+
 export const features = [
   {
     title: "Add bots without guessing",
@@ -69,6 +78,7 @@ export default function LandingPage() {
         </Link>
         <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] p-1 text-sm text-slate-400 backdrop-blur-xl md:flex">
           <Link href="/features" className="rounded-full px-4 py-2 hover:bg-white/[0.06] hover:text-white">Features</Link>
+          <a href="#workflow" className="rounded-full px-4 py-2 hover:bg-white/[0.06] hover:text-white">Workflow</a>
           <a href="#showcase" className="rounded-full px-4 py-2 hover:bg-white/[0.06] hover:text-white">Showcase</a>
           <a href="#preview" className="rounded-full px-4 py-2 hover:bg-white/[0.06] hover:text-white">Preview</a>
           <Link href="/dashboard" className="rounded-full bg-white px-4 py-2 font-medium text-slate-950 hover:bg-indigo-100">Dashboard</Link>
@@ -126,6 +136,40 @@ export default function LandingPage() {
         </div>
 
         <BotCardShowcase />
+      </section>
+
+      <section id="workflow" className="relative z-10 mx-auto w-full max-w-7xl scroll-mt-28 px-5 py-14 sm:px-8">
+        <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-xl sm:p-8">
+            <p className="text-sm font-medium text-indigo-300">Launch path</p>
+            <h2 className="mt-2 max-w-xl text-3xl font-black leading-tight tracking-[-0.045em] text-white sm:text-4xl">
+              The page now shows the same order the product runs in.
+            </h2>
+            <p className="landing-copy mt-4 text-sm leading-7 text-slate-400 sm:text-base">
+              A premium control panel should feel predictable: setup first, then launch, then live state, then control. No random wall of cards.
+            </p>
+            <div className="mt-7 flex flex-wrap gap-2">
+              {serverBadges.map((badge) => (
+                <span key={badge} className="rounded-full border border-white/10 bg-slate-950/45 px-3 py-1.5 text-xs font-semibold text-slate-300">
+                  {badge}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {workflowSteps.map(([num, title, text]) => (
+              <article key={title} className="group rounded-[1.6rem] border border-white/10 bg-white/[0.035] p-5 backdrop-blur-xl hover:border-indigo-200/20 hover:bg-white/[0.055]">
+                <div className="mb-6 flex items-center justify-between">
+                  <span className="font-mono text-xs text-indigo-200">{num}</span>
+                  <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_18px_rgba(110,231,183,.8)]" />
+                </div>
+                <h3 className="text-lg font-bold tracking-tight text-white">{title}</h3>
+                <p className="mt-3 text-sm leading-7 text-slate-400">{text}</p>
+              </article>
+            ))}
+          </div>
+        </div>
       </section>
 
       <section id="features" className="relative z-10 mx-auto w-full max-w-7xl scroll-mt-24 px-5 py-16 sm:px-8">
@@ -214,6 +258,23 @@ export default function LandingPage() {
         </div>
       </section>
 
+
+      <section className="relative z-10 mx-auto w-full max-w-7xl px-5 py-8 sm:px-8">
+        <div className="grid gap-3 rounded-[1.8rem] border border-white/10 bg-slate-950/40 p-4 backdrop-blur-xl md:grid-cols-4">
+          {[
+            ["Status", "Designed for live reconnects"],
+            ["Access", "Slots and licenses visible"],
+            ["AI", "Provider tests in admin"],
+            ["Deploy", "Railway-ready runtime"],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{label}</p>
+              <p className="mt-1 text-sm font-semibold text-slate-200">{value}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <section id="preview" className="relative z-10 mx-auto w-full max-w-7xl scroll-mt-24 px-5 pb-16 pt-16 sm:px-8">
         <div className="section-orb left-1/2 top-10" aria-hidden />
         <div className="mb-8 flex items-end justify-between gap-4">
@@ -237,6 +298,11 @@ export default function LandingPage() {
               <p className="landing-copy mt-4 max-w-2xl text-sm leading-7 text-slate-400 sm:text-base">
                 Z-BEAM is built to feel quiet until you need control — then the console, cards, and beam tools are already in reach.
               </p>
+              <div className="mt-5 flex flex-wrap gap-2 text-xs font-medium text-slate-400">
+                <span className="rounded-full border border-white/10 px-3 py-1.5">no terminal jumping</span>
+                <span className="rounded-full border border-white/10 px-3 py-1.5">real session state</span>
+                <span className="rounded-full border border-white/10 px-3 py-1.5">fast login gate</span>
+              </div>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
               <Link href="/dashboard" className="btn-primary inline-flex justify-center rounded-2xl bg-white px-6 py-3.5 text-sm font-bold text-slate-950 hover:bg-indigo-100">
@@ -256,6 +322,7 @@ export default function LandingPage() {
           <div>
             <Wordmark height={18} />
             <p className="mt-1">Minecraft bot control, without the messy tabs.</p>
+            <p className="mt-1">© 2026 Z-BEAM. All rights reserved.</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-4">
