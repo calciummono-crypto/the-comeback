@@ -8,7 +8,6 @@ export const metadata: Metadata = {
   title: "Z-BEAM",
   description:
     "Spin up Minecraft bots, watch them join servers, and control them from Z-BEAM.",
-  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
