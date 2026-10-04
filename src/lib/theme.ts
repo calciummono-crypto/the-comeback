@@ -27,11 +27,13 @@ export const THEME_PRESETS: ThemePreset[] = [
   },
 ];
 
+export const DEFAULT_THEME_ID = "violet";
+
 const STORAGE_KEY = "mcbm:theme";
 
 export function loadThemeId(): string {
-  if (typeof window === "undefined") return THEME_PRESETS[0].id;
-  return localStorage.getItem(STORAGE_KEY) || THEME_PRESETS[0].id;
+  if (typeof window === "undefined") return DEFAULT_THEME_ID;
+  return localStorage.getItem(STORAGE_KEY) || DEFAULT_THEME_ID;
 }
 
 export function saveThemeId(id: string): void {
@@ -40,7 +42,7 @@ export function saveThemeId(id: string): void {
 
 export function applyThemePreset(id: string): void {
   if (typeof document === "undefined") return;
-  const preset = THEME_PRESETS.find((p) => p.id === id) || THEME_PRESETS[0];
+  const preset = THEME_PRESETS.find((p) => p.id === id) || THEME_PRESETS.find((p) => p.id === DEFAULT_THEME_ID) || THEME_PRESETS[0];
   const families = ["emerald", "teal", "cyan", "violet", "indigo", "fuchsia", "purple"];
   const stops = ["200", "300", "400", "500", "600", "700", "900", "950"];
   for (const family of families) {

@@ -8,6 +8,7 @@ export const features = [
     tag: "Resolve",
     icon: "🧭",
     detail: "token → IGN",
+    visual: "skin",
   },
   {
     title: "Pick server",
@@ -15,6 +16,7 @@ export const features = [
     tag: "Launch",
     icon: "🌐",
     detail: "server profile",
+    visual: "server",
   },
   {
     title: "Watch live logs",
@@ -186,8 +188,17 @@ export default function LandingPage() {
                   <span className="resolve-arrow">→</span>
                   <span className="ign-chip">
                     <img src="https://visage.surgeplay.com/face/48/wisp" alt="" />
-                    vyrex_
+                    <strong>vyrex_</strong>
                   </span>
+                </div>
+              )}
+              {index === 1 && (
+                <div className="server-preview" aria-label="Server profile preview">
+                  <img src="https://api.mcsrvstat.us/icon/eu.minemen.club" alt="" />
+                  <div>
+                    <strong>eu.minemen.club</strong>
+                    <span>Minemen · EU profile</span>
+                  </div>
                 </div>
               )}
             </article>
@@ -201,10 +212,12 @@ export default function LandingPage() {
           <h2>Resolve → launch → watch → control.</h2>
         </div>
         <div className="flow-line">
-          <span>token</span>
-          <span>server</span>
-          <span>console</span>
-          <span>controls</span>
+          {["token", "server", "console", "controls"].map((step, index) => (
+            <span key={step}>
+              <b>{String(index + 1).padStart(2, "0")}</b>
+              {step}
+            </span>
+          ))}
         </div>
       </section>
 
@@ -672,20 +685,21 @@ const css = `
   }
 
   .preview-btn.start {
-    background: #fff;
-    color: #081014;
+    border: 1px solid rgba(52, 211, 153, .35);
+    background: linear-gradient(180deg, rgba(52, 211, 153, .95), rgba(16, 185, 129, .82));
+    color: #02140f;
   }
 
   .preview-btn.stop {
-    border: 1px solid rgba(251, 191, 36, .25);
-    background: rgba(251, 191, 36, .11);
-    color: #fde68a;
+    border: 1px solid rgba(248, 113, 113, .35);
+    background: linear-gradient(180deg, rgba(248, 113, 113, .92), rgba(225, 29, 72, .82));
+    color: #fff1f2;
   }
 
   .preview-btn.open {
-    border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
-    background: color-mix(in srgb, var(--accent) 12%, transparent);
-    color: #dfe7ff;
+    border: 1px solid color-mix(in srgb, var(--accent) 34%, transparent);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 22%, transparent), color-mix(in srgb, var(--accent) 10%, transparent));
+    color: #eef2ff;
   }
 
   .preview-delete {
@@ -830,60 +844,86 @@ const css = `
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
+    gap: 12px;
     margin-top: 16px;
     border: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
     border-radius: 16px;
-    background: rgba(0,0,0,.16);
-    padding: 10px 11px;
+    background: rgba(0,0,0,.18);
+    padding: 10px 12px;
     font-size: 12px;
     color: #adbbc1;
   }
 
+  .feature-detail span { white-space: nowrap; }
+
   .feature-detail b {
     color: var(--accent);
-    font-size: 11px;
+    font-size: 10px;
     text-transform: uppercase;
-    letter-spacing: .08em;
+    letter-spacing: .1em;
   }
 
-  .resolve-preview {
+  .resolve-preview,
+  .server-preview {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     margin-top: 10px;
     border: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
-    border-radius: 16px;
-    padding: 8px;
+    border-radius: 18px;
+    padding: 9px;
     background: #06090d;
-    font: 700 11px 'IBM Plex Mono', monospace;
   }
+
+  .resolve-preview { font: 700 11px 'IBM Plex Mono', monospace; }
 
   .token-chip,
   .ign-chip {
     min-width: 0;
-    border-radius: 12px;
+    border-radius: 13px;
     background: rgba(255,255,255,.045);
     padding: 8px 9px;
     color: #aebdc4;
   }
 
-  .token-chip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .token-chip { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   .resolve-arrow { color: var(--accent); }
 
   .ign-chip {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 7px;
     color: #edf7fb;
   }
 
-  .ign-chip img {
-    width: 18px;
-    height: 18px;
-    border-radius: 5px;
+  .ign-chip img,
+  .server-preview img {
+    border-radius: 6px;
     image-rendering: pixelated;
+  }
+
+  .ign-chip img { width: 20px; height: 20px; }
+
+  .server-preview img { width: 34px; height: 34px; }
+
+  .server-preview div {
+    display: grid;
+    min-width: 0;
+    gap: 2px;
+  }
+
+  .server-preview strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #edf7fb;
+    font-size: 12px;
+  }
+
+  .server-preview span {
+    color: var(--muted);
+    font-size: 11px;
   }
 
   .flow-band {
@@ -896,22 +936,35 @@ const css = `
   .flow-line {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    border: 1px solid var(--line);
-    border-radius: 20px;
-    overflow: hidden;
-    background: color-mix(in srgb, var(--accent) 3.5%, transparent);
+    gap: 10px;
   }
 
   .flow-line span {
-    padding: 18px 12px;
+    display: grid;
+    gap: 8px;
+    min-height: 82px;
+    place-items: center;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--accent) 4%, transparent);
     color: #d7fbff;
     font-size: 12px;
-    font-weight: 800;
+    font-weight: 900;
     text-align: center;
-    border-right: 1px solid var(--line);
+    text-transform: uppercase;
+    letter-spacing: .08em;
   }
 
-  .flow-line span:last-child { border-right: 0; }
+  .flow-line b {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    color: var(--accent);
+    font-size: 11px;
+  }
 
   footer {
     border-top: 1px solid var(--line);
@@ -950,8 +1003,6 @@ const css = `
     .bot-card { width: 100%; }
     .feature-grid { grid-template-columns: 1fr; }
     .flow-line { grid-template-columns: 1fr 1fr; }
-    .flow-line span:nth-child(2) { border-right: 0; }
-    .flow-line span:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
   }
 
   @media (prefers-reduced-motion: reduce) {

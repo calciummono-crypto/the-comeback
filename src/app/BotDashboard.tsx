@@ -442,7 +442,7 @@ function BotCard({
           <button
             disabled={busy}
             onClick={() => act(`/api/bots/${bot.id}/stop`, "stop")}
-            className="inline-flex h-11 items-center justify-center rounded-2xl border border-amber-300/20 bg-amber-300/10 px-3 text-sm font-black text-amber-200 transition hover:bg-amber-300/15 active:scale-[.985] disabled:opacity-50"
+            className="inline-flex h-11 items-center justify-center rounded-2xl border border-rose-400/30 bg-gradient-to-b from-rose-400/95 to-rose-600/85 px-3 text-sm font-black text-white shadow-[0_18px_50px_-32px_rgba(244,63,94,.9)] transition hover:brightness-110 active:scale-[.985] disabled:opacity-50"
           >
             Stop
           </button>
@@ -450,14 +450,14 @@ function BotCard({
           <button
             disabled={busy}
             onClick={() => act(`/api/bots/${bot.id}/start`, "start")}
-            className="inline-flex h-11 items-center justify-center rounded-2xl bg-white px-3 text-sm font-black text-slate-950 transition hover:bg-emerald-100 active:scale-[.985] disabled:opacity-50"
+            className="inline-flex h-11 items-center justify-center rounded-2xl border border-emerald-300/35 bg-gradient-to-b from-emerald-300 to-emerald-500 px-3 text-sm font-black text-slate-950 shadow-[0_18px_50px_-32px_color-mix(in_srgb,var(--color-emerald-500)_90%,transparent)] transition hover:brightness-110 active:scale-[.985] disabled:opacity-50"
           >
             Start
           </button>
         )}
         <button
           onClick={onSelect}
-          className="inline-flex h-11 items-center justify-center rounded-2xl border border-emerald-300/20 bg-emerald-300/10 px-3 text-sm font-black text-emerald-200 transition hover:border-emerald-200/40 hover:bg-emerald-300/15 active:scale-[.985]"
+          className="inline-flex h-11 items-center justify-center rounded-2xl border border-indigo-300/25 bg-gradient-to-b from-indigo-400/18 to-indigo-500/10 px-3 text-sm font-black text-indigo-100 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-indigo-200/45 hover:bg-indigo-300/18 active:scale-[.985]"
         >
           Open
         </button>
