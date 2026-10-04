@@ -77,6 +77,13 @@ export default function LicensePanel() {
         return;
       }
       setRedeemMsg({ type: "success", text: `Redeemed! Got ${data.license.slots} slots for ${data.license.durationDays}d ${data.license.durationHours}h` });
+      window.dispatchEvent(new CustomEvent("zbeam:notification", {
+        detail: {
+          title: "License key redeemed",
+          text: `Unlocked ${data.license.slots} bot slots for ${data.license.durationDays}d ${data.license.durationHours}h.`,
+          tone: "emerald",
+        },
+      }));
       setKeyInput("");
       await refresh();
     } catch {

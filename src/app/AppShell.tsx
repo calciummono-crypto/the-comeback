@@ -24,6 +24,14 @@ type Me = {
   isGuest: boolean;
 };
 
+type NotificationItem = {
+  id: string;
+  title: string;
+  text: string;
+  time: string;
+  tone?: "emerald" | "amber" | "rose" | "sky";
+};
+
 type Tab = "dashboard" | "license" | "shop" | "admin" | "addbot" | "train" | "settings";
 
 // Tabs are URL-driven: /shop, /license, /admin… so links are shareable and
@@ -53,6 +61,9 @@ export default function AppShell() {
   const [loaded, setLoaded] = useState(false);
   const pathname = usePathname();
   const [tab, setTabState] = useState<Tab>(() => tabFromPath(pathname));
+  const [dashboardSearch, setDashboardSearch] = useState("");
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   // In-app tab switches push the URL without a Next navigation, so the shell
   // (and its loaded state) never remounts.
@@ -195,6 +206,37 @@ export default function AppShell() {
         } catch {}
       }, 400);
     }
+  }, []);
+
+  useEffect(() => {
+    if (!me) return;
+    setNotifications([
+      {
+        id: "account-ready",
+        title: "Account signed in",
+        text: `${me.username} is connected to Z-BEAM.`,
+        time: "now",
+        tone: "emerald",
+      },
+    ]);
+  }, [me?.id, me?.username]);
+
+  useEffect(() => {
+    const onNotify = (ev: Event) => {
+      const detail = (ev as CustomEvent<Partial<NotificationItem>>).detail ?? {};
+      setNotifications((current) => [
+        {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          title: detail.title || "Notification",
+          text: detail.text || "Z-BEAM event updated.",
+          time: "now",
+          tone: detail.tone || "sky",
+        },
+        ...current,
+      ].slice(0, 12));
+    };
+    window.addEventListener("zbeam:notification", onNotify);
+    return () => window.removeEventListener("zbeam:notification", onNotify);
   }, []);
 
   async function logout() {
@@ -376,17 +418,134 @@ export default function AppShell() {
             <Logo size={28} />
             <Wordmark height={22} />
           </div>
-          <button
-            onClick={() => setMobileNav(true)}
-            className="grid h-9 w-9 place-items-center rounded-lg border border-slate-800 text-slate-300"
-          >
-            <MenuIcon />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setNotificationsOpen((v) => !v)}
+              className="relative grid h-9 w-9 place-items-center rounded-lg border border-slate-800 text-slate-300"
+              aria-label="Open notifications"
+            >
+              <BellIcon />
+              {notifications.length > 0 && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-emerald-300" />}
+            </button>
+            <button
+              onClick={() => setMobileNav(true)}
+              className="grid h-9 w-9 place-items-center rounded-lg border border-slate-800 text-slate-300"
+            >
+              <MenuIcon />
+            </button>
+          </div>
         </div>
 
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-8 lg:py-10">
+        <div className="border-b border-white/[0.06] bg-slate-950/40 px-4 py-3 lg:hidden">
+          <label className="flex h-11 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-slate-500">
+            <SearchIcon />
+            <input
+              value={dashboardSearch}
+              onChange={(e) => setDashboardSearch(e.target.value)}
+              placeholder="Search bots..."
+              className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-100 outline-none placeholder:text-slate-600"
+            />
+          </label>
+          {notificationsOpen && (
+            <div className="mt-3 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/90 backdrop-blur-2xl">
+              <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
+                <p className="text-sm font-black text-white">Notifications</p>
+                <button onClick={() => setNotifications([])} className="text-xs font-semibold text-slate-500">clear</button>
+              </div>
+              <div className="max-h-64 overflow-y-auto p-2">
+                {notifications.length === 0 ? (
+                  <div className="px-4 py-8 text-center text-sm text-slate-500">No notifications yet.</div>
+                ) : notifications.map((item) => (
+                  <div key={item.id} className="rounded-xl border border-white/[0.06] bg-white/[0.035] p-3">
+                    <p className="text-sm font-bold text-slate-100">{item.title}</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-400">{item.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="sticky top-0 z-20 hidden border-b border-white/[0.06] bg-slate-950/55 px-8 py-4 backdrop-blur-2xl lg:block">
+          <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4">
+            <label className="group flex h-12 w-full max-w-xl items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] px-4 text-slate-500 shadow-[0_18px_60px_-50px_rgba(0,0,0,.95)] transition focus-within:border-emerald-300/45 focus-within:bg-white/[0.055] focus-within:ring-2 focus-within:ring-emerald-300/10">
+              <SearchIcon />
+              <input
+                value={dashboardSearch}
+                onChange={(e) => setDashboardSearch(e.target.value)}
+                placeholder="Search bots, servers, status..."
+                className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-100 outline-none placeholder:text-slate-600"
+              />
+              {dashboardSearch && (
+                <button
+                  type="button"
+                  onClick={() => setDashboardSearch("")}
+                  className="rounded-full px-1.5 text-xs text-slate-500 transition hover:bg-white/10 hover:text-white"
+                  aria-label="Clear search"
+                >
+                  ✕
+                </button>
+              )}
+            </label>
+
+            <div className="relative">
+              <button
+                onClick={() => setNotificationsOpen((v) => !v)}
+                className="relative grid h-12 w-12 place-items-center rounded-2xl border border-white/10 bg-white/[0.04] text-slate-300 transition hover:border-emerald-300/25 hover:bg-white/[0.065] hover:text-white"
+                aria-label="Open notifications"
+              >
+                <BellIcon />
+                {notifications.length > 0 && (
+                  <span className="absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full bg-emerald-300 shadow-[0_0_14px_color-mix(in_srgb,var(--color-emerald-500)_90%,transparent)]" />
+                )}
+              </button>
+              {notificationsOpen && (
+                <div className="absolute right-0 top-14 w-[360px] overflow-hidden rounded-3xl border border-white/10 bg-slate-950/92 shadow-[0_28px_100px_-50px_rgba(0,0,0,.95)] backdrop-blur-2xl">
+                  <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
+                    <div>
+                      <p className="text-sm font-black text-white">Notifications</p>
+                      <p className="text-[11px] text-slate-500">keys, bots and account events</p>
+                    </div>
+                    <button
+                      onClick={() => setNotifications([])}
+                      className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] font-semibold text-slate-400 transition hover:text-white"
+                    >
+                      clear
+                    </button>
+                  </div>
+                  <div className="max-h-[360px] overflow-y-auto p-2">
+                    {notifications.length === 0 ? (
+                      <div className="grid place-items-center px-6 py-10 text-center text-sm text-slate-500">
+                        No notifications yet.
+                      </div>
+                    ) : (
+                      notifications.map((item) => (
+                        <div key={item.id} className="rounded-2xl border border-white/[0.06] bg-white/[0.035] p-3">
+                          <div className="flex gap-3">
+                            <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
+                              item.tone === "rose" ? "bg-rose-400" : item.tone === "amber" ? "bg-amber-300" : item.tone === "sky" ? "bg-sky-300" : "bg-emerald-300"
+                            }`} />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between gap-3">
+                                <p className="truncate text-sm font-bold text-slate-100">{item.title}</p>
+                                <span className="shrink-0 font-mono text-[10px] text-slate-600">{item.time}</span>
+                              </div>
+                              <p className="mt-1 text-xs leading-5 text-slate-400">{item.text}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-8 lg:py-8">
           <div key={activeTab} className="animate-fade-in">
-            {activeTab === "dashboard" && <BotDashboard meRole={me.role} />}
+            {activeTab === "dashboard" && <BotDashboard meRole={me.role} search={dashboardSearch} />}
             {activeTab === "license" && <LicensePanel />}
             {activeTab === "shop" && <ShopPanel onGoLicense={() => setTab("license")} />}
             {activeTab === "admin" && me.role === "admin" && (
@@ -401,6 +560,24 @@ export default function AppShell() {
         </main>
       </div>
     </div>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.3-4.3" />
+    </svg>
+  );
+}
+
+function BellIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 7h18s-3 0-3-7" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
   );
 }
 

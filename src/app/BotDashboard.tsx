@@ -61,7 +61,13 @@ const VERSIONS = [
   "1.8.9",
 ];
 
-export default function BotDashboard({ meRole = "user" }: { meRole?: string }) {
+export default function BotDashboard({
+  meRole = "user",
+  search = "",
+}: {
+  meRole?: string;
+  search?: string;
+}) {
   const [tab, setTab] = useState<"bots" | "about">("bots");
   const [items, setItems] = useState<BotItem[]>([]);
   const [slots, setSlots] = useState<number>(0);
@@ -72,7 +78,6 @@ export default function BotDashboard({ meRole = "user" }: { meRole?: string }) {
   const [deleteBot, setDeleteBot] = useState<BotItem | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const [search, setSearch] = useState("");
 
   const refresh = useCallback(async () => {
     try {
@@ -120,72 +125,47 @@ export default function BotDashboard({ meRole = "user" }: { meRole?: string }) {
 
   return (
     <div>
-      <header className="rounded-[1.75rem] border border-white/[0.08] bg-white/[0.035] p-4 shadow-[0_24px_80px_-55px_rgba(0,0,0,.9)] backdrop-blur-xl sm:p-5">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-200/80">dashboard</p>
-            <h2 className="mt-1 text-2xl font-black tracking-[-0.04em] text-white">Bots</h2>
-            <p className="mt-1 text-sm text-slate-400">
-              {slots > 0 ? (
-                <>
-                  Using{" "}
-                  <span
-                    className={
-                      slotsFull ? "font-semibold text-amber-300" : "text-slate-200"
-                    }
-                  >
-                    {items.length}/{slots}
-                  </span>{" "}
-                  bot slots
-                  {licenseStatus?.nextExpiry && (
-                    <span className="ml-2 text-xs text-amber-300/70">
-                      · expires {new Date(licenseStatus.nextExpiry).toLocaleDateString()}
-                    </span>
-                  )}
-                </>
-              ) : (
-                "Add sessions, pick engines, and control bots live."
-              )}
-            </p>
-          </div>
-
-          <div className="flex w-full flex-col gap-3 sm:flex-row xl:w-auto">
-            <label className="group flex h-12 min-w-0 flex-1 items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/55 px-4 text-slate-500 transition focus-within:border-emerald-300/45 focus-within:bg-slate-950/75 focus-within:ring-2 focus-within:ring-emerald-300/10 xl:w-80 xl:flex-none">
-              <span className="text-lg leading-none">⌕</span>
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search bots, servers, status..."
-                className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-100 outline-none placeholder:text-slate-600"
-              />
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => setSearch("")}
-                  className="rounded-full px-1.5 text-xs text-slate-500 transition hover:bg-white/10 hover:text-white"
-                  aria-label="Clear search"
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-200/80">dashboard</p>
+          <h2 className="mt-1 text-2xl font-black tracking-[-0.04em] text-white">Bots</h2>
+          <p className="mt-1 text-sm text-slate-400">
+            {slots > 0 ? (
+              <>
+                Using{" "}
+                <span
+                  className={
+                    slotsFull ? "font-semibold text-amber-300" : "text-slate-200"
+                  }
                 >
-                  ✕
-                </button>
-              )}
-            </label>
-
-            <button
-              onClick={() => setShowAdd(true)}
-              disabled={slotsFull || noLicense}
-              title={
-                noLicense
-                  ? "No license - 0 slots. Go to License tab"
-                  : slotsFull
-                    ? "No bot slots left — ask an admin"
-                    : "Add a bot"
-              }
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-300 px-5 text-sm font-black text-slate-950 shadow-[0_18px_50px_-26px_color-mix(in_srgb,var(--color-emerald-500)_90%,transparent)] transition hover:bg-emerald-200 active:scale-[.985] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <PlusIcon size={16} /> Add bot
-            </button>
-          </div>
+                  {items.length}/{slots}
+                </span>{" "}
+                bot slots
+                {licenseStatus?.nextExpiry && (
+                  <span className="ml-2 text-xs text-amber-300/70">
+                    · expires {new Date(licenseStatus.nextExpiry).toLocaleDateString()}
+                  </span>
+                )}
+              </>
+            ) : (
+              "Add sessions, pick engines, and control bots live."
+            )}
+          </p>
         </div>
+        <button
+          onClick={() => setShowAdd(true)}
+          disabled={slotsFull || noLicense}
+          title={
+            noLicense
+              ? "No license - 0 slots. Go to License tab"
+              : slotsFull
+                ? "No bot slots left — ask an admin"
+                : "Add a bot"
+          }
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-emerald-300 px-5 text-sm font-black text-slate-950 shadow-[0_18px_50px_-26px_color-mix(in_srgb,var(--color-emerald-500)_90%,transparent)] transition hover:bg-emerald-200 active:scale-[.985] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <PlusIcon size={16} /> Add bot
+        </button>
       </header>
 
       {noLicense && loaded && (
@@ -229,13 +209,9 @@ export default function BotDashboard({ meRole = "user" }: { meRole?: string }) {
               ) : items.length === 0 ? (
                 <EmptyState onAdd={() => setShowAdd(true)} />
               ) : visibleItems.length === 0 ? (
-                <NoSearchResults query={search} onClear={() => setSearch("")} />
+                <NoSearchResults query={search} />
               ) : (
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  <AddBotCard
-                    disabled={slotsFull || noLicense}
-                    onAdd={() => setShowAdd(true)}
-                  />
                   {visibleItems.map((bot) => (
                     <BotCard
                       key={bot.id}
@@ -282,7 +258,16 @@ export default function BotDashboard({ meRole = "user" }: { meRole?: string }) {
           onConfirm={async () => {
             setDeleting(true);
             try {
-              await fetch(`/api/bots/${deleteBot.id}`, { method: "DELETE" });
+              const res = await fetch(`/api/bots/${deleteBot.id}`, { method: "DELETE" });
+              if (res.ok) {
+                window.dispatchEvent(new CustomEvent("zbeam:notification", {
+                  detail: {
+                    title: "Bot deleted",
+                    text: `${deleteBot.name} was removed from the dashboard.`,
+                    tone: "rose",
+                  },
+                }));
+              }
               setDeleteBot(null);
               await refresh();
             } finally {
@@ -382,7 +367,11 @@ function BotCard({
   const version = bot.version && bot.version !== "auto" ? bot.version : "auto";
   const displayName = bot.username || bot.name;
 
-  async function act(path: string, method = "POST") {
+  function notify(title: string, text: string, tone: "emerald" | "amber" | "rose" | "sky" = "sky") {
+    window.dispatchEvent(new CustomEvent("zbeam:notification", { detail: { title, text, tone } }));
+  }
+
+  async function act(path: string, action: "start" | "stop", method = "POST") {
     setBusy(true);
     try {
       const res = await fetch(path, { method });
@@ -393,6 +382,12 @@ function BotCard({
         } catch {
           // non-JSON error — the refresh below still reflects the state
         }
+      } else {
+        notify(
+          action === "start" ? "Bot started" : "Bot stopped",
+          `${bot.name} ${action === "start" ? "was started" : "was stopped"}.`,
+          action === "start" ? "emerald" : "amber",
+        );
       }
       await onChanged();
     } finally {
@@ -401,34 +396,37 @@ function BotCard({
   }
 
   return (
-    <article className="group relative flex min-h-[280px] flex-col overflow-hidden rounded-[1.7rem] border border-white/[0.085] bg-[radial-gradient(circle_at_75%_0%,rgba(52,211,153,.12),transparent_34%),linear-gradient(180deg,rgba(15,23,42,.78),rgba(2,6,23,.88))] p-4 shadow-[0_28px_90px_-60px_rgba(0,0,0,.95)] transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300/28 hover:shadow-[0_32px_95px_-58px_color-mix(in_srgb,var(--color-emerald-500)_35%,rgba(0,0,0,.9))] sm:p-5">
-      <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-emerald-200/40 to-transparent opacity-0 transition group-hover:opacity-100" />
+    <article className="group relative flex min-h-[238px] flex-col overflow-hidden rounded-[1.45rem] border border-white/[0.085] bg-[linear-gradient(180deg,rgba(15,23,42,.74),rgba(2,6,23,.88))] p-4 shadow-[0_26px_80px_-60px_rgba(0,0,0,.95)] transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300/28 sm:p-5">
+      <div className="pointer-events-none absolute inset-x-7 top-0 h-px bg-gradient-to-r from-transparent via-emerald-200/45 to-transparent opacity-0 transition group-hover:opacity-100" />
 
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <BotAvatar
             username={bot.username}
             status={bot.status}
-            className="h-16 w-14 rounded-2xl text-lg sm:h-[72px] sm:w-16"
+            className="h-[70px] w-[58px] rounded-2xl text-lg"
           />
           <div className="min-w-0">
-            <h3 className="truncate text-lg font-black tracking-[-0.035em] text-white">{bot.name}</h3>
+            <div className="flex min-w-0 items-center gap-2">
+              <h3 className="truncate text-lg font-black tracking-[-0.035em] text-white">{bot.name}</h3>
+              <StatusBadge status={bot.status} />
+            </div>
             <p className="mt-1 truncate font-mono text-[11px] text-slate-500">{displayName}</p>
+            <p className="mt-2 truncate font-mono text-xs font-semibold text-slate-300">{bot.host}:{bot.port}</p>
           </div>
         </div>
 
         <button
           disabled={busy}
           onClick={onDelete}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.035] text-[15px] text-slate-500 transition hover:border-rose-400/40 hover:bg-rose-500/10 hover:text-rose-200 disabled:opacity-50"
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.035] text-[13px] text-slate-500 transition hover:border-rose-400/40 hover:bg-rose-500/10 hover:text-rose-200 disabled:opacity-50"
           title="Delete bot"
         >
           🗑️
         </button>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <StatusBadge status={bot.status} />
+      <div className="mt-4 flex flex-wrap gap-2">
         <span className="rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-slate-300">
           {label}
         </span>
@@ -437,42 +435,23 @@ function BotCard({
         </span>
       </div>
 
-      <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/48 p-3">
-        <div className="flex items-center justify-between gap-3">
-          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-slate-600">server</span>
-          <span className="truncate text-right font-mono text-xs font-semibold text-slate-200">{bot.host}:{bot.port}</span>
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-          <div className="rounded-xl bg-white/[0.035] px-3 py-2">
-            <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-slate-600">mode</p>
-            <p className="mt-1 truncate font-semibold text-slate-300">{bot.beamType || "manual"}</p>
-          </div>
-          <div className="rounded-xl bg-white/[0.035] px-3 py-2">
-            <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-slate-600">console</p>
-            <p className="mt-1 truncate font-semibold text-slate-300">{running ? "live" : "ready"}</p>
-          </div>
-        </div>
-      </div>
-
       {bot.status === "error" && bot.lastError ? (
-        <p className="mt-3 line-clamp-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-xs leading-5 text-rose-200">
+        <p className="mt-4 line-clamp-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-xs leading-5 text-rose-200">
           {bot.lastError}
         </p>
       ) : (
-        <p className="mt-3 line-clamp-2 text-xs leading-5 text-slate-500">
-          {bot.status === "online"
-            ? "Joined successfully. Open controls for chat, inventory and console."
-            : bot.status === "connecting"
-              ? "Handshake in progress. Logs will appear when the session responds."
-              : "Ready to launch. Start the session or open the detail view."}
-        </p>
+        <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/42 px-3 py-2.5">
+          <p className="truncate text-xs font-medium text-slate-400">
+            {running ? "Session active. Open for controls." : "Ready to start."}
+          </p>
+        </div>
       )}
 
       <div className="mt-auto grid grid-cols-2 gap-2 pt-4">
         {running ? (
           <button
             disabled={busy}
-            onClick={() => act(`/api/bots/${bot.id}/stop`)}
+            onClick={() => act(`/api/bots/${bot.id}/stop`, "stop")}
             className="inline-flex h-11 items-center justify-center rounded-2xl border border-amber-300/20 bg-amber-300/10 px-3 text-sm font-black text-amber-200 transition hover:bg-amber-300/15 active:scale-[.985] disabled:opacity-50"
           >
             Stop
@@ -480,7 +459,7 @@ function BotCard({
         ) : (
           <button
             disabled={busy}
-            onClick={() => act(`/api/bots/${bot.id}/start`)}
+            onClick={() => act(`/api/bots/${bot.id}/start`, "start")}
             className="inline-flex h-11 items-center justify-center rounded-2xl bg-white px-3 text-sm font-black text-slate-950 transition hover:bg-emerald-100 active:scale-[.985] disabled:opacity-50"
           >
             Start
@@ -497,41 +476,15 @@ function BotCard({
   );
 }
 
-function AddBotCard({ disabled, onAdd }: { disabled: boolean; onAdd: () => void }) {
-  return (
-    <button
-      onClick={onAdd}
-      disabled={disabled}
-      className="group relative flex min-h-[280px] flex-col items-center justify-center overflow-hidden rounded-[1.7rem] border border-dashed border-emerald-300/25 bg-[linear-gradient(180deg,rgba(16,185,129,.08),rgba(255,255,255,.025))] p-5 text-center shadow-[0_28px_90px_-65px_rgba(0,0,0,.95)] transition hover:-translate-y-0.5 hover:border-emerald-200/45 hover:bg-emerald-300/[0.075] disabled:cursor-not-allowed disabled:opacity-45"
-    >
-      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-emerald-200/50 to-transparent opacity-0 transition group-hover:opacity-100" />
-      <div className="grid h-16 w-16 place-items-center rounded-2xl border border-emerald-300/20 bg-emerald-300/10 text-emerald-200 shadow-[0_20px_70px_-45px_color-mix(in_srgb,var(--color-emerald-500)_90%,transparent)]">
-        <PlusIcon size={24} />
-      </div>
-      <h3 className="mt-5 text-lg font-black tracking-[-0.03em] text-white">Add bot</h3>
-      <p className="mt-2 max-w-[220px] text-sm leading-6 text-slate-400">
-        Paste a session, choose server, region and beaming mode.
-      </p>
-      <span className="mt-5 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.12em] text-emerald-200">
-        new session
-      </span>
-    </button>
-  );
-}
 
-function NoSearchResults({ query, onClear }: { query: string; onClear: () => void }) {
+function NoSearchResults({ query }: { query: string }) {
   return (
     <div className="grid min-h-[240px] place-items-center rounded-[1.7rem] border border-white/[0.08] bg-white/[0.035] p-8 text-center">
       <div>
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-white/[0.045] text-2xl">⌕</div>
         <h3 className="mt-4 text-lg font-bold text-white">No bots found</h3>
         <p className="mt-2 text-sm text-slate-400">Nothing matches “{query}”.</p>
-        <button
-          onClick={onClear}
-          className="mt-5 rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-2 text-sm font-bold text-slate-200 transition hover:bg-white/[0.09] hover:text-white"
-        >
-          Clear search
-        </button>
+        <p className="mt-4 text-xs text-slate-600">Use the search bar in the top bar to change the query.</p>
       </div>
     </div>
   );
