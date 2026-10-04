@@ -92,7 +92,7 @@ export default function LandingPage() {
             <article key={bot.name} className={`bot-card card-${index}`}>
               <div className="bot-head">
                 <span className="bot-avatar">
-                  <img src={`https://minotar.net/helm/${bot.skin}/96.png`} alt="" />
+                  <img src={`https://visage.surgeplay.com/bust/160/${bot.skin}`} alt="" />
                 </span>
                 <div>
                   <h2>{bot.name}</h2>
@@ -397,20 +397,24 @@ const css = `
 
   .bot-avatar {
     display: grid;
-    place-items: center;
-    width: 52px;
-    height: 52px;
+    place-items: end center;
+    width: 58px;
+    height: 64px;
     overflow: hidden;
     border: 1px solid var(--line);
     border-radius: 18px;
-    background: #090d12;
+    background:
+      radial-gradient(circle at 50% 10%, rgba(34, 211, 238, 0.16), transparent 70%),
+      #090d12;
   }
 
   .bot-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    width: 120%;
+    height: 120%;
+    object-fit: contain;
+    object-position: center bottom;
     image-rendering: pixelated;
+    filter: drop-shadow(0 12px 18px rgba(0,0,0,.45));
   }
 
   .bot-head h2 {

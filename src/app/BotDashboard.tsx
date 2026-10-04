@@ -103,7 +103,7 @@ export default function BotDashboard({ meRole = "user" }: { meRole?: string }) {
     <div>
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-white">My Bots</h2>
+          <h2 className="text-2xl font-black tracking-[-0.04em] text-white">Bots</h2>
           <p className="text-sm text-slate-400">
             {slots > 0 ? (
               <>
@@ -123,7 +123,7 @@ export default function BotDashboard({ meRole = "user" }: { meRole?: string }) {
                 )}
               </>
             ) : (
-              "Spin up Minecraft bots and control them."
+              "Add sessions, pick engines, and control bots live."
             )}
           </p>
         </div>
@@ -137,7 +137,7 @@ export default function BotDashboard({ meRole = "user" }: { meRole?: string }) {
                 ? "No bot slots left — ask an admin"
                 : "Add a bot"
           }
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-emerald-950 shadow-lg shadow-emerald-900/30 transition hover:bg-emerald-400 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-300 px-4 py-2.5 text-sm font-bold text-slate-950 shadow-[0_18px_50px_-26px_rgba(34,211,238,.9)] transition hover:bg-cyan-200 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-40"
         >
           <PlusIcon size={16} /> Add bot
         </button>
@@ -161,15 +161,15 @@ export default function BotDashboard({ meRole = "user" }: { meRole?: string }) {
 
       {!activeBot ? (
         <>
-          <nav className="mt-6 flex gap-1 rounded-xl border border-slate-800 bg-slate-900/60 p-1 text-sm">
+          <nav className="mt-6 flex gap-1 rounded-2xl border border-white/[0.08] bg-white/[0.035] p-1 text-sm backdrop-blur-xl">
             {(["bots", "about"] as const).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
                 className={`flex-1 rounded-lg px-3 py-2 font-medium capitalize transition ${
                   tab === t
-                    ? "bg-slate-800 text-white shadow"
-                    : "text-slate-400 hover:text-slate-200"
+                    ? "bg-cyan-300 text-slate-950 shadow"
+                    : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200"
                 }`}
               >
                 {t === "bots" ? `Bots (${items.length})` : "How it works"}
