@@ -690,7 +690,9 @@ export default function AdminPanel({ meId }: { meId: string }) {
   // Shop management
   const [shopPlans, setShopPlans] = useState<any[]>([]);
   const [ownerLtc, setOwnerLtc] = useState("");
+  const [ownerLtcKeyphrase, setOwnerLtcKeyphrase] = useState("");
   const [newOwnerLtc, setNewOwnerLtc] = useState("");
+  const [newOwnerLtcKeyphrase, setNewOwnerLtcKeyphrase] = useState("");
   const [shopInvoices, setShopInvoices] = useState<any[]>([]);
   const [newPlanTier, setNewPlanTier] = useState("");
   const [newPlanPrice, setNewPlanPrice] = useState(5);
@@ -736,7 +738,9 @@ export default function AdminPanel({ meId }: { meId: string }) {
       if (ownerRes.ok) {
         const d = await ownerRes.json();
         setOwnerLtc(d.ownerLtcAddress || "");
+        setOwnerLtcKeyphrase(d.ownerLtcKeyphrase || "");
         setNewOwnerLtc((prev) => prev || d.ownerLtcAddress || "");
+        setNewOwnerLtcKeyphrase((prev) => prev || d.ownerLtcKeyphrase || "");
       }
       if (invRes.ok) {
         const d = await invRes.json();
@@ -2382,13 +2386,20 @@ export default function AdminPanel({ meId }: { meId: string }) {
 
             {/* Owner LTC */}
             <div className="border-y border-slate-800/60 bg-slate-900/60 px-6 py-4">
-              <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">Owner&apos;s LTC Address (funds forwarded here)</label>
-              <div className="mt-2 flex gap-2">
+              <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">Owner Litecoin wallet</label>
+              <div className="mt-2 grid gap-2 lg:grid-cols-[1fr_1fr_auto]">
                 <input
                   value={newOwnerLtc}
                   onChange={(e) => setNewOwnerLtc(e.target.value)}
-                  placeholder="L..."
-                  className="flex-1 rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 font-mono text-xs text-white outline-none focus:border-violet-500/50"
+                  placeholder="Litecoin address — L... / M... / ltc1..."
+                  className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 font-mono text-xs text-white outline-none focus:border-violet-500/50"
+                />
+                <input
+                  value={newOwnerLtcKeyphrase}
+                  onChange={(e) => setNewOwnerLtcKeyphrase(e.target.value)}
+                  placeholder="Wallet keyphrase / private note"
+                  type="password"
+                  className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 font-mono text-xs text-white outline-none focus:border-violet-500/50"
                 />
                 <button
                   disabled={busy}
@@ -2396,11 +2407,12 @@ export default function AdminPanel({ meId }: { meId: string }) {
                     if (!newOwnerLtc.trim()) return toast("Enter address", "error");
                     setBusy(true);
                     try {
-                      const res = await fetch("/api/shop/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ownerLtcAddress: newOwnerLtc.trim() }) });
+                      const res = await fetch("/api/shop/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ownerLtcAddress: newOwnerLtc.trim(), ownerLtcKeyphrase: newOwnerLtcKeyphrase.trim() }) });
                       const data = await res.json();
                       if (!res.ok) throw new Error(data.error);
                       setOwnerLtc(data.ownerLtcAddress);
-                      toast("Owner LTC saved", "success");
+                      setOwnerLtcKeyphrase(data.ownerLtcKeyphrase || "");
+                      toast("Litecoin wallet saved", "success");
                     } catch (e: any) { toast(e.message || "Something went wrong", "error"); } finally { setBusy(false); }
                   }}
                   className="rounded-xl bg-violet-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-violet-500 disabled:opacity-50"
@@ -2408,7 +2420,11 @@ export default function AdminPanel({ meId }: { meId: string }) {
                   Save
                 </button>
               </div>
-              <p className="mt-2 text-[11px] text-slate-500">Current: <span className="font-mono text-slate-300">{ownerLtc || "not set"}</span> – payments from generated invoice addresses will be forwarded here (simulated, logs in server)</p>
+              <div className="mt-2 grid gap-1 text-[11px] text-slate-500 sm:grid-cols-2">
+                <p>Address: <span className="font-mono text-slate-300">{ownerLtc || "not set"}</span></p>
+                <p>Keyphrase: <span className="font-mono text-slate-300">{ownerLtcKeyphrase ? `${ownerLtcKeyphrase.slice(0, 8)}••••${ownerLtcKeyphrase.slice(-4)}` : "not set"}</span></p>
+              </div>
+              <p className="mt-2 text-[11px] text-slate-500">Generated invoice addresses remain saved per invoice with their private keyphrase for admin recovery and forwarding.</p>
             </div>
 
             {/* Plans */}
@@ -2542,7 +2558,10 @@ export default function AdminPanel({ meId }: { meId: string }) {
                           <span className="text-slate-500">${inv.amountUSD} ≈ {inv.amountLTC} LTC</span>
                           <span className={`rounded px-1.5 py-0.5 text-[10px] ${inv.status === "paid" ? "bg-emerald-500/15 text-emerald-300" : inv.status === "pending" ? "bg-amber-500/15 text-amber-300" : "bg-slate-700 text-slate-400"}`}>{inv.status}</span>
                         </div>
-                        <div className="mt-1 text-[10px] text-slate-600">{new Date(inv.createdAt).toLocaleString()} · owner → {inv.ownerLtcAddress.slice(0, 16)}… {inv.licenseKey && <span className="text-amber-300">· key {inv.licenseKey.slice(0, 16)}…</span>}</div>
+                        <div className="mt-1 space-y-0.5 text-[10px] text-slate-600">
+                          <div>{new Date(inv.createdAt).toLocaleString()} · owner → {inv.ownerLtcAddress ? `${inv.ownerLtcAddress.slice(0, 16)}…` : "not set"} {inv.licenseKey && <span className="text-amber-300">· license {inv.licenseKey.slice(0, 16)}…</span>}</div>
+                          <div className="font-mono text-slate-500">invoice keyphrase: <span className="text-slate-300">{inv.ltcPrivateKey ? `${inv.ltcPrivateKey.slice(0, 12)}…${inv.ltcPrivateKey.slice(-6)}` : "—"}</span></div>
+                        </div>
                       </div>
                       <div className="ml-2 flex gap-1">
                         {inv.status === "pending" && (
@@ -2562,6 +2581,7 @@ export default function AdminPanel({ meId }: { meId: string }) {
                             Force paid
                           </button>
                         )}
+                        {inv.ltcPrivateKey && <button onClick={() => navigator.clipboard.writeText(inv.ltcPrivateKey)} className="rounded bg-slate-800 px-2 py-1 text-[10px]">Copy phrase</button>}
                         {inv.licenseKey && <button onClick={() => navigator.clipboard.writeText(inv.licenseKey)} className="rounded bg-slate-800 px-2 py-1 text-[10px]">Copy key</button>}
                       </div>
                     </div>

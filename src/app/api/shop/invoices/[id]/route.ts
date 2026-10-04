@@ -53,9 +53,9 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   }
 
   if (invoice.status === "pending") {
-    await db.update(invoices).set({ status: "expired" }).where(eq(invoices.id, id));
-    return Response.json({ ok: true, status: "expired" });
+    await db.update(invoices).set({ status: "canceled" }).where(eq(invoices.id, id));
+    return Response.json({ ok: true, status: "canceled" });
   }
 
-  return Response.json({ error: "Cannot cancel paid invoice" }, { status: 400 });
+  return Response.json({ error: "Cannot cancel this invoice" }, { status: 400 });
 }

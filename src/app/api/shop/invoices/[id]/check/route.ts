@@ -29,8 +29,13 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     });
   }
 
-  if (invoice.status === "expired") {
+  if (invoice.status === "pending" && new Date(invoice.expiresAt).getTime() <= Date.now()) {
+    await db.update(invoices).set({ status: "expired" }).where(eq(invoices.id, id));
     return Response.json({ paid: false, status: "expired", balance: "0" });
+  }
+
+  if (invoice.status === "expired" || invoice.status === "canceled") {
+    return Response.json({ paid: false, status: invoice.status, balance: "0" });
   }
 
   // For testing: allow admin to force paid via query? We'll check ?force=true header via body? Simplified: if admin sends force, mark paid.

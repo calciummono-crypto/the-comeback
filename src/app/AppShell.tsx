@@ -30,6 +30,7 @@ type NotificationItem = {
   text: string;
   time: string;
   tone?: "emerald" | "amber" | "rose" | "sky";
+  invoiceId?: string;
 };
 
 type Tab = "dashboard" | "license" | "shop" | "admin" | "addbot" | "train" | "settings";
@@ -210,15 +211,47 @@ export default function AppShell() {
 
   useEffect(() => {
     if (!me) return;
-    setNotifications([
-      {
-        id: "account-ready",
-        title: "Account signed in",
-        text: `${me.username} is connected to Z-BEAM.`,
-        time: "now",
-        tone: "emerald",
-      },
-    ]);
+    let alive = true;
+    const accountNote: NotificationItem = {
+      id: "account-ready",
+      title: "Account signed in",
+      text: `${me.username} is connected to Z-BEAM.`,
+      time: "now",
+      tone: "emerald",
+    };
+    setNotifications((current) => [accountNote, ...current.filter((item) => item.id !== "account-ready")].slice(0, 12));
+
+    const loadPendingInvoices = async () => {
+      try {
+        const res = await fetch("/api/shop/invoices", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const pending = (Array.isArray(data.invoices) ? data.invoices : [])
+          .filter((inv: { id: string; status: string; expiresAt: string }) => inv.status === "pending" && new Date(inv.expiresAt).getTime() > Date.now())
+          .slice(0, 3)
+          .map((inv: { id: string; amountUSD: number; amountLTC: string; expiresAt: string; tier?: string }) => ({
+            id: `invoice-${inv.id}`,
+            title: "Pending invoice",
+            text: `${inv.tier || "Shop"} checkout for $${inv.amountUSD} is still active. Click to reopen it before the 1 hour timer ends.`,
+            time: "now",
+            tone: "amber" as const,
+            invoiceId: inv.id,
+          }));
+        if (alive) {
+          setNotifications((current) => [
+            ...current.filter((item) => !item.invoiceId),
+            ...pending,
+          ].slice(0, 12));
+        }
+      } catch {}
+    };
+
+    void loadPendingInvoices();
+    const t = setInterval(loadPendingInvoices, 30_000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
   }, [me?.id, me?.username]);
 
   useEffect(() => {
@@ -231,6 +264,7 @@ export default function AppShell() {
           text: detail.text || "Z-BEAM event updated.",
           time: "now",
           tone: detail.tone || "sky",
+          invoiceId: detail.invoiceId,
         },
         ...current,
       ].slice(0, 12));
@@ -238,6 +272,15 @@ export default function AppShell() {
     window.addEventListener("zbeam:notification", onNotify);
     return () => window.removeEventListener("zbeam:notification", onNotify);
   }, []);
+
+  function openNotification(item: NotificationItem) {
+    if (!item.invoiceId) return;
+    setNotificationsOpen(false);
+    setTab("shop");
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("zbeam:open-invoice", { detail: { invoiceId: item.invoiceId } }));
+    }, 80);
+  }
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -456,10 +499,16 @@ export default function AppShell() {
                 {notifications.length === 0 ? (
                   <div className="px-4 py-8 text-center text-sm text-slate-500">No notifications yet.</div>
                 ) : notifications.map((item) => (
-                  <div key={item.id} className="rounded-xl border border-white/[0.06] bg-white/[0.035] p-3">
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => openNotification(item)}
+                    className={`w-full rounded-xl border border-white/[0.06] bg-white/[0.035] p-3 text-left ${item.invoiceId ? "transition hover:border-amber-300/30 hover:bg-amber-300/[0.06]" : ""}`}
+                  >
                     <p className="text-sm font-bold text-slate-100">{item.title}</p>
                     <p className="mt-1 text-xs leading-5 text-slate-400">{item.text}</p>
-                  </div>
+                    {item.invoiceId && <p className="mt-2 text-[10px] font-bold uppercase tracking-wide text-amber-300">Open invoice</p>}
+                  </button>
                 ))}
               </div>
             </div>
@@ -520,7 +569,12 @@ export default function AppShell() {
                       </div>
                     ) : (
                       notifications.map((item) => (
-                        <div key={item.id} className="rounded-2xl border border-white/[0.06] bg-white/[0.035] p-3">
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => openNotification(item)}
+                          className={`w-full rounded-2xl border border-white/[0.06] bg-white/[0.035] p-3 text-left ${item.invoiceId ? "transition hover:border-amber-300/30 hover:bg-amber-300/[0.06]" : ""}`}
+                        >
                           <div className="flex gap-3">
                             <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
                               item.tone === "rose" ? "bg-rose-400" : item.tone === "amber" ? "bg-amber-300" : item.tone === "sky" ? "bg-sky-300" : "bg-emerald-300"
@@ -531,9 +585,10 @@ export default function AppShell() {
                                 <span className="shrink-0 font-mono text-[10px] text-slate-600">{item.time}</span>
                               </div>
                               <p className="mt-1 text-xs leading-5 text-slate-400">{item.text}</p>
+                              {item.invoiceId && <p className="mt-2 text-[10px] font-bold uppercase tracking-wide text-amber-300">Open invoice</p>}
                             </div>
                           </div>
-                        </div>
+                        </button>
                       ))
                     )}
                   </div>

@@ -217,6 +217,7 @@ export default function BotDashboard({
                       bot={bot}
                       onChanged={refresh}
                       onSelect={() => setActiveBotId(bot.id)}
+                      onManage={() => setEditId(bot.id)}
                       onDelete={() => setDeleteBot(bot)}
                     />
                   ))}
@@ -348,11 +349,13 @@ function BotCard({
   bot,
   onChanged,
   onSelect,
+  onManage,
   onDelete,
 }: {
   bot: BotItem;
   onChanged: () => void;
   onSelect: () => void;
+  onManage: () => void;
   onDelete: () => void;
 }) {
   const [busy, setBusy] = useState(false);
@@ -389,7 +392,8 @@ function BotCard({
   }
 
   return (
-    <article className="group relative flex min-h-[238px] flex-col overflow-hidden rounded-[1.45rem] border border-white/[0.085] bg-[linear-gradient(180deg,rgba(15,23,42,.74),rgba(2,6,23,.88))] p-4 shadow-[0_26px_80px_-60px_rgba(0,0,0,.95)] transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300/28 sm:p-5">
+    <article className="group relative flex min-h-[246px] flex-col overflow-hidden rounded-[1.7rem] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(15,23,42,.78),rgba(2,6,23,.9))] p-4 shadow-[0_28px_90px_-62px_rgba(0,0,0,.96)] transition duration-300 hover:-translate-y-1 hover:border-emerald-300/30 hover:shadow-[0_32px_105px_-70px_color-mix(in_srgb,var(--color-emerald-500)_60%,rgba(0,0,0,.9))] sm:p-5">
+      <div className="pointer-events-none absolute -right-14 -top-14 h-36 w-36 rounded-full bg-emerald-300/8 blur-3xl transition group-hover:bg-emerald-300/12" />
       <div className="pointer-events-none absolute inset-x-7 top-0 h-px bg-gradient-to-r from-transparent via-emerald-200/45 to-transparent opacity-0 transition group-hover:opacity-100" />
 
       <div className="flex items-start justify-between gap-3">
@@ -436,7 +440,7 @@ function BotCard({
         </div>
       )}
 
-      <div className="mt-auto grid grid-cols-2 gap-2 pt-4">
+      <div className="mt-auto grid grid-cols-[1fr_1fr_46px] gap-2 pt-4">
         {running ? (
           <button
             disabled={busy}
@@ -460,11 +464,32 @@ function BotCard({
         >
           Open
         </button>
+        <button
+          onClick={onManage}
+          disabled={busy}
+          title="Manage bot"
+          className="grid h-11 w-11 place-items-center rounded-2xl border border-sky-300/22 bg-sky-400/10 text-sky-200 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-sky-200/45 hover:bg-sky-300/16 hover:text-white active:scale-[.96] disabled:opacity-50"
+        >
+          <ManageGlyph />
+        </button>
       </div>
     </article>
   );
 }
 
+
+function ManageGlyph() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 7h10" />
+      <path d="M18 7h2" />
+      <path d="M4 17h2" />
+      <path d="M10 17h10" />
+      <circle cx="16" cy="7" r="2" />
+      <circle cx="8" cy="17" r="2" />
+    </svg>
+  );
+}
 
 function NoSearchResults({ query }: { query: string }) {
   return (

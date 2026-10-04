@@ -17,6 +17,9 @@ export const litecoinNetwork: bitcoin.networks.Network = {
 
 const ECPair = ECPairFactory(ecc);
 const OWNER_LTC_KEY = "owner_ltc_address";
+const OWNER_LTC_KEYPHRASE = "owner_ltc_keyphrase";
+
+export const SHOP_INVOICE_TTL_MS = 60 * 60 * 1000;
 
 export async function getOwnerLtcAddress(): Promise<string> {
   const [row] = await db.select().from(appSettings).where(eq(appSettings.key, OWNER_LTC_KEY));
@@ -25,6 +28,15 @@ export async function getOwnerLtcAddress(): Promise<string> {
 
 export async function setOwnerLtcAddress(address: string): Promise<void> {
   await db.insert(appSettings).values({ key: OWNER_LTC_KEY, value: address, updatedAt: new Date() }).onConflictDoUpdate({ target: appSettings.key, set: { value: address, updatedAt: new Date() } });
+}
+
+export async function getOwnerLtcKeyphrase(): Promise<string> {
+  const [row] = await db.select().from(appSettings).where(eq(appSettings.key, OWNER_LTC_KEYPHRASE));
+  return row?.value || process.env.OWNER_LTC_KEYPHRASE || "";
+}
+
+export async function setOwnerLtcKeyphrase(keyphrase: string): Promise<void> {
+  await db.insert(appSettings).values({ key: OWNER_LTC_KEYPHRASE, value: keyphrase, updatedAt: new Date() }).onConflictDoUpdate({ target: appSettings.key, set: { value: keyphrase, updatedAt: new Date() } });
 }
 
 export async function getLtcPriceUSD(): Promise<number> {

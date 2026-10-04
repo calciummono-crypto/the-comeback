@@ -33,7 +33,7 @@ type Invoice = {
   hours?: number;
 };
 
-const INVOICE_WINDOW_MS = 30 * 60 * 1000;
+const INVOICE_WINDOW_MS = 60 * 60 * 1000;
 
 function fmtUsd(n: number): string {
   return Number.isInteger(n) ? `$${n}` : `$${n.toFixed(2)}`;
@@ -56,6 +56,25 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
   const [qrFailed, setQrFailed] = useState(false);
   const [trialBusy, setTrialBusy] = useState(false);
   const [trialDone, setTrialDone] = useState<null | "claimed" | "used">(null);
+
+  function notifyInvoice(inv: Invoice, title: string, text: string, tone: "emerald" | "amber" | "rose" | "sky" = "amber") {
+    window.dispatchEvent(new CustomEvent("zbeam:notification", {
+      detail: { title, text, tone, invoiceId: inv.id },
+    }));
+  }
+
+  function closeInvoiceModal(showNotification = true) {
+    if (invoice?.status === "pending" && showNotification) {
+      notifyInvoice(
+        invoice,
+        "Invoice still pending",
+        `${tierOf(invoice)} checkout is saved for ${timeLeft || "up to 1 hour"}. Click here to reopen it.`,
+        "amber",
+      );
+    }
+    setInvoice(null);
+    setPaidInfo(null);
+  }
 
   const fetchPlans = useCallback(async () => {
     try {
@@ -87,6 +106,30 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
     }, 0);
     return () => clearTimeout(t);
   }, [fetchPlans, fetchInvoices]);
+
+  useEffect(() => {
+    const onOpenInvoice = (ev: Event) => {
+      const id = (ev as CustomEvent<{ invoiceId?: string }>).detail?.invoiceId;
+      if (!id) return;
+      const found = myInvoices.find((inv) => inv.id === id);
+      if (found) {
+        void resumeInvoice(found);
+      } else {
+        void (async () => {
+          try {
+            const res = await fetch(`/api/shop/invoices/${id}`, { cache: "no-store" });
+            const data = await res.json();
+            if (res.ok && data.invoice) {
+              const i = data.invoice as Invoice & { plan?: { tier: string; bots: number; hours: number } };
+              void resumeInvoice({ ...i, tier: i.plan?.tier, bots: i.plan?.bots, hours: i.plan?.hours });
+            }
+          } catch {}
+        })();
+      }
+    };
+    window.addEventListener("zbeam:open-invoice", onOpenInvoice);
+    return () => window.removeEventListener("zbeam:open-invoice", onOpenInvoice);
+  }, [myInvoices]);
 
   // countdown for invoice expiry
   useEffect(() => {
@@ -141,6 +184,12 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
         toast("Please login properly to purchase – auth required.", "info");
         return;
       }
+      const active = activePendingInvoice;
+      if (active) {
+        toast("You already have a pending invoice — finish or cancel it first.", "info");
+        await resumeInvoice(active);
+        return;
+      }
       // Create invoice
       const res = await fetch("/api/shop/invoices", {
         method: "POST",
@@ -149,12 +198,22 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
       });
       const data = await res.json();
       if (!res.ok) {
+        if (res.status === 409 && data.invoice) {
+          toast(data.error || "You already have a pending invoice.", "info");
+          setQrFailed(false);
+          setPaidInfo(null);
+          setInvoice(data.invoice);
+          notifyInvoice(data.invoice, "Pending invoice reopened", "Finish or cancel this invoice before creating a new one.", "amber");
+          fetchInvoices();
+          return;
+        }
         toast(data.error || "Failed to create invoice", "error");
         return;
       }
       setQrFailed(false);
       setPaidInfo(null);
       setInvoice(data.invoice);
+      notifyInvoice(data.invoice, "Invoice created", `${plan.tier} checkout is pending for 1 hour. Click here to reopen it.`, "amber");
       fetchInvoices();
     } catch {
       toast("Network error creating invoice", "info");
@@ -241,11 +300,13 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
 
   async function cancelInvoice() {
     if (!invoice) return;
+    const canceled = invoice;
     try {
       await fetch(`/api/shop/invoices/${invoice.id}`, { method: "DELETE" });
     } catch {}
     setInvoice(null);
     setPaidInfo(null);
+    notifyInvoice(canceled, "Invoice canceled", `${tierOf(canceled)} checkout was canceled.`, "rose");
     fetchInvoices();
   }
 
@@ -295,6 +356,10 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
 
   const tierOf = (inv: Invoice) =>
     inv.tier || plans.find(p => p.id === inv.planId)?.tier || "Plan";
+
+  const activePendingInvoice = myInvoices.find((inv) =>
+    inv.status === "pending" && new Date(inv.expiresAt).getTime() > Date.now(),
+  ) ?? null;
 
   if (!loaded) {
     return (
@@ -424,9 +489,11 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
                     }`}
                   >
                     <span className="relative z-10 flex items-center justify-center gap-1.5">
-                      {buying === plan.id
-                        ? "Creating invoice…"
-                        : `Get ${plan.tier}`}
+                      {activePendingInvoice
+                        ? "Open pending invoice"
+                        : buying === plan.id
+                          ? "Creating invoice…"
+                          : `Get ${plan.tier}`}
                       {buying !== plan.id && (
                         <span className="transition-transform duration-200 group-hover/buy:translate-x-0.5">→</span>
                       )}
@@ -542,7 +609,7 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
       {/* Checkout Modal */}
       {invoice && (
         <div className="fixed inset-0 z-[100] grid place-items-center p-4 sm:p-6">
-          <div className="absolute inset-0 animate-fade-in bg-[#020617]/84 backdrop-blur-2xl" onClick={cancelInvoice} />
+          <div className="absolute inset-0 animate-fade-in bg-[#020617]/84 backdrop-blur-2xl" onClick={() => closeInvoiceModal(true)} />
           <div className="relative z-10 flex w-full animate-pop-in items-center justify-center">
             <div className="max-h-[92vh] w-full max-w-[500px] overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950/92 shadow-[0_35px_120px_-55px_rgba(0,0,0,.98)] backdrop-blur-2xl">
             <div className="flex items-center justify-between border-b border-white/[0.08] bg-white/[0.025] px-5 py-4">
@@ -555,7 +622,7 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
                   <p className="text-[11px] text-slate-500">{paidInfo ? "License ready to redeem" : `${tierOf(invoice)} · 1 month`}</p>
                 </div>
               </div>
-              <button onClick={cancelInvoice} className="grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-slate-400 transition hover:bg-white/[0.08] hover:text-white">
+              <button onClick={() => closeInvoiceModal(true)} className="grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-slate-400 transition hover:bg-white/[0.08] hover:text-white">
                 ✕
               </button>
             </div>
@@ -582,7 +649,7 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
                   <div className="mt-4">
                     <div className="flex items-center justify-between text-[11px]">
                       <span className="text-slate-500">Rate locks for</span>
-                      <span className={`font-mono font-bold ${urgent ? "text-rose-400" : "text-slate-300"}`}>{timeLeft || "30:00"}</span>
+                      <span className={`font-mono font-bold ${urgent ? "text-rose-400" : "text-slate-300"}`}>{timeLeft || "60:00"}</span>
                     </div>
                     <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-800 p-0.5">
                       <div
@@ -696,7 +763,7 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
                     <button onClick={autoRedeem} className="rounded-xl bg-emerald-500 py-3 text-xs font-bold text-emerald-950 transition hover:bg-emerald-400">
                       Redeem now
                     </button>
-                    <button onClick={() => { setInvoice(null); setPaidInfo(null); if (onGoLicense) onGoLicense(); }} className="rounded-xl border border-slate-700 bg-slate-800 py-3 text-xs font-semibold text-slate-200 hover:bg-slate-700">
+                    <button onClick={() => { closeInvoiceModal(false); if (onGoLicense) onGoLicense(); }} className="rounded-xl border border-slate-700 bg-slate-800 py-3 text-xs font-semibold text-slate-200 hover:bg-slate-700">
                       Go to License
                     </button>
                   </div>
@@ -716,6 +783,7 @@ function StatusBadge({ status }: { status: string }) {
     pending: "border-amber-500/30 bg-amber-500/10 text-amber-300",
     paid: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
     expired: "border-slate-600/40 bg-slate-700/20 text-slate-400",
+    canceled: "border-rose-500/25 bg-rose-500/10 text-rose-300",
     forwarded: "border-indigo-500/30 bg-indigo-500/10 text-indigo-300",
   };
   return (

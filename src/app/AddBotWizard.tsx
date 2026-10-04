@@ -273,18 +273,20 @@ export default function AddBotWizard({
 
   return (
     <div className="fixed inset-0 z-[100] grid place-items-center p-4 sm:p-6">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,.16),transparent_34rem)]" />
       <div
-        className="absolute inset-0 animate-fade-in bg-[#030712]/80 backdrop-blur-xl"
+        className="absolute inset-0 animate-fade-in bg-[#030712]/84 backdrop-blur-2xl"
         onClick={onClose}
       />
       <div
         onClick={(e) => e.stopPropagation()}
         className="relative z-10 flex w-full animate-pop-in items-center justify-center"
       >
-        <div className="absolute -inset-1 z-[-1] rounded-[2rem] bg-gradient-to-b from-emerald-500/20 to-indigo-500/10 opacity-60 blur-xl" />
-        <div className="premium-modal flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-[24px]">
+        <div className="absolute -inset-1 z-[-1] rounded-[2.1rem] bg-gradient-to-b from-emerald-300/24 via-indigo-400/12 to-transparent opacity-70 blur-2xl" />
+        <div className="premium-modal flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-[2rem] border border-white/[0.09] bg-slate-950/92 shadow-[0_34px_120px_-55px_rgba(0,0,0,.98)]">
           {/* header */}
-          <div className="flex items-center justify-between border-b border-white/5 bg-white/[0.02] px-6 py-5">
+          <div className="relative flex items-center justify-between border-b border-white/5 bg-white/[0.025] px-6 py-5">
+            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-emerald-200/40 to-transparent" />
             <div className="flex items-center gap-4">
               <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white shadow-[0_0_20px_-5px_color-mix(in_srgb,var(--color-emerald-500)_50%,transparent)]">
                 <PlusIcon size={22} />
@@ -311,12 +313,12 @@ export default function AddBotWizard({
             {STEP_LABELS.map((label, i) => (
               <div key={label} className="flex flex-1 items-center gap-2">
                 <div
-                  className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold transition ${
+                  className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-bold transition-all duration-200 ${
                     i < step
-                      ? "bg-emerald-500/20 text-emerald-300"
+                      ? "bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-400/20"
                       : i === step
-                        ? "scale-110 bg-emerald-500 text-emerald-950 shadow-[0_0_12px_color-mix(in_srgb,var(--color-emerald-500)_50%,transparent)]"
-                        : "bg-slate-800 text-slate-500"
+                        ? "scale-110 bg-emerald-300 text-emerald-950 shadow-[0_0_18px_color-mix(in_srgb,var(--color-emerald-500)_55%,transparent)]"
+                        : "bg-slate-800/80 text-slate-500 ring-1 ring-white/[0.04]"
                   }`}
                 >
                   {i < step ? "✓" : i + 1}
@@ -462,10 +464,10 @@ export default function AddBotWizard({
                         setServerId(s.id);
                         setRegion(s.regions[0]?.id ?? null);
                       }}
-                      className={`flex flex-col items-center gap-3 rounded-2xl border bg-gradient-to-b p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/30 ${s.accent} ${
+                      className={`group relative flex flex-col items-center gap-3 overflow-hidden rounded-[1.4rem] border bg-gradient-to-b p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_22px_70px_-55px_rgba(0,0,0,.95)] ${s.accent} ${
                         on
-                          ? `border-white/20 ring-2 ${s.ring}`
-                          : "border-slate-700/80 hover:border-slate-500"
+                          ? `border-white/25 ring-2 ${s.ring} shadow-[0_20px_70px_-55px_rgba(0,0,0,.95)]`
+                          : "border-white/10 bg-slate-950/35 hover:border-white/22"
                       }`}
                     >
                       <ServerLogo key={s.iconHost} host={s.iconHost} label={s.label} />
@@ -675,7 +677,7 @@ export default function AddBotWizard({
           </div>
 
           {/* footer */}
-          <div className="flex items-center justify-between gap-3 border-t border-white/5 bg-black/20 p-5">
+          <div className="flex items-center justify-between gap-3 border-t border-white/5 bg-black/25 p-5 backdrop-blur">
             <button
               onClick={() => (step === 0 ? onClose() : setStep(step - 1))}
               className="rounded-xl border border-white/10 px-5 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
