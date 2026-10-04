@@ -10,6 +10,7 @@ import SettingsPanel from "./SettingsPanel";
 import TrainAiPanel from "./TrainAiPanel";
 import LicensePanel from "./LicensePanel";
 import ShopPanel from "./ShopPanel";
+import HowItWorksPanel from "./HowItWorksPanel";
 import AdminAddBotPanel from "./AdminAddBotPanel";
 import ToastHost from "./ToastHost";
 import { Logo, Wordmark } from "./Logo";
@@ -33,12 +34,13 @@ type NotificationItem = {
   invoiceId?: string;
 };
 
-type Tab = "dashboard" | "license" | "shop" | "admin" | "addbot" | "train" | "settings";
+type Tab = "dashboard" | "guide" | "license" | "shop" | "admin" | "addbot" | "train" | "settings";
 
 // Tabs are URL-driven: /shop, /license, /admin… so links are shareable and
 // the Discord buttons (…/#shop) land on the right tab.
 const TAB_PATHS: Record<Tab, string> = {
   dashboard: "/dashboard",
+  guide: "/how-it-works",
   license: "/license",
   shop: "/shop",
   admin: "/admin",
@@ -318,6 +320,7 @@ export default function AppShell() {
 
   const navItems: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: "dashboard", label: "Bots", icon: <BotIcon /> },
+    { key: "guide", label: "How it works", icon: <GuideIcon /> },
     { key: "license", label: "License", icon: <TicketIcon /> },
     { key: "shop", label: "Shop", icon: <ShopIcon /> },
     ...(me.role === "admin"
@@ -602,6 +605,7 @@ export default function AppShell() {
           {activeTab === "dashboard" && <DashboardDiscordBanner />}
           <div key={activeTab} className="animate-fade-in">
             {activeTab === "dashboard" && <BotDashboard meRole={me.role} search={dashboardSearch} />}
+            {activeTab === "guide" && <HowItWorksPanel />}
             {activeTab === "license" && <LicensePanel />}
             {activeTab === "shop" && <ShopPanel onGoLicense={() => setTab("license")} />}
             {activeTab === "admin" && me.role === "admin" && (
@@ -771,6 +775,17 @@ function DiscordIcon() {
     </svg>
   );
 }
+function GuideIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 4.5h9a3 3 0 0 1 3 3v12H8a3 3 0 0 0-3-3z" />
+      <path d="M5 4.5v12" />
+      <path d="M9 8h4" />
+      <path d="M9 11h5" />
+    </svg>
+  );
+}
+
 function PlusBotIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

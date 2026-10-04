@@ -103,7 +103,10 @@ export default function LicensePanel() {
 
   const hasLicense = status.totalSlots > 0;
   const slotDenom = Math.max(status.totalSlots, 1);
-  const usedPct = Math.min(100, Math.round((status.usedSlots / slotDenom) * 100));
+  const usedPctExact = Math.min(100, (status.usedSlots / slotDenom) * 100);
+  const usedPct = Math.min(100, Math.round(usedPctExact));
+  const usedPctLabel = status.usedSlots > 0 && usedPctExact < 1 ? "<1" : String(usedPct);
+  const usedBarWidth = status.usedSlots > 0 ? Math.max(3, usedPctExact) : 0;
   const slotCells = Array.from({ length: Math.min(slotDenom, 12) }, (_, i) => i < status.usedSlots);
 
   return (
@@ -205,14 +208,14 @@ export default function LicensePanel() {
             </div>
             <div className="mt-4 flex items-end justify-between gap-4">
               <div>
-                <div className="text-3xl font-black tracking-[-0.06em] text-white">{usedPct}%</div>
+                <div className="text-3xl font-black tracking-[-0.06em] text-white">{usedPctLabel}%</div>
                 <div className="mt-1 text-xs text-slate-500">capacity in use</div>
               </div>
               <div className="flex-1">
                 <div className="h-4 overflow-hidden rounded-full border border-white/10 bg-slate-800/80 p-1">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-emerald-300 via-indigo-300 to-sky-300 shadow-[0_0_20px_color-mix(in_srgb,var(--color-emerald-400)_45%,transparent)] transition-[width] duration-500"
-                    style={{ width: `${usedPct}%` }}
+                    style={{ width: `${usedBarWidth}%` }}
                   />
                 </div>
                 <div className="mt-3 grid grid-cols-6 gap-1.5 sm:grid-cols-12">

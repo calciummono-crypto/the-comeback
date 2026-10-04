@@ -108,10 +108,10 @@ export default function LandingPage() {
             <Link href="/dashboard" className="btn primary">Open dashboard</Link>
             <a href="#preview" className="btn ghost">See preview</a>
           </div>
-          <div className="proof-row">
-            <code>fast launch</code>
-            <code>server profiles</code>
-            <code>live control</code>
+          <div className="proof-row" aria-label="Quick benefits">
+            <span>Launch from one panel</span>
+            <span>Saved server choices</span>
+            <span>Live logs and controls</span>
           </div>
         </div>
 
@@ -280,6 +280,8 @@ const css = `
     font-family: "Space Grotesk", Inter, ui-sans-serif, system-ui, sans-serif;
   }
 
+  .home-shell { padding-top: 92px; }
+
   .home-shell * { box-sizing: border-box; }
 
   .top-nav,
@@ -292,19 +294,22 @@ const css = `
   }
 
   .top-nav {
-    position: sticky;
+    position: fixed;
     top: 14px;
-    z-index: 30;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 80;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 18px;
-    margin-top: 14px;
+    margin-top: 0;
     padding: 12px 14px;
     border: 1px solid var(--line);
     border-radius: 22px;
-    background: rgba(8, 10, 13, 0.72);
-    backdrop-filter: blur(18px);
+    background: rgba(8, 10, 13, 0.78);
+    box-shadow: 0 18px 60px -42px rgba(0,0,0,.95);
+    backdrop-filter: blur(20px);
   }
 
   .brand {
@@ -452,8 +457,8 @@ const css = `
 
   h1 {
     max-width: 720px;
-    font-size: clamp(52px, 7.5vw, 92px);
-    line-height: 0.92;
+    font-size: clamp(40px, 5.4vw, 68px);
+    line-height: 0.96;
     letter-spacing: -0.07em;
     font-weight: 800;
     font-family: "Space Grotesk", Inter, ui-sans-serif, sans-serif;
@@ -520,13 +525,13 @@ const css = `
     font-family: 'IBM Plex Mono', ui-monospace, monospace;
   }
 
-  .proof-row code {
+  .proof-row span {
     padding: 8px 10px;
     border: 1px solid var(--line);
     border-radius: 12px;
     background: color-mix(in srgb, var(--accent) 4%, transparent);
     color: #bff7ff;
-    font-size: 12px;
+    font: 700 12px 'IBM Plex Mono', ui-monospace, monospace;
   }
 
   .hero-stage {
@@ -1062,7 +1067,8 @@ const css = `
     .features,
     .flow-band,
     footer { width: min(100% - 24px, 1120px); }
-    h1 { font-size: 48px; }
+    .home-shell { padding-top: 118px; }
+    h1 { font-size: 40px; }
     .hero { padding-top: 62px; }
     .hero-stage { min-height: auto; }
     .bot-card { width: 100%; }

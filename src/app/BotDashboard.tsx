@@ -68,7 +68,6 @@ export default function BotDashboard({
   meRole?: string;
   search?: string;
 }) {
-  const [tab, setTab] = useState<"bots" | "about">("bots");
   const [items, setItems] = useState<BotItem[]>([]);
   const [slots, setSlots] = useState<number>(0);
   const [licenseStatus, setLicenseStatus] = useState<any>(null);
@@ -184,50 +183,28 @@ export default function BotDashboard({
       )}
 
       {!activeBot ? (
-        <>
-          <nav className="mt-6 flex gap-1 rounded-2xl border border-white/[0.08] bg-white/[0.035] p-1 text-sm backdrop-blur-xl">
-            {(["bots", "about"] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`flex-1 rounded-lg px-3 py-2 font-medium capitalize transition ${
-                  tab === t
-                    ? "bg-emerald-300 text-slate-950 shadow"
-                    : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200"
-                }`}
-              >
-                {t === "bots" ? `Bots (${items.length})` : "How it works"}
-              </button>
-            ))}
-          </nav>
-
-          {tab === "bots" ? (
-            <section className="mt-6 animate-fade-in">
-              {!loaded ? (
-                <SkeletonBotList n={3} />
-              ) : items.length === 0 ? (
-                <EmptyState onAdd={() => setShowAdd(true)} />
-              ) : visibleItems.length === 0 ? (
-                <NoSearchResults query={search} />
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {visibleItems.map((bot) => (
-                    <BotCard
-                      key={bot.id}
-                      bot={bot}
-                      onChanged={refresh}
-                      onSelect={() => setActiveBotId(bot.id)}
-                      onManage={() => setEditId(bot.id)}
-                      onDelete={() => setDeleteBot(bot)}
-                    />
-                  ))}
-                </div>
-              )}
-            </section>
+        <section className="mt-6 animate-fade-in">
+          {!loaded ? (
+            <SkeletonBotList n={3} />
+          ) : items.length === 0 ? (
+            <EmptyState onAdd={() => setShowAdd(true)} />
+          ) : visibleItems.length === 0 ? (
+            <NoSearchResults query={search} />
           ) : (
-            <AboutPanel />
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {visibleItems.map((bot) => (
+                <BotCard
+                  key={bot.id}
+                  bot={bot}
+                  onChanged={refresh}
+                  onSelect={() => setActiveBotId(bot.id)}
+                  onManage={() => setEditId(bot.id)}
+                  onDelete={() => setDeleteBot(bot)}
+                />
+              ))}
+            </div>
           )}
-        </>
+        </section>
       ) : (
         <div className="mt-6 animate-pop-in">
           <button
@@ -703,43 +680,6 @@ export function AddBotModal({
         </div>
       </div>
     </Overlay>
-  );
-}
-
-function AboutPanel() {
-  return (
-    <section className="mt-6 space-y-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-6 text-sm leading-relaxed text-slate-300">
-      <h2 className="text-base font-semibold text-white">How it works</h2>
-      <ol className="list-decimal space-y-2 pl-5">
-        <li>
-          Click <b>Add bot</b> and paste your Minecraft <b>session ID</b> — the
-          manager immediately shows the account it belongs to.
-        </li>
-        <li>
-          Pick your <b>server</b> (Minemen, MCPVP, CatPvP or PvP HQ) and its{" "}
-          <b>proxy region</b>.
-        </li>
-        <li>
-          Choose a <b>beaming mode</b>: the 1v1 player method (the bot finds a
-          teammate and chats with AI until they agree) or the standing adbot
-          (lobby advertisement + trigger word). Both connect automatically.
-        </li>
-        <li>
-          Each bot shows whether it <b>joined</b> the server, and you can open
-          the <b>Console</b> to watch chat and send messages.
-        </li>
-      </ol>
-      <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-amber-300 ring-1 ring-amber-500/20">
-        Note: session IDs are short-lived. If a join fails with an auth error,
-        grab a fresh one. Bots only run while this server process is alive.
-      </p>
-      <p className="rounded-lg bg-sky-500/10 px-3 py-2 text-sky-300 ring-1 ring-sky-500/20">
-        Seeing <b>&quot;Disconnected: socketClosed&quot;</b>? That usually means a
-        version mismatch through the server&apos;s proxy. Re-create the bot with
-        a fresh session ID. The manager also fetches your chat-signing
-        certificates automatically so chat works on modern servers.
-      </p>
-    </section>
   );
 }
 
