@@ -299,8 +299,8 @@ export default function AppShell() {
           <Logo size={collapsed ? 32 : 40} className="drop-shadow-[0_4px_16px_color-mix(in_srgb,var(--color-emerald-500)_35%,transparent)]" />
           {!collapsed && (
             <div className="leading-tight">
-              <Wordmark height={24} />
-              <div className="mt-0.5 font-mono text-[11px] text-emerald-200/55">session control</div>
+              <Wordmark height={22} />
+              <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-200/55">session control</div>
             </div>
           )}
           <button

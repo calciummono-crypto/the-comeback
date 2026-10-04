@@ -2,6 +2,7 @@
 //
 // Providers (tried in order, env-configured; defaults baked in per owner):
 //   POLLINATIONS_API_KEYS   comma-separated keys (default: one baked-in key)
+//   POLLINATIONS_API_KEY    single key alias; used by both Test AI and beam replies
 //   POLLINATIONS_MODEL      default "deepseek-pro"
 //   TOKEN_HARBOR_API_KEY    Token Harbor key (Anthropic-compatible /v1/messages)
 //   TOKEN_HARBOR_MODEL      default "deepseek-v4.1-flash:free"
@@ -25,11 +26,14 @@ const DEFAULT_TOKEN_HARBOR_MODEL = "deepseek-v4.1-flash:free";
 const DEFAULT_OPENROUTER_MODEL = "nvidia/nemotron-3.5-lightning:free";
 
 function pollinationsKeys(): string[] {
-  const env = (process.env.POLLINATIONS_API_KEYS || "")
-    .split(",")
+  const env = [
+    ...(process.env.POLLINATIONS_API_KEYS || "").split(","),
+    process.env.POLLINATIONS_API_KEY || "",
+  ]
     .map((s) => s.trim())
     .filter(Boolean);
-  return env.length > 0 ? env : DEFAULT_POLLINATIONS_KEYS;
+  const unique = Array.from(new Set(env));
+  return unique.length > 0 ? unique : DEFAULT_POLLINATIONS_KEYS;
 }
 
 function tokenHarborKey(): string {

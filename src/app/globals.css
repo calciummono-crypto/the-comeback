@@ -55,7 +55,7 @@
   --accent: #6366f1;
   --font-body: "Space Grotesk", "Inter", "SF Pro Text", "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-display: "Space Grotesk", "Inter", "SF Pro Display", "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-brand: "Audiowide", "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-brand: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
 
   --zb-accent-200: var(--color-emerald-200);
   --zb-accent-300: var(--color-emerald-300);

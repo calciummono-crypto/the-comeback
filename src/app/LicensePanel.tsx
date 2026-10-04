@@ -102,6 +102,9 @@ export default function LicensePanel() {
   }
 
   const hasLicense = status.totalSlots > 0;
+  const slotDenom = Math.max(status.totalSlots, 1);
+  const usedPct = Math.min(100, Math.round((status.usedSlots / slotDenom) * 100));
+  const slotCells = Array.from({ length: Math.min(slotDenom, 12) }, (_, i) => i < status.usedSlots);
 
   return (
     <div className="relative space-y-6">
@@ -196,18 +199,34 @@ export default function LicensePanel() {
               : "You start with 0 slots. Redeem a key to unlock bot sessions."}
           </p>
           <div className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/55 p-4">
-            <div className="flex items-center justify-between text-xs font-bold text-slate-400">
+            <div className="flex items-center justify-between gap-4 text-xs font-bold text-slate-400">
               <span>Used slots</span>
-              <span>{status.usedSlots}/{Math.max(status.totalSlots, 1)}</span>
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 font-mono text-slate-200">{status.usedSlots}/{status.totalSlots}</span>
             </div>
-            <div className="mt-3 h-3 overflow-hidden rounded-full bg-slate-800">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-emerald-300 to-indigo-300"
-                style={{ width: `${Math.min(100, Math.round((status.usedSlots / Math.max(status.totalSlots, 1)) * 100))}%` }}
-              />
+            <div className="mt-4 flex items-end justify-between gap-4">
+              <div>
+                <div className="text-3xl font-black tracking-[-0.06em] text-white">{usedPct}%</div>
+                <div className="mt-1 text-xs text-slate-500">capacity in use</div>
+              </div>
+              <div className="flex-1">
+                <div className="h-4 overflow-hidden rounded-full border border-white/10 bg-slate-800/80 p-1">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-emerald-300 via-indigo-300 to-sky-300 shadow-[0_0_20px_color-mix(in_srgb,var(--color-emerald-400)_45%,transparent)] transition-[width] duration-500"
+                    style={{ width: `${usedPct}%` }}
+                  />
+                </div>
+                <div className="mt-3 grid grid-cols-6 gap-1.5 sm:grid-cols-12">
+                  {slotCells.map((used, i) => (
+                    <span
+                      key={i}
+                      className={`h-2 rounded-full ${used ? "bg-emerald-300 shadow-[0_0_10px_color-mix(in_srgb,var(--color-emerald-400)_55%,transparent)]" : "bg-slate-700/70"}`}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
             {status.nextExpiry && (
-              <p className="mt-3 text-xs text-slate-500">Next expiry: {new Date(status.nextExpiry).toLocaleString()}</p>
+              <p className="mt-4 text-xs text-slate-500">Next expiry: {new Date(status.nextExpiry).toLocaleString()}</p>
             )}
           </div>
         </div>

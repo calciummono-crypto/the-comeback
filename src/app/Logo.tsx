@@ -50,13 +50,13 @@ export function Wordmark({
 }) {
   return (
     <span
-      className={`inline-flex items-center whitespace-nowrap font-black uppercase tracking-[-0.08em] text-white ${className}`}
+      className={`inline-flex items-center whitespace-nowrap font-black uppercase tracking-[-0.035em] text-white ${className}`}
       style={{
         fontSize: `${height}px`,
         lineHeight: 0.82,
-        fontFamily: 'var(--font-brand), "Audiowide", "Space Grotesk", ui-sans-serif, system-ui, sans-serif',
-        letterSpacing: "-0.045em",
-        textShadow: "0 10px 30px rgba(0,0,0,.45), 0 0 18px color-mix(in srgb, var(--zb-accent-400) 26%, transparent)",
+        fontFamily: 'var(--font-brand), "Space Grotesk", ui-sans-serif, system-ui, sans-serif',
+        letterSpacing: "-0.035em",
+        textShadow: "0 10px 30px rgba(0,0,0,.42)",
       }}
       aria-label="Z-BEAM"
     >

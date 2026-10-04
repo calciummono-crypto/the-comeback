@@ -183,7 +183,7 @@ export default function AddBotWizard({
       const data = await res.json();
       if (!res.ok) {
         setProfile(null);
-        setSessionError(data.error ?? "Could not verify this session ID");
+        setSessionError(data.error ?? "We could not verify this session. Please paste a fresh valid session token and try again.");
       } else {
         setProfile({ name: data.name, id: data.id });
       }
@@ -432,17 +432,17 @@ export default function AddBotWizard({
                   </p>
                 )}
                 {profile && (
-                  <div className="flex items-center gap-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+                  <div className="flex items-center gap-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
                     <HeadAvatar name={profile.name} />
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="truncate text-lg font-bold text-white">
                           {profile.name}
                         </span>
-                        <span className="text-emerald-400">✓</span>
+                        <span className="rounded-full bg-emerald-400/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-emerald-300 ring-1 ring-emerald-400/20">verified</span>
                       </div>
-                      <div className="truncate font-mono text-[11px] text-slate-400">
-                        {profile.id}
+                      <div className="mt-1 text-xs text-slate-400">
+                        Account resolved successfully. Continue to server selection.
                       </div>
                     </div>
                   </div>
@@ -484,27 +484,36 @@ export default function AddBotWizard({
             )}
 
             {step === 2 && (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {(server?.regions ?? []).map((r) => {
-                  const on = region === r.id;
-                  return (
-                    <button
-                      key={r.id}
-                      type="button"
-                      onClick={() => setRegion(r.id)}
-                      className={`rounded-xl border px-3 py-4 text-center transition-all duration-200 hover:-translate-y-0.5 ${
-                        on
-                          ? "border-emerald-500/50 bg-emerald-500/10 ring-1 ring-emerald-500/30"
-                          : "border-slate-700/80 bg-slate-950/60 hover:border-slate-500"
-                      }`}
-                    >
-                      <div className="text-lg font-bold text-white">{r.label}</div>
-                      <div className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
-                        {r.blurb}
-                      </div>
-                    </button>
-                  );
-                })}
+              <div className="space-y-3">
+                <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-3">
+                  <p className="text-xs font-semibold text-slate-300">Choose region</p>
+                  <p className="mt-1 text-[11px] text-slate-500">Pick the closest proxy for smoother joins.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {(server?.regions ?? []).map((r) => {
+                    const on = region === r.id;
+                    return (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => setRegion(r.id)}
+                        className={`group relative overflow-hidden rounded-2xl border p-4 text-left transition-all duration-200 hover:-translate-y-0.5 ${
+                          on
+                            ? "border-emerald-300/45 bg-emerald-300/10 ring-1 ring-emerald-300/25 shadow-[0_18px_60px_-45px_color-mix(in_srgb,var(--color-emerald-500)_80%,transparent)]"
+                            : "border-white/10 bg-slate-950/55 hover:border-white/20 hover:bg-white/[0.035]"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-xl font-black tracking-[-0.04em] text-white">{r.label}</div>
+                          <span className={`grid h-6 w-6 place-items-center rounded-full text-[10px] font-black ${on ? "bg-emerald-300 text-slate-950" : "bg-white/[0.055] text-slate-500"}`}>{on ? "✓" : ""}</span>
+                        </div>
+                        <div className="mt-2 text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                          {r.blurb}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 

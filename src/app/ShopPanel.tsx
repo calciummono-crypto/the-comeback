@@ -298,7 +298,7 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
 
   if (!loaded) {
     return (
-      <div className="relative mx-auto max-w-[1100px] pb-8">
+      <div className="relative mx-auto max-w-7xl pb-8">
         <div className="flex items-center gap-3">
           <div className="animate-pulse rounded-xl bg-slate-800/70 h-11 w-11" />
           <div className="space-y-2">
@@ -319,40 +319,40 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
 
   return (
     <div className="relative mx-auto max-w-[1100px] pb-8">
-      {/* subtle bg */}
       <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute left-1/2 top-[-60px] h-[300px] w-[300px] -translate-x-1/2 rounded-full bg-indigo-600/15 blur-[80px]" />
-        <div className="absolute right-[5%] top-[160px] h-[200px] w-[200px] rounded-full bg-amber-500/10 blur-[70px]" />
+        <div className="absolute left-1/2 top-[-80px] h-[360px] w-[360px] -translate-x-1/2 rounded-full bg-indigo-600/15 blur-[90px]" />
+        <div className="absolute right-[5%] top-[180px] h-[260px] w-[260px] rounded-full bg-emerald-400/10 blur-[90px]" />
       </div>
 
-      {/* header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-[0_6px_18px_color-mix(in_srgb,var(--color-emerald-600)_30%,transparent)] ring-1 ring-white/10">
-            <ShopBagIcon />
+      <section className="overflow-hidden rounded-[2rem] border border-white/[0.08] bg-[linear-gradient(135deg,rgba(15,23,42,.72),rgba(2,6,23,.84))] p-5 shadow-[0_28px_100px_-70px_rgba(0,0,0,.95)] backdrop-blur-2xl sm:p-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-emerald-300 to-indigo-500 text-slate-950 shadow-[0_20px_70px_-40px_color-mix(in_srgb,var(--color-emerald-500)_80%,transparent)] ring-1 ring-white/15">
+              <ShopBagIcon />
+            </div>
+            <div>
+              <p className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-200/80">license shop</p>
+              <h2 className="mt-1 text-3xl font-black tracking-[-0.055em] text-white sm:text-4xl">Choose access</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-400">
+                Pick a plan, pay with Litecoin, and get a redeemable Z-BEAM key automatically.
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-xl font-bold tracking-tight text-white">Shop</h2>
-            <p className="text-xs leading-relaxed text-slate-400">
-              Pick a plan — pay with Litecoin, get your license key instantly
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {ltcPrice && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-800 bg-slate-900/60 px-3 py-1.5 text-[11px] font-medium text-slate-300">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              LTC ≈ ${ltcPrice.toFixed(2)}
+          <div className="flex flex-wrap items-center gap-2">
+            {ltcPrice && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-200">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-300" />
+                LTC ≈ ${ltcPrice.toFixed(2)}
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-slate-400">
+              <LockIcon size={12} /> Secure checkout
             </span>
-          )}
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-800 bg-slate-900/60 px-3 py-1.5 text-[11px] text-slate-400">
-            <LockIcon size={12} /> Secure checkout · Automatic delivery
-          </span>
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* plan cards — staggered heights: each tier stands a bit taller */}
-      <div className="mt-6 grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-6 grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {plans.map((plan, planIdx) => {
           const isDiscounted = plan.discount > 0;
           const displayPrice = plan.finalPrice ?? plan.price;
@@ -360,13 +360,7 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
           return (
             <div
               key={plan.id}
-              className={`group relative flex flex-col rounded-2xl border p-[1px] transition duration-200 hover:-translate-y-0.5 ${
-                [
-                  "min-h-[440px]",
-                  "min-h-[520px]",
-                  "min-h-[600px]",
-                ][planIdx % 3]
-              } ${
+              className={`group relative flex min-h-[460px] flex-col rounded-[1.6rem] border p-[1px] transition duration-200 hover:-translate-y-1 ${
                 plan.popular
                   ? "border-violet-500/40 bg-gradient-to-b from-violet-500/20 to-indigo-500/10 shadow-[0_0_28px_color-mix(in_srgb,var(--color-emerald-600)_18%,transparent)]"
                   : "border-slate-800 bg-slate-800/20 hover:border-slate-600"
@@ -377,7 +371,7 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
                   Most Popular
                 </div>
               )}
-              <div className="flex flex-1 flex-col rounded-[15px] bg-[#0f1220]/90 p-5">
+              <div className="flex flex-1 flex-col rounded-[1.55rem] bg-[#0f1220]/92 p-5">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500 group-hover:text-slate-400">{plan.tier}</span>
                   {isDiscounted && (
@@ -387,7 +381,7 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
                   )}
                 </div>
 
-                <div className="mt-2 flex items-baseline gap-1.5">
+                <div className="mt-5 flex items-baseline gap-1.5">
                   <span className="text-[30px] font-extrabold leading-none tracking-tight text-white">{fmtUsd(displayPrice)}</span>
                   <span className="text-xs text-slate-500">/month</span>
                   {isDiscounted && <span className="ml-1 text-xs line-through text-slate-600">{fmtUsd(originalPrice)}</span>}
@@ -399,11 +393,11 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
                 <div className="mt-4 grid grid-cols-2 gap-1.5">
                   <div className="rounded-lg bg-slate-900/70 px-2.5 py-2 text-center ring-1 ring-slate-800">
                     <div className="text-sm font-bold text-white">{plan.bots}</div>
-                    <div className="text-[9px] uppercase tracking-widest text-slate-500">Bots</div>
+                    <div className="text-[9px] uppercase tracking-widest text-slate-500">Slots</div>
                   </div>
                   <div className="rounded-lg bg-slate-900/70 px-2.5 py-2 text-center ring-1 ring-slate-800">
                     <div className="text-sm font-bold text-white">{plan.hours}h</div>
-                    <div className="text-[9px] uppercase tracking-widest text-slate-500">Per day</div>
+                    <div className="text-[9px] uppercase tracking-widest text-slate-500">Daily</div>
                   </div>
                 </div>
 
@@ -449,9 +443,9 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
       </div>
 
       {/* free trial */}
-      <div className="relative mt-10 overflow-hidden rounded-2xl p-[1px]">
+      <div className="relative mt-8 overflow-hidden rounded-[1.7rem] p-[1px]">
         <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-500/40 via-slate-700/40 to-slate-800/50" />
-        <div className="relative rounded-[15px] bg-slate-900/80 p-5 sm:p-6">
+        <div className="relative rounded-[1.65rem] bg-slate-900/80 p-5 backdrop-blur-xl sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-lg shadow-black/30">
@@ -508,7 +502,7 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
             <h3 className="text-sm font-semibold text-slate-300">Your invoices</h3>
             <span className="text-[11px] text-slate-500">{myInvoices.length} total</span>
           </div>
-          <div className="mt-3 overflow-hidden rounded-2xl border border-slate-800">
+          <div className="mt-3 overflow-hidden rounded-[1.4rem] border border-white/[0.08] bg-white/[0.025]">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-900/70 text-[10px] uppercase tracking-widest text-slate-500">
                 <tr>

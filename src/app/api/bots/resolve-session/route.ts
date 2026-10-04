@@ -46,7 +46,7 @@ export async function POST(req: Request) {
       `[resolve-session] rejected: ${err instanceof Error ? err.message : String(err)}`,
     );
     return Response.json(
-      { error: "Invalid SSID, Kindly provide a new one" },
+      { error: "We could not verify this session. Please paste a fresh valid session token and try again." },
       { status: 400, headers: { "Cache-Control": "no-store" } },
     );
   }

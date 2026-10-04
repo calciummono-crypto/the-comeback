@@ -45,163 +45,102 @@ export default function SettingsPanel({
     toast(preset ? `${preset.label} theme applied` : "Theme applied", "success");
   }
 
+  const usedPct = Math.min(100, Math.round((me.botCount / Math.max(me.botSlots, 1)) * 100));
+
   return (
     <div className="relative space-y-6">
-      {/* background glow — matches the other pages */}
       <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute left-[-40px] top-[-40px] h-[240px] w-[240px] rounded-full bg-slate-500/[0.08] blur-[80px]" />
-        <div className="absolute right-[-20px] top-[100px] h-[180px] w-[180px] rounded-full bg-emerald-400/[0.06] blur-[80px]" />
+        <div className="absolute left-[-80px] top-[-80px] h-[300px] w-[300px] rounded-full bg-emerald-400/[0.07] blur-[90px]" />
+        <div className="absolute right-[-40px] top-[120px] h-[240px] w-[240px] rounded-full bg-indigo-400/[0.06] blur-[90px]" />
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="relative">
-          <div className="absolute inset-0 rounded-[14px] bg-gradient-to-br from-slate-400 to-slate-600 blur-[12px] opacity-40" />
-          <div className="relative grid h-11 w-11 place-items-center rounded-[14px] bg-gradient-to-br from-slate-500 to-slate-700 text-white shadow-lg ring-1 ring-white/10">
-            <GearIcon size={22} />
-          </div>
-        </div>
-        <div>
-          <h2 className="text-xl font-bold tracking-tight text-white">
-            Settings
-          </h2>
-          <p className="text-sm text-slate-400">
-            Your account and app preferences.
-          </p>
-        </div>
-      </div>
-
-      {/* Profile card */}
-      <section className="glass rounded-2xl p-5 transition-colors hover:border-slate-700">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Account
-        </h3>
-        <div className="mt-4 flex flex-wrap items-center gap-4">
-          {me.avatar ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={me.avatar}
-              alt=""
-              className="h-16 w-16 rounded-2xl ring-2 ring-slate-700"
-            />
-          ) : (
-            <div className="grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 text-xl font-bold">
-              {me.username.slice(0, 2).toUpperCase()}
+      <section className="overflow-hidden rounded-[2rem] border border-white/[0.08] bg-[linear-gradient(135deg,rgba(15,23,42,.74),rgba(2,6,23,.86))] p-5 shadow-[0_28px_100px_-70px_rgba(0,0,0,.95)] backdrop-blur-2xl sm:p-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-4">
+            {me.avatar ? (
+              <img src={me.avatar} alt="" className="h-16 w-16 rounded-2xl ring-1 ring-white/10" />
+            ) : (
+              <div className="grid h-16 w-16 place-items-center rounded-2xl bg-emerald-300 text-xl font-black text-slate-950 shadow-[0_18px_60px_-35px_color-mix(in_srgb,var(--color-emerald-500)_80%,transparent)]">
+                {me.username.slice(0, 2).toUpperCase()}
+              </div>
+            )}
+            <div>
+              <p className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-200/80">settings</p>
+              <h2 className="mt-1 text-3xl font-black tracking-[-0.055em] text-white">{me.username}</h2>
+              <p className="mt-1 text-sm text-slate-400">{me.isGuest ? "Guest account" : "Discord account"} · {me.role}</p>
             </div>
-          )}
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-semibold text-white">
-                {me.username}
-              </span>
-              {me.role === "admin" && (
-                <span className="rounded-md bg-fuchsia-500/15 px-2 py-0.5 text-xs font-medium text-fuchsia-300 ring-1 ring-fuchsia-500/30">
-                  admin
-                </span>
-              )}
-            </div>
-            <p className="mt-0.5 text-sm text-slate-400">
-              {me.isGuest ? "Guest account" : "Signed in with Discord"}
-            </p>
           </div>
-        </div>
-
-        <div className="mt-5 grid grid-cols-3 gap-3">
-          <InfoTile label="Role" value={me.role} />
-          <InfoTile label="Bot slots" value={String(me.botSlots)} />
-          <InfoTile label="Bots used" value={`${me.botCount}/${me.botSlots}`} />
-        </div>
-      </section>
-
-      {/* Beam AI info */}
-      <section className="glass rounded-2xl p-5 transition-colors hover:border-slate-700">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Beam &amp; AI
-        </h3>
-        <p className="mt-3 text-sm leading-relaxed text-slate-400">
-          The Beam feature finds the nearest player, recruits them with private
-          messages, handles their replies with AI, and closes with your discord
-          when they agree. Pick the beaming mode when creating each bot.
-        </p>
-        <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
-          <FeatureRow
-            icon={<BotFaceIcon size={18} />}
-            title="Humanized behavior"
-            desc="Natural message pacing + timing variance"
-          />
-          <FeatureRow
-            icon={<MessageIcon size={18} />}
-            title="AI conversations"
-            desc="In-character replies that stay on script"
-          />
-          <FeatureRow
-            icon={<TargetIcon size={18} />}
-            title="Smart targeting"
-            desc="Nearest valid player, auto-restart on deny"
-          />
-          <FeatureRow
-            icon={<EyeIcon size={18} />}
-            title="Live bot view"
-            desc="Radar, hotbar, and item control"
-          />
-        </div>
-      </section>
-
-      {/* Appearance */}
-      <section className="glass rounded-2xl p-5 transition-colors hover:border-slate-700">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Appearance
-        </h3>
-        <p className="mt-1 text-sm text-slate-400">
-          Accent color — applies to the whole site instantly and is remembered
-          on this device.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2.5">
-          {THEME_PRESETS.map((preset) => {
-            const on = currentTheme === preset.id;
-            return (
-              <button
-                key={preset.id}
-                onClick={() => pickTheme(preset.id)}
-                title={preset.label}
-                className={`group flex items-center gap-2.5 rounded-xl border px-3 py-2 transition ${
-                  on
-                    ? "border-slate-500 bg-slate-800/70"
-                    : "border-slate-800 bg-slate-900/40 hover:border-slate-600"
-                }`}
-              >
-                <span
-                  className="h-4 w-4 rounded-full ring-2 ring-white/10"
-                  style={{ backgroundColor: preset.ramp["500"] }}
-                />
-                <span className={`text-xs font-medium ${on ? "text-white" : "text-slate-400"}`}>
-                  {preset.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Danger / session */}
-      <section className="glass rounded-2xl p-5 transition-colors hover:border-rose-500/20">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Session
-        </h3>
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
-          <p className="text-sm text-slate-400">
-            Sign out of this device. You can sign back in anytime.
-          </p>
           <button
             onClick={logout}
-            className="shrink-0 rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-300 active:scale-[0.98]"
+            className="inline-flex h-11 items-center justify-center rounded-2xl border border-rose-400/30 bg-rose-500/10 px-5 text-sm font-bold text-rose-200 transition hover:bg-rose-500/20 active:scale-[.985]"
           >
             Logout
           </button>
         </div>
       </section>
 
+      <section className="grid gap-4 lg:grid-cols-3">
+        <InfoTile label="Role" value={me.role} />
+        <InfoTile label="Bot slots" value={String(me.botSlots)} />
+        <InfoTile label="Bots used" value={`${me.botCount}/${me.botSlots}`} />
+      </section>
+
+      <section className="grid gap-5 lg:grid-cols-[.95fr_1.05fr]">
+        <div className="rounded-[1.7rem] border border-white/[0.08] bg-white/[0.035] p-5 backdrop-blur-xl">
+          <h3 className="text-base font-black text-white">Slot usage</h3>
+          <p className="mt-2 text-sm leading-6 text-slate-400">Quick view of how many bot slots are currently used on your account.</p>
+          <div className="mt-5 rounded-2xl border border-white/10 bg-slate-950/55 p-4">
+            <div className="flex items-center justify-between text-xs font-bold text-slate-400">
+              <span>Capacity</span>
+              <span>{usedPct}%</span>
+            </div>
+            <div className="mt-3 h-3 overflow-hidden rounded-full bg-slate-800">
+              <div className="h-full rounded-full bg-gradient-to-r from-emerald-300 to-indigo-300 transition-[width]" style={{ width: `${usedPct}%` }} />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-[1.7rem] border border-white/[0.08] bg-white/[0.035] p-5 backdrop-blur-xl">
+          <h3 className="text-base font-black text-white">Appearance</h3>
+          <p className="mt-2 text-sm leading-6 text-slate-400">Accent color applies across homepage, dashboard, bot cards and controls.</p>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {THEME_PRESETS.map((preset) => {
+              const on = currentTheme === preset.id;
+              return (
+                <button
+                  key={preset.id}
+                  onClick={() => pickTheme(preset.id)}
+                  className={`flex items-center justify-between rounded-2xl border p-3 transition hover:-translate-y-0.5 ${
+                    on
+                      ? "border-emerald-300/35 bg-emerald-300/10 text-white ring-1 ring-emerald-300/15"
+                      : "border-white/10 bg-slate-950/35 text-slate-400 hover:border-white/20 hover:text-slate-100"
+                  }`}
+                >
+                  <span className="flex items-center gap-3">
+                    <span className="h-5 w-5 rounded-full ring-2 ring-white/10" style={{ backgroundColor: preset.ramp["500"] }} />
+                    <span className="text-sm font-bold">{preset.label}</span>
+                  </span>
+                  {on && <span className="text-xs font-black text-emerald-200">active</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-[1.7rem] border border-white/[0.08] bg-white/[0.035] p-5 backdrop-blur-xl">
+        <h3 className="text-base font-black text-white">Bot behavior</h3>
+        <p className="mt-2 text-sm leading-6 text-slate-400">Default dashboard tools available after a bot joins.</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <FeatureRow icon={<BotFaceIcon size={18} />} title="Humanized timing" desc="Natural pacing and action delay" />
+          <FeatureRow icon={<MessageIcon size={18} />} title="Chat support" desc="Replies stay short and on script" />
+          <FeatureRow icon={<TargetIcon size={18} />} title="Target flow" desc="Server-ready setup during add bot" />
+          <FeatureRow icon={<EyeIcon size={18} />} title="Live view" desc="Hotbar, inventory and controls" />
+        </div>
+      </section>
+
       <div className="flex items-center justify-center gap-2 pt-2 text-xs text-slate-600">
-        <Logo size={18} /> <Wordmark height={18} />
+        <Logo size={18} /> <Wordmark height={17} />
       </div>
     </div>
   );
