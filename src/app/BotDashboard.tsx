@@ -309,6 +309,12 @@ export function BotAvatar({
   );
 }
 
+function engineLabel(engine: string | null | undefined): string {
+  if (engine === "azalea") return "Azalea";
+  if (engine === "nmp") return "NMP";
+  return "Mineflayer";
+}
+
 function BotCard({
   bot,
   onChanged,
@@ -324,6 +330,9 @@ function BotCard({
 }) {
   const [busy, setBusy] = useState(false);
   const running = bot.status === "online" || bot.status === "connecting";
+  const label = engineLabel(bot.engine);
+  const version = bot.version && bot.version !== "auto" ? bot.version : "auto";
+  const displayName = bot.username || bot.name;
 
   async function act(path: string, method = "POST") {
     setBusy(true);
@@ -344,55 +353,61 @@ function BotCard({
   }
 
   return (
-    <div className="card-hover glass rounded-2xl p-4 shadow-lg shadow-black/20">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-3">
+    <article className="group relative overflow-hidden rounded-[1.75rem] border border-slate-800/90 bg-[linear-gradient(180deg,rgba(15,23,42,.82),rgba(2,6,23,.88))] p-4 shadow-[0_24px_70px_-44px_rgba(0,0,0,.95)] transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300/25 hover:bg-slate-900/90 sm:p-5">
+      <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-emerald-200/35 to-transparent opacity-0 transition group-hover:opacity-100" />
+      <div className="grid gap-4 lg:grid-cols-[auto_1fr_auto] lg:items-start">
+        <div className="flex items-start gap-4">
           <BotAvatar
             username={bot.username}
             status={bot.status}
-            className="h-11 w-11 rounded-xl text-lg"
+            className="h-20 w-16 rounded-2xl text-lg sm:h-24 sm:w-20"
           />
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="truncate text-base font-semibold">{bot.name}</h3>
+          <div className="min-w-0 pt-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="truncate text-lg font-black tracking-[-0.03em] text-white">{bot.name}</h3>
               <StatusBadge status={bot.status} />
             </div>
-            <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 truncate text-sm text-slate-400">
-              <span className="font-mono text-slate-300">
-                {bot.host}:{bot.port}
+            <p className="mt-1 truncate font-mono text-xs text-slate-500">{displayName}</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1.5 font-mono text-[11px] font-semibold text-slate-300">
+                {label}
               </span>
-              <span className="text-slate-600">·</span>
-              <span className="rounded-md bg-slate-800/60 px-1.5 py-0.5 text-xs text-slate-400">
-                {bot.version && bot.version !== "auto" ? bot.version : "auto"}
+              <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1.5 font-mono text-[11px] font-semibold text-slate-300">
+                {version}
               </span>
-              {bot.username && (
-                <>
-                  <span className="text-slate-600">·</span>
-                  <span className="text-slate-400">as {bot.username}</span>
-                </>
-              )}
-            </p>
+              <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1.5 font-mono text-[11px] font-semibold text-slate-300">
+                {bot.beamType || "manual"}
+              </span>
+            </div>
           </div>
         </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+
+        <div className="min-w-0 rounded-2xl border border-white/10 bg-slate-950/45 p-3 font-mono text-xs text-slate-400">
+          <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-2">
+            <span className="truncate text-slate-500">target</span>
+            <span className="truncate text-right text-slate-200">{bot.host}:{bot.port}</span>
+          </div>
+          <div className="mt-2 space-y-1.5">
+            <p className={bot.status === "online" ? "text-emerald-200" : ""}>
+              › {bot.status === "online" ? "session joined" : bot.status === "connecting" ? "handshake in progress" : bot.status === "error" ? "last start failed" : "ready to start"}
+            </p>
+            <p>› token profile {bot.username ? `resolved as ${bot.username}` : "not resolved yet"}</p>
+            <p>› console available after launch</p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2 lg:w-44 lg:flex-col">
           <button
             onClick={onSelect}
-            className="flex h-9 items-center rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 text-sm font-semibold text-emerald-400 transition hover:bg-emerald-500/20"
+            className="inline-flex h-10 flex-1 items-center justify-center rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-3 text-sm font-bold text-emerald-200 transition hover:border-emerald-200/40 hover:bg-emerald-300/15 lg:flex-none"
           >
-            Control Center →
-          </button>
-          <button
-            onClick={onEdit}
-            className="flex h-9 items-center rounded-lg border border-slate-700 bg-slate-800 px-3 text-sm font-medium text-slate-200 transition hover:bg-slate-700"
-            title="Manage token & version"
-          >
-            Manage
+            Open
           </button>
           {running ? (
             <button
               disabled={busy}
               onClick={() => act(`/api/bots/${bot.id}/stop`)}
-              className="flex h-9 items-center rounded-lg bg-amber-500/90 px-3 text-sm font-semibold text-amber-950 transition hover:bg-amber-400 disabled:opacity-50"
+              className="inline-flex h-10 flex-1 items-center justify-center rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 text-sm font-bold text-amber-200 transition hover:bg-amber-300/15 disabled:opacity-50 lg:flex-none"
             >
               Stop
             </button>
@@ -400,33 +415,42 @@ function BotCard({
             <button
               disabled={busy}
               onClick={() => act(`/api/bots/${bot.id}/start`)}
-              className="flex h-9 items-center rounded-lg bg-emerald-500 px-3 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-400 disabled:opacity-50"
+              className="inline-flex h-10 flex-1 items-center justify-center rounded-xl bg-white px-3 text-sm font-bold text-slate-950 transition hover:bg-emerald-100 disabled:opacity-50 lg:flex-none"
             >
               Start
             </button>
           )}
-          <button
-            disabled={busy}
-            onClick={onDelete}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-700 text-sm font-medium text-slate-400 transition hover:border-rose-500/40 hover:text-rose-300 disabled:opacity-50"
-            title="Delete bot"
-          >
-            ✕
-          </button>
+          <div className="flex flex-1 gap-2 lg:flex-none">
+            <button
+              onClick={onEdit}
+              className="inline-flex h-10 flex-1 items-center justify-center rounded-xl border border-slate-700 bg-slate-900/70 px-3 text-sm font-semibold text-slate-300 transition hover:border-slate-600 hover:text-white"
+              title="Manage token & version"
+            >
+              Edit
+            </button>
+            <button
+              disabled={busy}
+              onClick={onDelete}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-700 text-sm font-semibold text-slate-500 transition hover:border-rose-500/40 hover:text-rose-300 disabled:opacity-50"
+              title="Delete bot"
+            >
+              <TrashIcon size={15} />
+            </button>
+          </div>
         </div>
       </div>
 
       {bot.status === "error" && bot.lastError && (
-        <p className="mt-3 rounded-lg bg-rose-500/10 px-3 py-2 text-xs text-rose-300 ring-1 ring-rose-500/20">
+        <p className="mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-xs leading-6 text-rose-200">
           {bot.lastError}
         </p>
       )}
       {bot.joined && (
-        <p className="mt-3 flex items-center gap-1.5 text-xs text-emerald-300">
-          <span>✅</span> Successfully joined the server.
+        <p className="mt-4 rounded-2xl border border-emerald-300/15 bg-emerald-300/10 px-3 py-2 text-xs font-medium text-emerald-200">
+          Joined successfully. Open the bot to use chat, controls, inventory and console.
         </p>
       )}
-    </div>
+    </article>
   );
 }
 

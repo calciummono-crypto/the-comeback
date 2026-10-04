@@ -35,9 +35,9 @@ export const features = [
 ];
 
 const bots = [
-  { name: "vyrex_", server: "eu.minemen.club", engine: "Mineflayer", version: "1.8.9", state: "online" },
-  { name: "aero_clip", server: "mc.hypixel.net", engine: "Azalea", version: "1.20.4", state: "joining" },
-  { name: "noxline", server: "catpvp.net", engine: "NMP", version: "raw", state: "idle" },
+  { name: "vyrex_", skin: "wisp", server: "eu.minemen.club", engine: "Mineflayer", version: "1.8.9", state: "online" },
+  { name: "aero_clip", skin: "xNestorio", server: "mc.hypixel.net", engine: "Azalea", version: "1.20.4", state: "joining" },
+  { name: "noxline", skin: "Stimpy", server: "catpvp.net", engine: "NMP", version: "raw", state: "idle" },
 ];
 
 const logs = [
@@ -91,7 +91,9 @@ export default function LandingPage() {
           {bots.map((bot, index) => (
             <article key={bot.name} className={`bot-card card-${index}`}>
               <div className="bot-head">
-                <span className="bot-avatar">{bot.name.slice(0, 2).toUpperCase()}</span>
+                <span className="bot-avatar">
+                  <img src={`https://minotar.net/helm/${bot.skin}/96.png`} alt="" />
+                </span>
                 <div>
                   <h2>{bot.name}</h2>
                   <p>{bot.server}</p>
@@ -357,26 +359,29 @@ const css = `
 
   .stage-glow {
     position: absolute;
-    inset: 70px 30px 30px;
+    inset: 48px 10px 20px;
     border-radius: 999px;
-    background: rgba(34, 211, 238, 0.16);
-    filter: blur(70px);
+    background: radial-gradient(circle, rgba(34, 211, 238, 0.22), transparent 62%);
+    filter: blur(64px);
   }
 
   .bot-card {
     position: absolute;
-    width: min(430px, 100%);
-    border: 1px solid var(--line);
-    border-radius: 24px;
-    background: linear-gradient(180deg, rgba(16, 20, 26, 0.96), rgba(12, 16, 21, 0.96));
+    width: min(448px, 100%);
+    border: 1px solid rgba(34, 211, 238, 0.18);
+    border-radius: 28px;
+    background:
+      linear-gradient(180deg, rgba(18, 25, 31, 0.96), rgba(9, 13, 18, 0.97)),
+      radial-gradient(circle at 20% 0%, rgba(34, 211, 238, 0.12), transparent 15rem);
     padding: 18px;
     backdrop-filter: blur(18px);
+    box-shadow: 0 28px 90px rgba(0, 0, 0, 0.34);
     animation: card-float 6s ease-in-out infinite;
   }
 
-  .card-0 { right: 20px; top: 32px; z-index: 3; }
-  .card-1 { left: 12px; top: 168px; z-index: 2; animation-delay: -1.8s; opacity: 0.82; }
-  .card-2 { right: 52px; bottom: 8px; z-index: 1; animation-delay: -3.4s; opacity: 0.68; }
+  .card-0 { right: 18px; top: 28px; z-index: 3; }
+  .card-1 { left: 0; top: 178px; z-index: 2; animation-delay: -1.8s; opacity: 0.88; }
+  .card-2 { right: 34px; bottom: 2px; z-index: 1; animation-delay: -3.4s; opacity: 0.74; }
 
   @keyframes card-float {
     0%, 100% { transform: translateY(0); }
@@ -393,13 +398,19 @@ const css = `
   .bot-avatar {
     display: grid;
     place-items: center;
-    width: 48px;
-    height: 48px;
+    width: 52px;
+    height: 52px;
+    overflow: hidden;
     border: 1px solid var(--line);
-    border-radius: 16px;
-    color: var(--accent);
-    background: var(--accent-soft);
-    font: 800 13px 'IBM Plex Mono', monospace;
+    border-radius: 18px;
+    background: #090d12;
+  }
+
+  .bot-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    image-rendering: pixelated;
   }
 
   .bot-head h2 {
@@ -436,11 +447,11 @@ const css = `
 
   .mini-console {
     margin: 18px 0 0;
-    padding: 13px;
+    padding: 14px;
     border: 1px solid rgba(34, 211, 238, 0.12);
-    border-radius: 16px;
-    background: #07090c;
-    color: var(--muted);
+    border-radius: 18px;
+    background: #06090d;
+    color: #90a4ac;
     font-size: 12px;
     line-height: 1.75;
     white-space: pre-wrap;
