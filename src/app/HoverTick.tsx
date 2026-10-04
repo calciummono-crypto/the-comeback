@@ -14,40 +14,59 @@ export default function HoverTick() {
       return audioRef.current;
     };
 
-    const tick = () => {
+    const drop = (startAt: number, baseFreq: number, volume: number) => {
+      const audio = audioRef.current;
+      if (!audio) return;
+
+      const osc = audio.createOscillator();
+      const gain = audio.createGain();
+      const filter = audio.createBiquadFilter();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(baseFreq, startAt);
+      osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.42, startAt + 0.13);
+
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(1600, startAt);
+      filter.frequency.exponentialRampToValueAtTime(520, startAt + 0.16);
+
+      gain.gain.setValueAtTime(0.0001, startAt);
+      gain.gain.exponentialRampToValueAtTime(volume, startAt + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.18);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(audio.destination);
+      osc.start(startAt);
+      osc.stop(startAt + 0.2);
+    };
+
+    const playDrop = () => {
       const now = performance.now();
-      if (now - lastAtRef.current < 45) return;
+      if (now - lastAtRef.current < 120) return;
       lastAtRef.current = now;
 
       const audio = getAudio();
       if (!audio) return;
       if (audio.state === "suspended") void audio.resume().catch(() => {});
 
-      const osc = audio.createOscillator();
-      const gain = audio.createGain();
-      osc.type = "square";
-      osc.frequency.setValueAtTime(880, audio.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(1320, audio.currentTime + 0.025);
-      gain.gain.setValueAtTime(0.0001, audio.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.035, audio.currentTime + 0.006);
-      gain.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + 0.045);
-      osc.connect(gain);
-      gain.connect(audio.destination);
-      osc.start();
-      osc.stop(audio.currentTime + 0.05);
+      const t = audio.currentTime;
+      drop(t, 620, 0.045);
+      drop(t + 0.065, 390, 0.026);
     };
 
-    const onPointerOver = (event: PointerEvent) => {
-      if (event.pointerType === "touch") return;
+    const onClick = (event: MouseEvent) => {
       const target = event.target instanceof Element ? event.target : null;
       const interactive = target?.closest('button, a, [role="button"], input[type="button"], input[type="submit"]');
       if (!interactive || interactive.getAttribute("aria-disabled") === "true") return;
-      tick();
+      if (interactive instanceof HTMLButtonElement && interactive.disabled) return;
+      if (interactive instanceof HTMLInputElement && interactive.disabled) return;
+      playDrop();
     };
 
-    document.addEventListener("pointerover", onPointerOver, { passive: true });
+    document.addEventListener("click", onClick, { passive: true });
     return () => {
-      document.removeEventListener("pointerover", onPointerOver);
+      document.removeEventListener("click", onClick);
       void audioRef.current?.close().catch(() => {});
       audioRef.current = null;
     };
