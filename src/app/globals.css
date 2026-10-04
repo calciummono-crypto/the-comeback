@@ -75,10 +75,23 @@
 
 html {
   scroll-behavior: smooth;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 body {
   position: relative;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+img, svg, video, canvas {
+  max-width: 100%;
+}
+
+button, input, textarea, select {
+  min-width: 0;
 }
 
 body {

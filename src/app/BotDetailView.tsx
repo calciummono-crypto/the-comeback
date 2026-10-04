@@ -345,23 +345,18 @@ export default function BotDetailView({
                 <p className="text-slate-600">No output yet…</p>
               ) : (
                 logs.map((l, i) => {
-                  const w = whisperKind(l.line);
+                  const tone = consoleLineTone(l.line, l.level);
                   return (
-                    <div key={i} className="whitespace-pre-wrap break-words">
-                      <span className="text-slate-600">
-                        {new Date(l.ts).toLocaleTimeString()}{" "}
+                    <div key={i} className={`mb-1 whitespace-pre-wrap break-words rounded-lg px-2 py-1 transition ${tone.row}`}>
+                      <span className="mr-1.5 text-slate-600">
+                        {new Date(l.ts).toLocaleTimeString()}
                       </span>
-                      {w === "from" ? (
-                        <span className="rounded bg-cyan-500/15 px-1 font-semibold text-cyan-300 ring-1 ring-cyan-500/30">
-                          {l.line}
+                      {tone.label && (
+                        <span className={`mr-2 rounded px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide ${tone.badge}`}>
+                          {tone.label}
                         </span>
-                      ) : w === "to" ? (
-                        <span className="rounded bg-fuchsia-500/15 px-1 font-semibold text-fuchsia-300 ring-1 ring-fuchsia-500/30">
-                          {l.line}
-                        </span>
-                      ) : (
-                        <span className={logColor(l.level)}>{l.line}</span>
                       )}
+                      <span className={tone.text}>{l.line}</span>
                     </div>
                   );
                 })
@@ -830,6 +825,63 @@ function ItemIcon({ name, size = 32 }: { name: string; size?: number }) {
   );
 }
 
+function consoleLineTone(line: string, level: LogEntry["level"]) {
+  const lower = line.toLowerCase();
+  const base = {
+    label: "",
+    row: "hover:bg-white/[0.025]",
+    badge: "",
+    text: logColor(level),
+  };
+
+  if (/^\s*<you>\s*\//i.test(line) || /^\s*you\s*[:>]/i.test(line) || /\byou whisper to\b/i.test(line)) {
+    return {
+      label: "you",
+      row: "bg-indigo-500/[0.07] ring-1 ring-indigo-400/15",
+      badge: "bg-indigo-500/15 text-indigo-200 ring-1 ring-indigo-400/20",
+      text: "font-semibold text-indigo-100",
+    };
+  }
+
+  if (/\(from\b/i.test(line) || /^\s*from\s+\w+/i.test(line) || /whispers to you/i.test(line)) {
+    return {
+      label: "dm",
+      row: "bg-cyan-500/[0.07] ring-1 ring-cyan-400/15",
+      badge: "bg-cyan-500/15 text-cyan-200 ring-1 ring-cyan-400/20",
+      text: "font-semibold text-cyan-100",
+    };
+  }
+
+  if (/^\s*[A-Za-z0-9_]{2,16}:\s+/.test(line) || /^\s*<[^>]{2,32}>\s+/.test(line)) {
+    return {
+      label: "chat",
+      row: "bg-emerald-500/[0.06] ring-1 ring-emerald-400/15",
+      badge: "bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/20",
+      text: "font-semibold text-slate-100",
+    };
+  }
+
+  if (level === "error" || /not found|kicked|disconnect|failed|error|denied|invalid/i.test(lower)) {
+    return {
+      label: "server",
+      row: "bg-amber-500/[0.065] ring-1 ring-amber-400/15",
+      badge: "bg-amber-500/15 text-amber-200 ring-1 ring-amber-400/20",
+      text: level === "error" ? "font-semibold text-rose-200" : "font-semibold text-amber-100",
+    };
+  }
+
+  if (level === "system") {
+    return {
+      label: "info",
+      row: "bg-sky-500/[0.045] ring-1 ring-sky-400/10",
+      badge: "bg-sky-500/15 text-sky-200 ring-1 ring-sky-400/20",
+      text: "text-sky-200",
+    };
+  }
+
+  return base;
+}
+
 function logColor(level: LogEntry["level"]) {
   switch (level) {
     case "error":
@@ -841,13 +893,4 @@ function logColor(level: LogEntry["level"]) {
     default:
       return "text-slate-400";
   }
-}
-
-function whisperKind(line: string): "from" | "to" | null {
-  const l = line.toLowerCase();
-  if (/<you\s*→/.test(line)) return null;
-  if (/\(from\b/.test(l) || /^\s*from\s+\w+/.test(l) || /whispers to you/.test(l))
-    return "from";
-  if (/\(to\b/.test(l) || /\byou whisper to\b/.test(l)) return "to";
-  return null;
 }

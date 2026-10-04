@@ -65,6 +65,7 @@ const logs = [
 
 export default function LandingPage() {
   const [navCompact, setNavCompact] = useState(false);
+  const [navPeek, setNavPeek] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setNavCompact(window.scrollY > 90);
@@ -77,7 +78,19 @@ export default function LandingPage() {
     <main className="home-shell">
       <style>{css}</style>
 
-      <nav className={`top-nav ${navCompact ? "compact" : ""}`}>
+      <div
+        className={`nav-hover-zone ${navCompact ? "show" : ""}`}
+        onMouseEnter={() => setNavPeek(true)}
+        aria-hidden="true"
+      />
+
+      <nav
+        className={`top-nav ${navCompact && !navPeek ? "compact" : ""}`}
+        onMouseEnter={() => setNavPeek(true)}
+        onMouseLeave={() => navCompact && setNavPeek(false)}
+        onFocus={() => setNavPeek(true)}
+        onBlur={() => navCompact && setNavPeek(false)}
+      >
         <Link href="/" className="brand">
           <span className="brand-mark"><Logo size={28} /></span>
           <span>
@@ -284,7 +297,8 @@ const css = `
 
   .home-shell {
     min-height: 100vh;
-    overflow: hidden;
+    overflow-x: clip;
+    overflow-y: visible;
     background:
       radial-gradient(circle at 72% 12%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 28rem),
       linear-gradient(180deg, #080a0d 0%, #0b0e12 100%);
@@ -301,9 +315,21 @@ const css = `
   .features,
   .flow-band,
   footer {
-    width: min(1120px, calc(100% - 32px));
+    width: min(1120px, calc(100vw - 32px));
     margin: 0 auto;
   }
+
+  .nav-hover-zone {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 79;
+    display: none;
+    height: 38px;
+    width: 100vw;
+  }
+
+  .nav-hover-zone.show { display: block; }
 
   .top-nav {
     position: fixed;
@@ -327,23 +353,14 @@ const css = `
   }
 
   .top-nav.compact {
-    transform: translateX(-50%) translateY(-72%) scale(.965);
-    opacity: .42;
+    transform: translateX(-50%) translateY(calc(-100% - 18px)) scale(.98);
+    opacity: 0;
+    pointer-events: none;
     padding-top: 8px;
     padding-bottom: 8px;
     border-color: color-mix(in srgb, var(--accent) 18%, transparent);
     background: rgba(8, 10, 13, 0.54);
     box-shadow: 0 10px 40px -34px rgba(0,0,0,.9);
-  }
-
-  .top-nav.compact:hover,
-  .top-nav.compact:focus-within {
-    transform: translateX(-50%) translateY(0) scale(1);
-    opacity: 1;
-    padding-top: 12px;
-    padding-bottom: 12px;
-    border-color: var(--line);
-    background: rgba(8, 10, 13, 0.82);
   }
 
   .brand {
@@ -382,7 +399,7 @@ const css = `
     align-items: center;
     justify-content: space-between;
     gap: 18px;
-    width: min(1120px, calc(100% - 32px));
+    width: min(1120px, calc(100vw - 32px));
     min-height: 86px;
     margin: 18px auto 0;
     padding: 16px;
@@ -1079,9 +1096,8 @@ const css = `
 
   @media (max-width: 880px) {
     .top-nav { align-items: flex-start; flex-direction: column; }
-    .top-nav.compact { transform: translateX(-50%) translateY(-64%) scale(.965); }
-    .top-nav.compact:hover, .top-nav.compact:focus-within { transform: translateX(-50%) translateY(0) scale(1); }
-    .nav-links { flex-wrap: wrap; }
+    .nav-links { flex-wrap: wrap; max-width: 100%; }
+    .nav-links a { padding: 9px 10px; }
     .hero,
     .section-title,
     .flow-band { grid-template-columns: 1fr; }
@@ -1102,13 +1118,25 @@ const css = `
     .hero,
     .features,
     .flow-band,
-    footer { width: min(100% - 24px, 1120px); }
-    .home-shell { padding-top: 118px; }
-    h1 { font-size: 40px; }
-    .hero { padding-top: 62px; }
+    footer { width: min(calc(100vw - 20px), 1120px); }
+    .top-nav { gap: 12px; padding: 10px; border-radius: 18px; }
+    .brand-mark { width: 36px; height: 36px; border-radius: 12px; }
+    .brand small { font-size: 10px; }
+    .nav-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; gap: 6px; }
+    .nav-links a { display: flex; justify-content: center; padding: 8px; font-size: 12px; }
+    .home-shell { padding-top: 142px; }
+    h1 { font-size: clamp(34px, 11vw, 40px); letter-spacing: -0.055em; }
+    .lead { font-size: 15px; line-height: 1.65; }
+    .hero { gap: 34px; padding-top: 42px; padding-bottom: 56px; }
+    .actions .btn { flex: 1 1 150px; }
+    .proof-row span { font-size: 11px; }
     .hero-stage { min-height: auto; }
     .bot-card { width: 100%; }
+    .bot-head { grid-template-columns: auto 1fr; }
+    .state-pill { grid-column: 1 / -1; width: fit-content; }
     .feature-grid { grid-template-columns: 1fr; }
+    .feature-detail, .resolve-preview { flex-wrap: wrap; }
+    .logs-preview { grid-template-columns: 1fr; }
     .flow-line { grid-template-columns: 1fr 1fr; }
   }
 
