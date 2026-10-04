@@ -60,17 +60,11 @@ export default function LandingPage() {
             <small>minecraft bot panel</small>
           </span>
         </Link>
-        <div className="nav-right">
-          <label className="search-bar" aria-label="Search Z-BEAM">
-            <span>⌕</span>
-            <input placeholder="Search bots, engines..." />
-          </label>
-          <div className="nav-links">
-            <a href="#preview">Preview</a>
-            <a href="#features">Features</a>
-            <Link href="/license">License</Link>
-            <Link href="/dashboard" className="nav-cta">Dashboard</Link>
-          </div>
+        <div className="nav-links">
+          <a href="#preview">Preview</a>
+          <a href="#features">Features</a>
+          <Link href="/license">License</Link>
+          <Link href="/dashboard" className="nav-cta">Dashboard</Link>
         </div>
       </nav>
 
@@ -262,44 +256,6 @@ const css = `
     align-items: center;
     gap: 4px;
   }
-
-  .nav-right {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-width: 0;
-  }
-
-  .search-bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 230px;
-    height: 42px;
-    padding: 0 12px;
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.035);
-    color: var(--muted);
-    transition: border-color 180ms ease, background 180ms ease;
-  }
-
-  .search-bar:focus-within {
-    border-color: color-mix(in srgb, var(--accent) 42%, transparent);
-    background: rgba(255, 255, 255, 0.055);
-  }
-
-  .search-bar input {
-    min-width: 0;
-    width: 100%;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    color: var(--text);
-    font: 600 13px Inter, sans-serif;
-  }
-
-  .search-bar input::placeholder { color: var(--muted); }
 
   .discord-banner {
     display: flex;
@@ -724,8 +680,6 @@ const css = `
 
   @media (max-width: 880px) {
     .top-nav { align-items: flex-start; flex-direction: column; }
-    .nav-right { width: 100%; align-items: stretch; flex-direction: column; }
-    .search-bar { width: 100%; }
     .nav-links { flex-wrap: wrap; }
     .hero,
     .section-title,
