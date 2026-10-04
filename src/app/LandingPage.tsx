@@ -2,18 +2,18 @@ import Link from "next/link";
 import { Logo, Wordmark } from "./Logo";
 
 const stats = [
-  ["3 engines", "Mineflayer, Azalea, and NMP per server"],
-  ["Live ops", "Console, actions, and session state in one view"],
-  ["Deploy-ready", "Railway startup and Postgres handled cleanly"],
+  ["Multi-engine", "Mineflayer, Azalea, and NMP where they fit"],
+  ["Live console", "Logs, chat, actions, and state in one view"],
+  ["Access-aware", "Licenses, slots, and login gates stay visible"],
 ];
 
-const proofPoints = ["token to control", "server-aware engines", "live console", "license slots"];
+const proofPoints = ["resolve token", "select engine", "watch logs", "control session"];
 
 const workflowSteps = [
-  ["01", "Resolve", "Paste the session, pull the IGN, and confirm the server before launch."],
-  ["02", "Launch", "Choose Mineflayer, Azalea, or NMP with version hints already surfaced."],
-  ["03", "Watch", "Join logs, queue state, and reconnects stay readable while the bot moves."],
-  ["04", "Control", "Chat, hotbar, item use, beam flows, and license slots stay within reach."],
+  ["01", "Resolve", "Paste the session, pull the IGN, and confirm the target server."],
+  ["02", "Launch", "Pick the engine with version hints and server context already visible."],
+  ["03", "Watch", "Follow joins, kicks, queue state, and reconnects from the same panel."],
+  ["04", "Control", "Send chat, move, use items, start beam flows, or stop cleanly."],
 ];
 
 const serverBadges = ["Minemen", "Hypixel", "CatPvP", "MCPVP", "Custom IP"];
@@ -21,32 +21,32 @@ const serverBadges = ["Minemen", "Hypixel", "CatPvP", "MCPVP", "Custom IP"];
 export const features = [
   {
     title: "Add bots without guessing",
-    text: "Paste a session token, resolve the IGN, pick a server, choose the version and start from a clean wizard.",
+    text: "Paste a session token, resolve the IGN, pick a server, choose a version, and start from one guided flow.",
     tag: "Setup",
   },
   {
     title: "Engine choice per server",
-    text: "Use Mineflayer for classic control, NMP for raw protocol tests, or Azalea for the Rust sidecar on modern servers.",
+    text: "Use Mineflayer for classic control, NMP for protocol-level sessions, or Azalea for the Rust sidecar on modern servers.",
     tag: "Engines",
   },
   {
     title: "Readable join logs",
-    text: "Token validation, version hints, kicks and disconnects show in the bot card so you know what failed instantly.",
+    text: "Token validation, version hints, kicks, and disconnects are surfaced near the bot so failures are easy to read.",
     tag: "Debug",
   },
   {
     title: "Live bot controls",
-    text: "Send chat, pick hotbar slots, use/drop items, move, inspect inventory and keep the session visible.",
+    text: "Send chat, pick hotbar slots, use or drop items, move, inspect inventory, and keep the session visible.",
     tag: "Control",
   },
   {
     title: "Beam workflows",
-    text: "Run AI or spam-style beam flows with opener scripts, closing scripts, contact memory and safer retries.",
+    text: "Run beam flows with opener scripts, closing scripts, contact memory, AI replies, and safer retries.",
     tag: "Beam",
   },
   {
     title: "Licenses that make sense",
-    text: "Users can redeem keys, see used slots, available slots and active time without needing owner help.",
+    text: "Users can redeem keys and see used slots, available slots, and active time without asking an owner.",
     tag: "Access",
   },
 ];
@@ -95,13 +95,13 @@ export default function LandingPage() {
         <div className="animate-slide-up">
           <div className="landing-kicker mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-slate-300 backdrop-blur-xl">
             <span className="h-1.5 w-1.5 rounded-full bg-indigo-300 shadow-[0_0_16px_rgba(165,180,252,.9)]" />
-            Pinned navigation · live sessions · clean control
+            Built for live Minecraft bot sessions
           </div>
           <h1 className="max-w-4xl text-balance text-5xl font-black leading-[0.94] tracking-[-0.065em] text-white sm:text-6xl lg:text-7xl">
-            Launch and steer Minecraft bots from one sharp command center.
+            Control Minecraft bot sessions without leaving the browser.
           </h1>
           <p className="landing-lede mt-6 max-w-2xl text-pretty text-base font-medium leading-8 text-slate-400 sm:text-lg">
-            Z-BEAM keeps sessions, logs, controls, and beam flows in one calm interface — fast enough for live servers, clean enough to trust every day.
+            Z-BEAM keeps session setup, join logs, bot controls, and beam tools together so operators can see what is running and act without digging through terminal output.
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <Link
@@ -115,7 +115,7 @@ export default function LandingPage() {
               href="#showcase"
               className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.035] px-6 py-3.5 text-sm font-semibold text-slate-200 backdrop-blur-xl hover:border-white/20 hover:bg-white/[0.06]"
             >
-              See bot cards
+              View sessions
             </a>
           </div>
           <div className="mt-8 flex flex-wrap gap-2 text-xs font-medium text-slate-400">
@@ -143,10 +143,10 @@ export default function LandingPage() {
           <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 backdrop-blur-xl sm:p-8">
             <p className="text-sm font-medium text-indigo-300">Launch path</p>
             <h2 className="mt-2 max-w-xl text-3xl font-black leading-tight tracking-[-0.045em] text-white sm:text-4xl">
-              The page now shows the same order the product runs in.
+              A clear path from account to session control.
             </h2>
             <p className="landing-copy mt-4 text-sm leading-7 text-slate-400 sm:text-base">
-              A premium control panel should feel predictable: setup first, then launch, then live state, then control. No random wall of cards.
+              Each block maps to a real operator step: resolve the account, launch the bot, watch the state, then control the session.
             </p>
             <div className="mt-7 flex flex-wrap gap-2">
               {serverBadges.map((badge) => (
@@ -172,13 +172,29 @@ export default function LandingPage() {
         </div>
       </section>
 
+
+      <section className="relative z-10 mx-auto w-full max-w-7xl px-5 py-6 sm:px-8">
+        <div className="grid gap-3 rounded-[1.75rem] border border-white/10 bg-white/[0.025] p-3 backdrop-blur-xl md:grid-cols-3">
+          {[
+            ["No black box", "Every start attempt leaves a readable log trail."],
+            ["No tab hunting", "Controls, inventory state, and chat sit beside the bot."],
+            ["No fake preview", "The landing mockup follows the same dashboard layout."],
+          ].map(([title, text]) => (
+            <div key={title} className="rounded-2xl border border-white/10 bg-slate-950/35 p-4">
+              <p className="text-sm font-bold text-white">{title}</p>
+              <p className="mt-1 text-xs leading-5 text-slate-500">{text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <section id="features" className="relative z-10 mx-auto w-full max-w-7xl scroll-mt-24 px-5 py-16 sm:px-8">
         <div className="section-orb left-8 top-10" aria-hidden />
         <div className="mx-auto mb-10 max-w-3xl text-center">
           <p className="text-sm font-medium text-indigo-300">From setup to control</p>
-          <h2 className="mt-2 text-3xl font-black tracking-[-0.04em] text-white sm:text-5xl">Everything flows in the right order.</h2>
+          <h2 className="mt-2 text-3xl font-black tracking-[-0.04em] text-white sm:text-5xl">From token to running bot, every step stays visible.</h2>
           <p className="landing-copy mt-4 text-sm leading-7 text-slate-400 sm:text-base">
-            Add the bot, pick the engine, watch the join, then control the session without jumping between tabs or terminal logs.
+            Add the bot, pick the engine, watch the join, and control the session without jumping between tabs or terminal logs.
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -213,9 +229,9 @@ export default function LandingPage() {
         <div className="grid items-center gap-10 lg:grid-cols-[.82fr_1.18fr]">
           <div>
             <p className="text-sm font-medium text-indigo-300">Live session cards</p>
-            <h2 className="mt-2 text-4xl font-black tracking-[-0.045em] text-white">Player cards stay readable under pressure.</h2>
+            <h2 className="mt-2 text-4xl font-black tracking-[-0.045em] text-white">Bot cards show the details operators check first.</h2>
             <p className="landing-copy mt-4 text-sm leading-7 text-slate-400">
-              Names, skins, server targets, engine labels, and status chips are arranged like the live queue users actually watch.
+              Names, skins, server targets, engine labels, and status chips are arranged for quick scanning while sessions are live.
             </p>
             <Link href="/dashboard" className="mt-7 inline-flex rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-indigo-100">
               Open dashboard
@@ -280,7 +296,7 @@ export default function LandingPage() {
         <div className="mb-8 flex items-end justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-indigo-300">Product preview</p>
-            <h2 className="mt-2 text-3xl font-black leading-tight tracking-[-0.045em] text-white sm:text-4xl">The dashboard feels like the product.</h2>
+            <h2 className="mt-2 text-3xl font-black leading-tight tracking-[-0.045em] text-white sm:text-4xl">A dashboard preview with real product structure.</h2>
           </div>
           <Link href="/dashboard" className="hidden rounded-2xl border border-white/10 px-5 py-3 text-sm font-semibold text-slate-300 hover:bg-white/[0.05] sm:inline-flex">Go to dashboard</Link>
         </div>
@@ -293,10 +309,10 @@ export default function LandingPage() {
             <div>
               <p className="text-sm font-medium text-indigo-300">Ready when the bot is</p>
               <h2 className="mt-2 max-w-3xl text-3xl font-black leading-tight tracking-[-0.045em] text-white sm:text-5xl">
-                Open the panel, add a session, and keep the whole run visible.
+                Open the panel, add a session, and keep the run visible.
               </h2>
               <p className="landing-copy mt-4 max-w-2xl text-sm leading-7 text-slate-400 sm:text-base">
-                Z-BEAM is built to feel quiet until you need control — then the console, cards, and beam tools are already in reach.
+                Start with the dashboard. The bot list, console, controls, and beam tools are already grouped where an operator expects them.
               </p>
               <div className="mt-5 flex flex-wrap gap-2 text-xs font-medium text-slate-400">
                 <span className="rounded-full border border-white/10 px-3 py-1.5">no terminal jumping</span>
@@ -321,7 +337,7 @@ export default function LandingPage() {
           <Logo size={26} />
           <div>
             <Wordmark height={18} />
-            <p className="mt-1">Minecraft bot control, without the messy tabs.</p>
+            <p className="mt-1">Minecraft bot control with fewer tabs and clearer state.</p>
             <p className="mt-1">© 2026 Z-BEAM. All rights reserved.</p>
           </div>
         </div>
@@ -438,7 +454,7 @@ function DashboardPreview() {
                   <Wordmark height={24} />
                   <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-200">LIVE</span>
                 </div>
-                <p className="mt-1 text-xs text-slate-500">Dashboard preview using the same Z-BEAM mark and sidebar structure.</p>
+                <p className="mt-1 text-xs text-slate-500">Same brand, sidebar rhythm, bot list, console, and control groups.</p>
               </div>
             </div>
             <div className="flex rounded-full border border-white/10 bg-white/[0.035] p-1 text-xs text-slate-500">
