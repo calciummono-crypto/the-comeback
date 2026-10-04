@@ -412,10 +412,10 @@ function BotCard({
         <button
           disabled={busy}
           onClick={onDelete}
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.035] text-[13px] text-slate-500 transition hover:border-rose-400/40 hover:bg-rose-500/10 hover:text-rose-200 disabled:opacity-50"
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-rose-400/30 bg-rose-500/12 text-rose-300 shadow-[0_12px_35px_-25px_rgba(244,63,94,.9)] transition hover:border-rose-300/55 hover:bg-rose-500/20 hover:text-rose-100 active:scale-[.96] disabled:opacity-50"
           title="Delete bot"
         >
-          🗑️
+          <TrashIcon size={14} />
         </button>
       </div>
 

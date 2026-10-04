@@ -139,6 +139,18 @@ export default function LandingPage() {
                     <span>{bot.mode}</span>
                     <span>{index === 0 ? "live" : "standby"}</span>
                   </div>
+                  <div className="bot-actions" aria-hidden>
+                    <span className={index === 0 ? "preview-btn stop" : "preview-btn start"}>{index === 0 ? "Stop" : "Start"}</span>
+                    <span className="preview-btn open">Open</span>
+                    <span className="preview-delete" title="Delete preview bot">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 7h16" />
+                        <path d="M10 11v6M14 11v6" />
+                        <path d="M6 7l1 14h10l1-14" />
+                        <path d="M9 7V4h6v3" />
+                      </svg>
+                    </span>
+                  </div>
                   {index === 0 && (
                     <pre className="mini-console">{logs.join("\n")}</pre>
                   )}
@@ -638,6 +650,54 @@ const css = `
     color: #c9f8ff;
     background: rgba(255, 255, 255, 0.025);
     font: 700 11px 'IBM Plex Mono', monospace;
+  }
+
+  .bot-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .preview-btn,
+  .preview-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 38px;
+    border-radius: 14px;
+    font-size: 12px;
+    font-weight: 900;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+  }
+
+  .preview-btn.start {
+    background: #fff;
+    color: #081014;
+  }
+
+  .preview-btn.stop {
+    border: 1px solid rgba(251, 191, 36, .25);
+    background: rgba(251, 191, 36, .11);
+    color: #fde68a;
+  }
+
+  .preview-btn.open {
+    border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    color: #dfe7ff;
+  }
+
+  .preview-delete {
+    width: 38px;
+    border: 1px solid rgba(248, 113, 113, .30);
+    background: rgba(239, 68, 68, .12);
+    color: #fca5a5;
+  }
+
+  .preview-delete svg {
+    width: 15px;
+    height: 15px;
   }
 
   .mini-console {
