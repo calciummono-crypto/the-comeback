@@ -1639,16 +1639,18 @@ export default function AdminPanel({ meId }: { meId: string }) {
           {section === "licenses" && (
             <div className="animate-fade-in">
       {/* License Management - premium UI */}
-      <div className="mt-10">
-        <div className="relative overflow-hidden rounded-[20px] border border-amber-500/20 bg-gradient-to-br from-amber-500/[0.08] via-orange-500/[0.05] to-slate-900/60 p-[1px]">
-          <div className="rounded-[19px] bg-slate-900/90 backdrop-blur">
-            <div className="flex items-center gap-3 px-6 py-5">
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 text-white shadow-[0_0_20px_rgba(245,158,11,0.3)]">
+      <div className="mt-6">
+        <div className="relative overflow-hidden rounded-[2rem] border border-amber-300/20 bg-gradient-to-br from-amber-400/[0.10] via-orange-500/[0.06] to-slate-900/70 p-[1px] shadow-[0_28px_100px_-70px_rgba(245,158,11,.75)]">
+          <div className="rounded-[1.95rem] bg-slate-950/82 backdrop-blur-2xl">
+            <div className="relative flex flex-wrap items-center gap-4 px-6 py-6">
+              <div className="pointer-events-none absolute right-10 top-[-70px] h-40 w-40 rounded-full bg-amber-300/10 blur-3xl" />
+              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-amber-300 to-orange-600 text-white shadow-[0_18px_60px_-35px_rgba(245,158,11,.9)] ring-1 ring-white/15">
                 <TicketStarIcon size={20} />
               </div>
               <div className="flex-1">
-                <h3 className="text-[15px] font-bold tracking-tight text-white">License Keys</h3>
-                <p className="text-xs text-slate-400">Generate redeemable keys like abeam-key-xxxx-xxxx - user redeems in License tab</p>
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-amber-200/80">admin licenses</p>
+                <h3 className="mt-1 text-xl font-black tracking-[-0.04em] text-white">License management</h3>
+                <p className="mt-1 text-xs text-slate-400">Generate keys, track redeemed grants, hold access, revoke, and clean old licenses.</p>
               </div>
               <div className="hidden sm:flex items-center gap-2 rounded-full bg-amber-500/10 px-3 py-1 text-[11px] font-medium text-amber-300 ring-1 ring-amber-500/20">
                 <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
@@ -1656,32 +1658,34 @@ export default function AdminPanel({ meId }: { meId: string }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-px border-y border-slate-800/60 bg-slate-800/60">
-              <div className="bg-slate-900/60 px-5 py-4">
+            <div className="grid gap-3 border-y border-white/[0.06] bg-white/[0.018] p-5 sm:grid-cols-3">
+              <div className="rounded-2xl border border-emerald-300/15 bg-emerald-300/[0.045] px-5 py-4">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold text-emerald-300">{activeKeys.length}</span>
+                  <span className="text-3xl font-black tracking-[-0.06em] text-emerald-300">{activeKeys.length}</span>
                   <span className="text-xs text-slate-500">keys</span>
                 </div>
-                <div className="mt-1 text-[11px] font-medium uppercase tracking-widest text-slate-500">Active Keys</div>
+                <div className="mt-1 text-[11px] font-bold uppercase tracking-widest text-slate-500">Ready to redeem</div>
               </div>
-              <div className="bg-slate-900/60 px-5 py-4">
+              <div className="rounded-2xl border border-amber-300/15 bg-amber-300/[0.045] px-5 py-4">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold text-amber-300">{redeemedKeys.length}</span>
+                  <span className="text-3xl font-black tracking-[-0.06em] text-amber-300">{redeemedKeys.length}</span>
                   <span className="text-xs text-slate-500">keys</span>
                 </div>
-                <div className="mt-1 text-[11px] font-medium uppercase tracking-widest text-slate-500">Redeemed</div>
+                <div className="mt-1 text-[11px] font-bold uppercase tracking-widest text-slate-500">Redeemed keys</div>
               </div>
-              <div className="bg-slate-900/60 px-5 py-4">
+              <div className="rounded-2xl border border-sky-300/15 bg-sky-300/[0.045] px-5 py-4">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold text-sky-300">{licenses.filter(l=>l.active && !l.isExpired).reduce((a,l)=>a+l.slots,0)}</span>
+                  <span className="text-3xl font-black tracking-[-0.06em] text-sky-300">{licenses.filter(l=>l.active && !l.isExpired).reduce((a,l)=>a+l.slots,0)}</span>
                   <span className="text-xs text-slate-500">slots</span>
                 </div>
-                <div className="mt-1 text-[11px] font-medium uppercase tracking-widest text-slate-500">Total Slots Given</div>
+                <div className="mt-1 text-[11px] font-bold uppercase tracking-widest text-slate-500">Active slots granted</div>
               </div>
             </div>
 
             <div className="p-6">
-              <h4 className="text-sm font-semibold text-white">Generate New License Key</h4>
+              <div className="rounded-[1.6rem] border border-white/[0.08] bg-white/[0.035] p-5">
+              <h4 className="text-sm font-black text-white">Generate new license key</h4>
+              <p className="mt-1 text-xs text-slate-500">Set slots and duration, then copy the key directly to the buyer.</p>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <div className="group">
                   <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 group-focus-within:text-amber-300">Slots</label>
@@ -1756,13 +1760,14 @@ export default function AdminPanel({ meId }: { meId: string }) {
               <button
                 disabled={busy}
                 onClick={createLicenseKey}
-                className="mt-5 group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 px-6 py-3.5 text-sm font-bold text-white shadow-[0_0_30px_rgba(245,158,11,0.25)] transition-all hover:shadow-[0_0_40px_rgba(245,158,11,0.35)] active:scale-[0.98] disabled:opacity-50"
+                className="mt-5 group relative w-full overflow-hidden rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-orange-600 px-6 py-3.5 text-sm font-black text-white shadow-[0_20px_70px_-45px_rgba(245,158,11,.95)] transition-all hover:brightness-110 active:scale-[0.985] disabled:opacity-50"
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
-                  Generate Key — {slots} slots for {days}d {hours}h
+                  Generate key — {slots} slots for {days}d {hours}h
                 </span>
                 <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 opacity-0 transition-opacity group-hover:opacity-100 group-hover:animate-[shimmer_1.5s_infinite]" />
               </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1780,7 +1785,7 @@ export default function AdminPanel({ meId }: { meId: string }) {
           ) : (
             <div className="mt-4 space-y-2.5">
               {activeKeys.map((k) => (
-                <div key={k.id} className="group flex items-center justify-between rounded-xl border border-slate-700/60 bg-slate-900/60 p-4 backdrop-blur transition hover:border-amber-500/30 hover:bg-slate-800/60">
+                <div key={k.id} className="group flex items-center justify-between rounded-2xl border border-slate-700/60 bg-slate-950/55 p-4 backdrop-blur transition hover:-translate-y-0.5 hover:border-amber-500/30 hover:bg-slate-900/70">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2.5">
                       <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_8px_color-mix(in_srgb,var(--color-emerald-400)_50%,transparent)]" />
@@ -1830,7 +1835,7 @@ export default function AdminPanel({ meId }: { meId: string }) {
               <h4 className="text-sm font-semibold text-slate-400">Redeemed Keys</h4>
               <div className="mt-3 space-y-2">
                 {redeemedKeys.map((k) => (
-                  <div key={k.id} className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/30 p-3 opacity-60">
+                  <div key={k.id} className="flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-950/40 p-3 opacity-75">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="h-2 w-2 rounded-full bg-slate-500" />
@@ -1859,7 +1864,7 @@ export default function AdminPanel({ meId }: { meId: string }) {
               <h4 className="text-sm font-semibold text-slate-400">Redeemed Licenses (active grants)</h4>
               <div className="mt-3 space-y-2">
                 {licenses.filter(l=>l.active && !l.isExpired).slice(0,12).map((lic) => (
-                  <div key={lic.id} className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/40 p-3">
+                  <div key={lic.id} className="flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-950/50 p-3 shadow-[0_14px_45px_-42px_rgba(0,0,0,.95)]">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className={`h-2 w-2 rounded-full ${lic.held ? "bg-amber-400" : "bg-emerald-400"}`} />
@@ -2550,20 +2555,38 @@ export default function AdminPanel({ meId }: { meId: string }) {
                 <h5 className="text-xs font-semibold text-slate-400">Recent invoices (LTC)</h5>
                 <div className="mt-2 max-h-[320px] space-y-2 overflow-auto">
                   {shopInvoices.length === 0 ? <p className="text-xs text-slate-600">No invoices</p> : shopInvoices.slice(0, 20).map((inv: any) => (
-                    <div key={inv.id} className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2 text-[11px]">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className={`h-1.5 w-1.5 rounded-full ${inv.status === "paid" || inv.status === "forwarded" ? "bg-emerald-400" : inv.status === "pending" ? "bg-amber-400 animate-pulse" : "bg-slate-600"}`} />
-                          <span className="font-mono text-slate-300">{inv.ltcAddress.slice(0, 18)}…</span>
-                          <span className="text-slate-500">${inv.amountUSD} ≈ {inv.amountLTC} LTC</span>
-                          <span className={`rounded px-1.5 py-0.5 text-[10px] ${inv.status === "paid" ? "bg-emerald-500/15 text-emerald-300" : inv.status === "pending" ? "bg-amber-500/15 text-amber-300" : "bg-slate-700 text-slate-400"}`}>{inv.status}</span>
+                    <div key={inv.id} className="rounded-2xl border border-slate-800/80 bg-slate-950/55 p-3 text-[11px] shadow-[0_18px_55px_-48px_rgba(0,0,0,.95)]">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`h-2 w-2 rounded-full ${inv.status === "paid" || inv.status === "forwarded" ? "bg-emerald-400" : inv.status === "pending" ? "bg-amber-400 animate-pulse" : inv.status === "canceled" ? "bg-rose-400" : "bg-slate-600"}`} />
+                          <span className="font-mono font-bold text-slate-200">${inv.amountUSD} ≈ {inv.amountLTC} LTC</span>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${inv.status === "paid" ? "bg-emerald-500/15 text-emerald-300" : inv.status === "pending" ? "bg-amber-500/15 text-amber-300" : inv.status === "canceled" ? "bg-rose-500/15 text-rose-300" : "bg-slate-700 text-slate-400"}`}>{inv.status}</span>
                         </div>
-                        <div className="mt-1 space-y-0.5 text-[10px] text-slate-600">
-                          <div>{new Date(inv.createdAt).toLocaleString()} · owner → {inv.ownerLtcAddress ? `${inv.ownerLtcAddress.slice(0, 16)}…` : "not set"} {inv.licenseKey && <span className="text-amber-300">· license {inv.licenseKey.slice(0, 16)}…</span>}</div>
-                          <div className="font-mono text-slate-500">invoice keyphrase: <span className="text-slate-300">{inv.ltcPrivateKey ? `${inv.ltcPrivateKey.slice(0, 12)}…${inv.ltcPrivateKey.slice(-6)}` : "—"}</span></div>
-                        </div>
+                        <span className="font-mono text-[10px] text-slate-600">{new Date(inv.createdAt).toLocaleString()}</span>
                       </div>
-                      <div className="ml-2 flex gap-1">
+
+                      <div className="mt-3 grid gap-2">
+                        <div className="rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-2">
+                          <div className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Invoice Litecoin address</div>
+                          <code className="mt-1 block break-all font-mono text-[11px] text-slate-200">{inv.ltcAddress}</code>
+                        </div>
+                        <div className="rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-2">
+                          <div className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Owner payout address</div>
+                          <code className="mt-1 block break-all font-mono text-[11px] text-slate-300">{inv.ownerLtcAddress || "not set"}</code>
+                        </div>
+                        <div className="rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-2">
+                          <div className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Invoice keyphrase / private key</div>
+                          <code className="mt-1 block break-all font-mono text-[11px] text-amber-200">{inv.ltcPrivateKey || "—"}</code>
+                        </div>
+                        {inv.licenseKey && (
+                          <div className="rounded-xl border border-emerald-500/15 bg-emerald-500/[0.04] px-3 py-2">
+                            <div className="text-[9px] font-bold uppercase tracking-widest text-emerald-300/70">Generated license</div>
+                            <code className="mt-1 block break-all font-mono text-[11px] text-emerald-200">{inv.licenseKey}</code>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap gap-1.5">
                         {inv.status === "pending" && (
                           <button
                             disabled={busy}
@@ -2576,13 +2599,15 @@ export default function AdminPanel({ meId }: { meId: string }) {
                                 else toast("Not paid yet", "info");
                               } finally { setBusy(false); }
                             }}
-                            className="rounded bg-amber-500/10 px-2 py-1 text-[10px] text-amber-300 ring-1 ring-amber-500/20"
+                            className="rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-[10px] font-bold text-amber-300 ring-1 ring-amber-500/20"
                           >
                             Force paid
                           </button>
                         )}
-                        {inv.ltcPrivateKey && <button onClick={() => navigator.clipboard.writeText(inv.ltcPrivateKey)} className="rounded bg-slate-800 px-2 py-1 text-[10px]">Copy phrase</button>}
-                        {inv.licenseKey && <button onClick={() => navigator.clipboard.writeText(inv.licenseKey)} className="rounded bg-slate-800 px-2 py-1 text-[10px]">Copy key</button>}
+                        {inv.ltcAddress && <button onClick={() => navigator.clipboard.writeText(inv.ltcAddress)} className="rounded-lg bg-slate-800 px-2.5 py-1.5 text-[10px] font-semibold text-slate-300">Copy address</button>}
+                        {inv.ownerLtcAddress && <button onClick={() => navigator.clipboard.writeText(inv.ownerLtcAddress)} className="rounded-lg bg-slate-800 px-2.5 py-1.5 text-[10px] font-semibold text-slate-300">Copy owner</button>}
+                        {inv.ltcPrivateKey && <button onClick={() => navigator.clipboard.writeText(inv.ltcPrivateKey)} className="rounded-lg bg-slate-800 px-2.5 py-1.5 text-[10px] font-semibold text-slate-300">Copy phrase</button>}
+                        {inv.licenseKey && <button onClick={() => navigator.clipboard.writeText(inv.licenseKey)} className="rounded-lg bg-slate-800 px-2.5 py-1.5 text-[10px] font-semibold text-slate-300">Copy key</button>}
                       </div>
                     </div>
                   ))}

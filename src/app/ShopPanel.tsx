@@ -614,12 +614,12 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
             <div className="max-h-[92vh] w-full max-w-[500px] overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950/92 shadow-[0_35px_120px_-55px_rgba(0,0,0,.98)] backdrop-blur-2xl">
             <div className="flex items-center justify-between border-b border-white/[0.08] bg-white/[0.025] px-5 py-4">
               <div className="flex items-center gap-2.5">
-                <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-800 text-slate-300 ring-1 ring-slate-700">
-                  <LtcIcon />
+                <span className="relative grid h-11 w-11 place-items-center rounded-2xl border border-[#345d9d]/30 bg-gradient-to-br from-[#345d9d]/25 to-slate-900 text-white shadow-[0_18px_55px_-35px_rgba(52,93,157,.9)] ring-1 ring-white/10">
+                  <LitecoinImage />
                 </span>
                 <div>
                   <h3 className="text-sm font-bold text-white">{paidInfo ? "Order complete" : "Litecoin checkout"}</h3>
-                  <p className="text-[11px] text-slate-500">{paidInfo ? "License ready to redeem" : `${tierOf(invoice)} · 1 month`}</p>
+                  <p className="text-[11px] text-slate-500">{paidInfo ? "License ready to redeem" : `${tierOf(invoice)} · 1 month · LTC network`}</p>
                 </div>
               </div>
               <button onClick={() => closeInvoiceModal(true)} className="grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-slate-400 transition hover:bg-white/[0.08] hover:text-white">
@@ -631,7 +631,8 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
               {!paidInfo ? (
                 <>
                   {/* order summary */}
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+                  <div className="relative overflow-hidden rounded-2xl border border-[#345d9d]/25 bg-[linear-gradient(135deg,rgba(52,93,157,.16),rgba(255,255,255,.035))] p-4">
+                    <div className="pointer-events-none absolute right-[-34px] top-[-42px] h-28 w-28 rounded-full bg-[#345d9d]/25 blur-3xl" />
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold text-white">{tierOf(invoice)} plan</span>
                       <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-medium text-slate-400">{invoice.bots ?? "—"} bots · {invoice.hours ?? "—"}h/day</span>
@@ -640,7 +641,9 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
                       <span className="text-xs text-slate-500">Total due</span>
                       <div className="text-right">
                         <div className="text-lg font-bold text-white">{fmtUsd(invoice.amountUSD)}</div>
-                        <div className="text-[11px] font-mono text-slate-400">≈ {invoice.amountLTC} LTC</div>
+                        <div className="inline-flex items-center gap-1.5 rounded-full bg-[#345d9d]/18 px-2 py-0.5 text-[11px] font-mono font-bold text-blue-100 ring-1 ring-[#345d9d]/25">
+                          <LitecoinTiny /> ≈ {invoice.amountLTC} LTC
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -664,7 +667,7 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
                     <div className="space-y-3">
                       <div>
                         <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Send exactly</div>
-                        <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2.5">
+                        <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-[#345d9d]/25 bg-slate-950/80 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,.035)]">
                           <span className="flex-1 truncate font-mono text-xs font-bold text-white">{invoice.amountLTC} LTC</span>
                           <button onClick={() => copy(invoice.amountLTC, "amt")} className="rounded-lg border border-white/10 bg-white/[0.055] px-2 py-1 text-[10px] font-bold text-slate-300 hover:bg-white/[0.09]">
                             {copied === "amt" ? "✓" : "COPY"}
@@ -673,7 +676,7 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
                       </div>
                       <div>
                         <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500">To address</div>
-                        <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2.5">
+                        <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-[#345d9d]/25 bg-slate-950/80 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,.035)]">
                           <span className="flex-1 truncate font-mono text-[11px] text-white">{invoice.ltcAddress}</span>
                           <button onClick={() => copy(invoice.ltcAddress, "addr")} className="rounded-lg border border-white/10 bg-white/[0.055] px-2 py-1 text-[10px] font-bold text-slate-300 hover:bg-white/[0.09]">
                             {copied === "addr" ? "✓" : "COPY"}
@@ -689,7 +692,7 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
                     </div>
                     <div className="flex flex-col items-center gap-1.5">
                       {!qrFailed ? (
-                        <div className="rounded-2xl bg-white p-2 shadow-lg">
+                        <div className="rounded-3xl bg-white p-2.5 shadow-[0_20px_55px_-35px_rgba(52,93,157,.95)] ring-4 ring-[#345d9d]/15">
                           <img
                             src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=0&data=${encodeURIComponent(payUri)}`}
                             alt="LTC QR"
@@ -803,10 +806,28 @@ function ShopBagIcon() {
     </svg>
   );
 }
-function LtcIcon() {
+function LitecoinImage() {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <LitecoinMark className="h-6 w-6" />;
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M8 8h8M8 12h8M8 16h8M10 4L8 8M14 4l-2 4M10 16l-2 4M14 16l2 4" />
+    <img
+      src="https://cryptologos.cc/logos/litecoin-ltc-logo.png?v=040"
+      alt="Litecoin"
+      className="h-7 w-7 object-contain drop-shadow-[0_8px_18px_rgba(52,93,157,.55)]"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
+function LitecoinTiny() {
+  return <LitecoinMark className="h-3.5 w-3.5" />;
+}
+
+function LitecoinMark({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 256 256" fill="none" aria-hidden="true">
+      <circle cx="128" cy="128" r="128" fill="#345D9D" />
+      <path fill="white" d="M95.8 181.5l12.7-48.2-19.8 7.1 4.7-18 19.8-7.1 18.7-70.8h43.5l-14.2 54 19.3-6.9-4.8 18-19.2 6.9-10.2 38.6h66.1l-7.1 26.4H95.8z" />
     </svg>
   );
 }
