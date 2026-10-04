@@ -1,457 +1,577 @@
+import Link from "next/link";
+import { Logo, Wordmark } from "./Logo";
+
 export const features = [
   {
-    title: "Session token",
-    text: "Paste a session token and resolve the Minecraft username before launch.",
+    title: "Token to IGN",
+    text: "Paste a session token and resolve the Minecraft name before launch.",
     tag: "Resolve",
   },
   {
-    title: "Engine selection",
-    text: "Choose Mineflayer, Azalea, or NMP depending on version and server behavior.",
-    tag: "Launch",
+    title: "Engine per server",
+    text: "Mineflayer for 1.8.9, Azalea for modern sidecar runs, NMP for raw protocol sessions.",
+    tag: "Engines",
   },
   {
-    title: "Live console",
-    text: "Read join output, kicks, reconnects, and inventory syncs next to the bot.",
-    tag: "Watch",
+    title: "Console in the card",
+    text: "Join logs, kicks, reconnects, and inventory syncs stay beside the bot.",
+    tag: "Logs",
   },
   {
-    title: "Bot controls",
-    text: "Send chat, change hotbar slots, use or drop items, and move the bot.",
+    title: "Live controls",
+    text: "Send chat, change hotbar slot, use or drop items, move, and inspect inventory.",
     tag: "Control",
   },
   {
-    title: "License slots",
-    text: "Redeem keys and see how many bot slots are available for the account.",
-    tag: "Access",
+    title: "Flows",
+    text: "Run opener scripts, wait for replies, send closing scripts, and dedupe contacts.",
+    tag: "Flow",
   },
   {
-    title: "Per-session state",
-    text: "Keep server, engine, version, username, and status attached to the running bot.",
-    tag: "State",
+    title: "License slots",
+    text: "Redeem keys and see used slots, remaining slots, and active time.",
+    tag: "Access",
   },
 ];
 
-const typewriterScript = `
-(() => {
-  const el = document.getElementById("typewriter-log");
-  if (!el) return;
-  const lines = [
-    "$ resolving session → vyrex_",
-    "$ connecting to eu.minemen.club:25565",
-    "$ engine: Mineflayer 1.8.9",
-    "✓ bot online",
-  ];
-  let line = 0;
-  let char = 0;
-  const tick = () => {
-    const current = lines.slice(0, line).join("\n");
-    const next = lines[line] ? lines[line].slice(0, char) : "";
-    el.textContent = current + (current && next ? "\n" : "") + next;
-    if (line >= lines.length) return;
-    if (char < lines[line].length) {
-      char += 1;
-      window.setTimeout(tick, 30);
-      return;
-    }
-    line += 1;
-    char = 0;
-    if (line < lines.length) window.setTimeout(tick, 400);
-  };
-  tick();
-})();
-`;
+const bots = [
+  { name: "vyrex_", server: "eu.minemen.club", engine: "Mineflayer", version: "1.8.9", state: "online" },
+  { name: "aero_clip", server: "mc.hypixel.net", engine: "Azalea", version: "1.20.4", state: "joining" },
+  { name: "noxline", server: "catpvp.net", engine: "NMP", version: "raw", state: "idle" },
+];
+
+const logs = [
+  "12:44:01 · resolving profile: vyrex_",
+  "12:44:02 · connecting eu.minemen.club:25565",
+  "12:44:03 · join success · version 1.8.9",
+  "12:44:03 · inventory synced · hotbar slot 1 active",
+];
 
 export default function LandingPage() {
   return (
-    <main className="zbeam-home">
-      <style>{landingCss}</style>
+    <main className="home-shell">
+      <style>{css}</style>
 
-      <nav className="nav" aria-label="Primary navigation">
-        <a className="brand" href="/">Z-BEAM</a>
+      <nav className="top-nav">
+        <Link href="/" className="brand">
+          <span className="brand-mark"><Logo size={28} /></span>
+          <span>
+            <Wordmark height={24} />
+            <small>minecraft bot panel</small>
+          </span>
+        </Link>
         <div className="nav-links">
+          <a href="#preview">Preview</a>
           <a href="#features">Features</a>
-          <a href="/dashboard">Dashboard</a>
-          <a href="/license">License</a>
+          <Link href="/license">License</Link>
+          <Link href="/dashboard" className="nav-cta">Dashboard</Link>
         </div>
       </nav>
 
       <section className="hero">
-        <h1>Paste a session. Pick an engine. Watch it join.</h1>
-        <p className="hero-sub">
-          Z-BEAM runs Mineflayer, Azalea, and NMP sessions from one panel. No terminal switching.
-        </p>
-        <a className="cta" href="/dashboard">Open dashboard</a>
-        <pre id="typewriter-log" className="typewriter" aria-label="Console log preview" />
-      </section>
+        <div className="hero-copy">
+          <p className="kicker">session tokens · engines · live console</p>
+          <h1>Paste a session. Pick an engine. Run the bot.</h1>
+          <p className="lead">
+            Z-BEAM keeps Minecraft bot sessions in one smooth panel: resolve the IGN, choose Mineflayer, Azalea, or NMP, then watch logs and control the bot live.
+          </p>
+          <div className="actions">
+            <Link href="/dashboard" className="btn primary">Open dashboard</Link>
+            <a href="#preview" className="btn ghost">See preview</a>
+          </div>
+          <div className="proof-row">
+            <code>Mineflayer 1.8.9</code>
+            <code>Azalea sidecar</code>
+            <code>NMP raw</code>
+          </div>
+        </div>
 
-      <section id="features" className="section engines" aria-labelledby="engines-title">
-        <h2 id="engines-title">Engines</h2>
-        <div className="engine-row">
-          <div>
-            <h3>Mineflayer</h3>
-            <p>Node client for classic control, commonly used with 1.8.9 servers and familiar plugin behavior.</p>
-          </div>
-          <div>
-            <h3>Azalea</h3>
-            <p>Rust sidecar for modern sessions where a different client stack is useful.</p>
-          </div>
-          <div>
-            <h3>NMP</h3>
-            <p>Raw protocol path for lower-level sessions and server behavior testing.</p>
-          </div>
+        <div id="preview" className="hero-stage" aria-label="Animated bot cards preview">
+          <div className="stage-glow" />
+          {bots.map((bot, index) => (
+            <article key={bot.name} className={`bot-card card-${index}`}>
+              <div className="bot-head">
+                <span className="bot-avatar">{bot.name.slice(0, 2).toUpperCase()}</span>
+                <div>
+                  <h2>{bot.name}</h2>
+                  <p>{bot.server}</p>
+                </div>
+                <code>{bot.state}</code>
+              </div>
+              <div className="bot-meta">
+                <span>{bot.engine}</span>
+                <span>{bot.version}</span>
+              </div>
+              {index === 0 && (
+                <pre className="mini-console">{logs.join("\n")}</pre>
+              )}
+            </article>
+          ))}
         </div>
       </section>
 
-      <section className="section" aria-labelledby="how-title">
-        <h2 id="how-title">How it works</h2>
-        <div className="info-table">
-          <div className="row">
-            <code>Resolve</code>
-            <p>Paste the session token; the panel resolves the IGN before starting the bot.</p>
-          </div>
-          <div className="row">
-            <code>Launch</code>
-            <p>Pick the server and choose Mineflayer, Azalea, or NMP for the session.</p>
-          </div>
-          <div className="row">
-            <code>Watch</code>
-            <p>Join output, kicks, reconnects, and inventory syncs appear in the bot card.</p>
-          </div>
-          <div className="row">
-            <code>Control</code>
-            <p>Send chat, swap hotbar slots, use or drop items, and move the bot live.</p>
-          </div>
+      <section id="features" className="features">
+        <div className="section-title">
+          <p className="kicker">what the panel handles</p>
+          <h2>Less switching around. More session state on screen.</h2>
         </div>
-      </section>
-
-      <section className="section" aria-labelledby="bot-title">
-        <h2 id="bot-title">Bot card example</h2>
-        <article className="bot-card">
-          <header>
-            <div>
-              <h3>vyrex_</h3>
-              <p><code>eu.minemen.club</code></p>
+        <div className="feature-list">
+          {features.map((feature) => (
+            <div className="feature-row" key={feature.title}>
+              <code>{feature.tag}</code>
+              <div>
+                <h3>{feature.title}</h3>
+                <p>{feature.text}</p>
+              </div>
             </div>
-            <code className="status">online</code>
-          </header>
-          <div className="bot-meta">
-            <div><span>engine</span><code>Mineflayer</code></div>
-            <div><span>version</span><code>1.8.9</code></div>
-          </div>
-          <pre className="console">[12:44:01] resolving profile: vyrex_
-[12:44:02] connecting eu.minemen.club:25565
-[12:44:03] join success · version 1.8.9
-[12:44:03] inventory synced · hotbar slot 1 active</pre>
-        </article>
+          ))}
+        </div>
       </section>
 
-      <footer>Z-BEAM · Minecraft bot control · © 2026</footer>
+      <section className="flow-band">
+        <div>
+          <p className="kicker">session flow</p>
+          <h2>Resolve → launch → watch → control.</h2>
+        </div>
+        <div className="flow-line">
+          <span>token</span>
+          <span>engine</span>
+          <span>console</span>
+          <span>controls</span>
+        </div>
+      </section>
 
-      <script dangerouslySetInnerHTML={{ __html: typewriterScript }} />
+      <footer>
+        <span>Z-BEAM · Minecraft bot control · © 2026</span>
+      </footer>
     </main>
   );
 }
 
-const landingCss = `
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,600;6..72,700&display=swap');
+const css = `
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
 
   :root {
-    --z-bg: #0D0D0F;
-    --z-surface: #131316;
-    --z-border: #222228;
-    --z-text: #E8E8E8;
-    --z-muted: #6B6B75;
-    --z-accent: #22D3EE;
-    --z-accent-dim: #0E4F5C;
+    --bg: #080a0d;
+    --panel: #10141a;
+    --panel-2: #0c1015;
+    --line: rgba(34, 211, 238, 0.16);
+    --text: #edf7fb;
+    --muted: #7f9198;
+    --accent: #22d3ee;
+    --accent-soft: rgba(34, 211, 238, 0.12);
   }
 
-  .zbeam-home {
+  .home-shell {
     min-height: 100vh;
-    background: var(--z-bg);
-    color: var(--z-text);
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 72% 12%, rgba(34, 211, 238, 0.13), transparent 28rem),
+      linear-gradient(180deg, #080a0d 0%, #0b0e12 100%);
+    color: var(--text);
     font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   }
 
-  .zbeam-home * {
-    box-sizing: border-box;
-  }
+  .home-shell * { box-sizing: border-box; }
 
-  .nav,
+  .top-nav,
   .hero,
-  .section,
+  .features,
+  .flow-band,
   footer {
-    width: min(900px, calc(100% - 32px));
-    margin-inline: auto;
+    width: min(1120px, calc(100% - 32px));
+    margin: 0 auto;
   }
 
-  .nav {
+  .top-nav {
+    position: sticky;
+    top: 14px;
+    z-index: 30;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 24px;
-    padding: 24px 0;
-    border-top: 0;
+    gap: 18px;
+    margin-top: 14px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    background: rgba(8, 10, 13, 0.72);
+    backdrop-filter: blur(18px);
   }
 
   .brand {
-    color: var(--z-text);
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
-    font-size: 15px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    color: var(--text);
     text-decoration: none;
+  }
+
+  .brand-mark {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.035);
+  }
+
+  .brand small {
+    display: block;
+    margin-top: 1px;
+    color: var(--muted);
+    font: 600 11px/1.1 'IBM Plex Mono', monospace;
   }
 
   .nav-links {
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 4px;
   }
 
   .nav-links a {
-    color: var(--z-muted);
-    font-size: 14px;
-    font-weight: 600;
+    color: var(--muted);
     text-decoration: none;
+    padding: 10px 13px;
+    border-radius: 14px;
+    font-size: 13px;
+    font-weight: 700;
+    transition: color 180ms ease, background 180ms ease, transform 180ms ease;
   }
 
   .nav-links a:hover {
-    color: var(--z-text);
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.045);
+    transform: translateY(-1px);
+  }
+
+  .nav-links .nav-cta {
+    color: #031316;
+    background: var(--accent);
   }
 
   .hero {
-    padding: 96px 0 72px;
+    display: grid;
+    grid-template-columns: minmax(0, 0.92fr) minmax(360px, 1.08fr);
+    gap: 54px;
+    align-items: center;
+    padding: 92px 0 86px;
   }
+
+  .kicker {
+    margin: 0 0 14px;
+    color: var(--accent);
+    font: 700 12px/1.2 'IBM Plex Mono', monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  h1,
+  h2,
+  h3,
+  p { margin: 0; }
 
   h1 {
-    max-width: 780px;
-    margin: 0;
-    color: var(--z-text);
-    font-family: Newsreader, Georgia, serif;
-    font-size: clamp(52px, 8vw, 92px);
-    font-weight: 700;
-    letter-spacing: -0.065em;
+    max-width: 720px;
+    font-size: clamp(52px, 7.5vw, 92px);
     line-height: 0.92;
+    letter-spacing: -0.07em;
+    font-weight: 800;
   }
 
-  .hero-sub {
-    max-width: 620px;
-    margin: 24px 0 0;
-    color: var(--z-muted);
+  .lead {
+    max-width: 610px;
+    margin-top: 24px;
+    color: var(--muted);
     font-size: 17px;
-    line-height: 1.7;
+    line-height: 1.75;
   }
 
-  .cta {
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 32px;
+  }
+
+  .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    margin-top: 28px;
-    min-height: 44px;
+    min-height: 46px;
     padding: 0 18px;
-    border: 2px solid var(--z-border);
-    border-radius: 2px;
-    background: transparent;
-    color: var(--z-text);
-    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-    font-size: 14px;
-    font-weight: 700;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    color: var(--text);
     text-decoration: none;
-    transition: border-color 150ms ease;
-  }
-
-  .cta:hover {
-    border-color: var(--z-accent);
-  }
-
-  .typewriter {
-    min-height: 96px;
-    margin: 34px 0 0;
-    padding: 0;
-    background: var(--z-bg);
-    color: var(--z-accent);
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
     font-size: 14px;
-    line-height: 1.7;
-    text-align: left;
-    white-space: pre-wrap;
+    font-weight: 800;
+    transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
   }
 
-  .section {
-    padding: 56px 0;
-    border-top: 1px solid var(--z-border);
+  .btn:hover {
+    transform: translateY(-2px);
+    border-color: rgba(34, 211, 238, 0.55);
   }
 
-  h2 {
-    margin: 0 0 28px;
-    color: var(--z-text);
-    font-size: 24px;
-    font-weight: 700;
-    letter-spacing: -0.035em;
+  .btn.primary {
+    color: #031316;
+    background: var(--accent);
+    border-color: var(--accent);
   }
 
-  .engine-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 28px;
+  .btn.ghost {
+    background: rgba(255, 255, 255, 0.025);
   }
 
-  .engine-row h3,
-  .bot-card h3,
-  .status,
-  code {
+  .proof-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-top: 24px;
+  }
+
+  code,
+  .proof-row code,
+  .bot-card code,
+  .mini-console,
+  .flow-line span,
+  .feature-row code {
     font-family: 'IBM Plex Mono', ui-monospace, monospace;
   }
 
-  .engine-row h3 {
-    margin: 0 0 10px;
-    color: var(--z-text);
-    font-size: 15px;
-    font-weight: 700;
+  .proof-row code {
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: rgba(34, 211, 238, 0.04);
+    color: #bff7ff;
+    font-size: 12px;
   }
 
-  .engine-row p,
-  .row p {
-    margin: 0;
-    color: var(--z-muted);
-    font-size: 14px;
-    line-height: 1.65;
+  .hero-stage {
+    position: relative;
+    min-height: 520px;
   }
 
-  .info-table {
-    border-top: 1px solid var(--z-border);
-  }
-
-  .row {
-    display: grid;
-    grid-template-columns: 180px 1fr;
-    gap: 24px;
-    padding: 18px 0;
-    border-bottom: 1px solid var(--z-border);
-  }
-
-  .row code {
-    color: var(--z-accent);
-    font-size: 14px;
-    font-weight: 700;
+  .stage-glow {
+    position: absolute;
+    inset: 70px 30px 30px;
+    border-radius: 999px;
+    background: rgba(34, 211, 238, 0.16);
+    filter: blur(70px);
   }
 
   .bot-card {
-    max-width: 620px;
-    padding: 20px;
-    border: 1px solid var(--z-border);
-    background: var(--z-surface);
+    position: absolute;
+    width: min(430px, 100%);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    background: linear-gradient(180deg, rgba(16, 20, 26, 0.96), rgba(12, 16, 21, 0.96));
+    padding: 18px;
+    backdrop-filter: blur(18px);
+    animation: card-float 6s ease-in-out infinite;
   }
 
-  .bot-card header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 24px;
-    padding-bottom: 18px;
-    border-bottom: 1px solid var(--z-border);
+  .card-0 { right: 20px; top: 32px; z-index: 3; }
+  .card-1 { left: 12px; top: 168px; z-index: 2; animation-delay: -1.8s; opacity: 0.82; }
+  .card-2 { right: 52px; bottom: 8px; z-index: 1; animation-delay: -3.4s; opacity: 0.68; }
+
+  @keyframes card-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
   }
 
-  .bot-card h3 {
-    margin: 0;
-    color: var(--z-text);
+  .bot-head {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .bot-avatar {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    color: var(--accent);
+    background: var(--accent-soft);
+    font: 800 13px 'IBM Plex Mono', monospace;
+  }
+
+  .bot-head h2 {
     font-size: 18px;
-    font-weight: 700;
+    letter-spacing: -0.03em;
   }
 
-  .bot-card header p {
-    margin: 7px 0 0;
-    color: var(--z-muted);
+  .bot-head p {
+    margin-top: 4px;
+    color: var(--muted);
+    font: 600 12px 'IBM Plex Mono', monospace;
   }
 
-  .status {
-    color: var(--z-accent);
+  .bot-head code {
+    color: var(--accent);
     font-size: 12px;
     font-weight: 700;
   }
 
   .bot-meta {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0;
-    border-bottom: 1px solid var(--z-border);
-  }
-
-  .bot-meta div {
-    padding: 16px 0;
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
   }
 
   .bot-meta span {
-    display: block;
-    margin-bottom: 6px;
-    color: var(--z-muted);
-    font-size: 12px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 7px 9px;
+    color: #c9f8ff;
+    background: rgba(255, 255, 255, 0.025);
+    font: 700 11px 'IBM Plex Mono', monospace;
   }
 
-  .bot-meta code {
-    color: var(--z-text);
-    font-size: 13px;
-  }
-
-  .console {
+  .mini-console {
     margin: 18px 0 0;
-    padding: 0;
-    background: transparent;
-    color: var(--z-muted);
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
-    font-size: 13px;
+    padding: 13px;
+    border: 1px solid rgba(34, 211, 238, 0.12);
+    border-radius: 16px;
+    background: #07090c;
+    color: var(--muted);
+    font-size: 12px;
     line-height: 1.75;
     white-space: pre-wrap;
   }
 
-  footer {
-    padding: 28px 0 40px;
-    border-top: 1px solid var(--z-border);
-    color: var(--z-muted);
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  .features,
+  .flow-band {
+    border-top: 1px solid var(--line);
+    padding: 72px 0;
+  }
+
+  .section-title {
+    display: grid;
+    grid-template-columns: 0.9fr 1.1fr;
+    gap: 28px;
+    align-items: end;
+    margin-bottom: 30px;
+  }
+
+  .section-title h2,
+  .flow-band h2 {
+    font-size: clamp(30px, 4vw, 48px);
+    line-height: 1;
+    letter-spacing: -0.06em;
+  }
+
+  .feature-list {
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.018);
+  }
+
+  .feature-row {
+    display: grid;
+    grid-template-columns: 145px 1fr;
+    gap: 26px;
+    padding: 20px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .feature-row:last-child { border-bottom: 0; }
+
+  .feature-row code {
+    color: var(--accent);
+    font-weight: 800;
     font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
   }
 
-  @media (max-width: 720px) {
-    .nav {
-      align-items: flex-start;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .nav-links {
-      gap: 14px;
-      flex-wrap: wrap;
-    }
-
-    .hero {
-      padding: 64px 0 56px;
-    }
-
-    .engine-row,
-    .row {
-      grid-template-columns: 1fr;
-    }
-
-    .row {
-      gap: 8px;
-    }
+  .feature-row h3 {
+    font-size: 17px;
+    letter-spacing: -0.03em;
   }
 
-  @media (max-width: 430px) {
-    .nav,
+  .feature-row p {
+    margin-top: 7px;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.65;
+  }
+
+  .flow-band {
+    display: grid;
+    grid-template-columns: 0.8fr 1.2fr;
+    gap: 32px;
+    align-items: center;
+  }
+
+  .flow-line {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    overflow: hidden;
+    background: rgba(34, 211, 238, 0.035);
+  }
+
+  .flow-line span {
+    padding: 18px 12px;
+    color: #d7fbff;
+    font-size: 12px;
+    font-weight: 800;
+    text-align: center;
+    border-right: 1px solid var(--line);
+  }
+
+  .flow-line span:last-child { border-right: 0; }
+
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 24px 0 40px;
+    color: var(--muted);
+    font: 600 12px 'IBM Plex Mono', monospace;
+  }
+
+  @media (max-width: 880px) {
+    .top-nav { align-items: flex-start; flex-direction: column; }
+    .nav-links { flex-wrap: wrap; }
     .hero,
-    .section,
-    footer {
-      width: min(900px, calc(100% - 24px));
-    }
+    .section-title,
+    .flow-band { grid-template-columns: 1fr; }
+    .hero-stage { min-height: 560px; }
+    .card-0 { left: 0; right: auto; }
+    .card-1 { left: 24px; }
+    .card-2 { left: 0; right: auto; }
+  }
 
-    h1 {
-      font-size: 48px;
-    }
+  @media (max-width: 560px) {
+    .top-nav,
+    .hero,
+    .features,
+    .flow-band,
+    footer { width: min(100% - 24px, 1120px); }
+    h1 { font-size: 48px; }
+    .hero { padding-top: 62px; }
+    .hero-stage { min-height: 610px; }
+    .bot-card { width: 100%; }
+    .card-0 { top: 0; }
+    .card-1 { left: 0; top: 210px; }
+    .card-2 { left: 0; bottom: 0; }
+    .feature-row { grid-template-columns: 1fr; gap: 8px; }
+    .flow-line { grid-template-columns: 1fr 1fr; }
+    .flow-line span:nth-child(2) { border-right: 0; }
+    .flow-line span:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+  }
 
-    .bot-meta {
-      grid-template-columns: 1fr;
-    }
+  @media (prefers-reduced-motion: reduce) {
+    .bot-card,
+    .nav-links a,
+    .btn { animation: none; transition: none; }
   }
 `;
