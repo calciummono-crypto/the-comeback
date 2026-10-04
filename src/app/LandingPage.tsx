@@ -3,34 +3,46 @@ import { Logo, Wordmark } from "./Logo";
 
 export const features = [
   {
-    title: "Token to IGN",
-    text: "Paste a session token and resolve the Minecraft name before launch.",
+    title: "Resolve account",
+    text: "Paste a session token and Z-BEAM turns it into the Minecraft IGN before launch.",
     tag: "Resolve",
+    icon: "🧭",
+    detail: "token → IGN",
   },
   {
-    title: "Server-aware launch",
-    text: "Choose the target server and Z-BEAM prepares the right session profile silently.",
+    title: "Pick server",
+    text: "Choose Minemen, CatPvP, PvP HQ, or your saved target and continue without extra clutter.",
     tag: "Launch",
+    icon: "🌐",
+    detail: "server profile",
   },
   {
-    title: "Console in the card",
-    text: "Join logs, kicks, reconnects, and inventory syncs stay beside the bot.",
+    title: "Watch live logs",
+    text: "Join attempts, kicks, reconnects, and chat events stay readable beside the bot.",
     tag: "Logs",
+    icon: "📟",
+    detail: "live console",
   },
   {
-    title: "Live controls",
-    text: "Send chat, change hotbar slot, use or drop items, move, and inspect inventory.",
+    title: "Control session",
+    text: "Open the bot to send chat, use hotbar actions, move, inspect inventory, and stop safely.",
     tag: "Control",
+    icon: "🎮",
+    detail: "chat + inventory",
   },
   {
-    title: "Flows",
-    text: "Run opener scripts, wait for replies, send closing scripts, and dedupe contacts.",
+    title: "Run flows",
+    text: "Use opener scripts, wait for replies, send closing messages, and dedupe contacts cleanly.",
     tag: "Flow",
+    icon: "⚡",
+    detail: "scripted steps",
   },
   {
-    title: "License slots",
-    text: "Redeem keys and see used slots, remaining slots, and active time.",
+    title: "Manage access",
+    text: "Redeem keys, see used slots, free slots, and the remaining active time in one place.",
     tag: "Access",
+    icon: "🎟️",
+    detail: "license slots",
   },
 ];
 
@@ -142,15 +154,31 @@ export default function LandingPage() {
           <p className="kicker">what the panel handles</p>
           <h2>Less switching around. More session state on screen.</h2>
         </div>
-        <div className="feature-list">
-          {features.map((feature) => (
-            <div className="feature-row" key={feature.title}>
-              <code>{feature.tag}</code>
-              <div>
-                <h3>{feature.title}</h3>
-                <p>{feature.text}</p>
+        <div className="feature-grid">
+          {features.map((feature, index) => (
+            <article className="feature-card" key={feature.title}>
+              <div className="feature-card-top">
+                <span className="feature-icon" aria-hidden>{feature.icon}</span>
+                <code>{String(index + 1).padStart(2, "0")}</code>
               </div>
-            </div>
+              <span className="feature-tag">{feature.tag}</span>
+              <h3>{feature.title}</h3>
+              <p>{feature.text}</p>
+              <div className="feature-detail">
+                <span>{feature.detail}</span>
+                <b>{index === 0 ? "resolved" : index === 1 ? "ready" : "synced"}</b>
+              </div>
+              {index === 0 && (
+                <div className="resolve-preview" aria-label="Session resolve preview">
+                  <span className="token-chip">eyJ...session</span>
+                  <span className="resolve-arrow">→</span>
+                  <span className="ign-chip">
+                    <img src="https://visage.surgeplay.com/face/48/wisp" alt="" />
+                    vyrex_
+                  </span>
+                </div>
+              )}
+            </article>
           ))}
         </div>
       </section>
@@ -645,41 +673,157 @@ const css = `
     letter-spacing: -0.06em;
   }
 
-  .feature-list {
-    border: 1px solid var(--line);
-    border-radius: 24px;
-    overflow: hidden;
-    background: rgba(255, 255, 255, 0.018);
-  }
-
-  .feature-row {
+  .feature-grid {
     display: grid;
-    grid-template-columns: 145px 1fr;
-    gap: 26px;
-    padding: 20px;
-    border-bottom: 1px solid var(--line);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
   }
 
-  .feature-row:last-child { border-bottom: 0; }
+  .feature-card {
+    position: relative;
+    min-height: 248px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 26px;
+    background:
+      radial-gradient(circle at 16% 0%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 13rem),
+      rgba(255, 255, 255, 0.026);
+    padding: 18px;
+    box-shadow: 0 24px 70px -58px rgba(0,0,0,.95);
+    transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+  }
 
-  .feature-row code {
+  .feature-card:hover {
+    transform: translateY(-4px);
+    border-color: color-mix(in srgb, var(--accent) 34%, transparent);
+    background:
+      radial-gradient(circle at 16% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 13rem),
+      rgba(255, 255, 255, 0.04);
+  }
+
+  .feature-card::after {
+    content: "";
+    position: absolute;
+    inset: auto 18px 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 42%, transparent), transparent);
+    opacity: 0;
+    transition: opacity 180ms ease;
+  }
+
+  .feature-card:hover::after { opacity: 1; }
+
+  .feature-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .feature-icon {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    font-size: 22px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+  }
+
+  .feature-card-top code {
+    color: color-mix(in srgb, var(--accent) 70%, #fff);
+    font: 800 12px 'IBM Plex Mono', monospace;
+    opacity: .76;
+  }
+
+  .feature-tag {
+    display: inline-flex;
+    margin-top: 18px;
+    border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+    border-radius: 999px;
+    padding: 6px 9px;
     color: var(--accent);
-    font-weight: 800;
-    font-size: 12px;
+    background: color-mix(in srgb, var(--accent) 6%, transparent);
+    font: 800 11px 'IBM Plex Mono', monospace;
+    letter-spacing: .08em;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
   }
 
-  .feature-row h3 {
-    font-size: 17px;
-    letter-spacing: -0.03em;
+  .feature-card h3 {
+    margin-top: 14px;
+    color: var(--text);
+    font-size: 20px;
+    line-height: 1.05;
+    letter-spacing: -0.045em;
   }
 
-  .feature-row p {
-    margin-top: 7px;
+  .feature-card p {
+    margin-top: 10px;
     color: var(--muted);
     font-size: 14px;
     line-height: 1.65;
+  }
+
+  .feature-detail {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 16px;
+    border: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
+    border-radius: 16px;
+    background: rgba(0,0,0,.16);
+    padding: 10px 11px;
+    font-size: 12px;
+    color: #adbbc1;
+  }
+
+  .feature-detail b {
+    color: var(--accent);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+  }
+
+  .resolve-preview {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    border: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
+    border-radius: 16px;
+    padding: 8px;
+    background: #06090d;
+    font: 700 11px 'IBM Plex Mono', monospace;
+  }
+
+  .token-chip,
+  .ign-chip {
+    min-width: 0;
+    border-radius: 12px;
+    background: rgba(255,255,255,.045);
+    padding: 8px 9px;
+    color: #aebdc4;
+  }
+
+  .token-chip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .resolve-arrow { color: var(--accent); }
+
+  .ign-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #edf7fb;
+  }
+
+  .ign-chip img {
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    image-rendering: pixelated;
   }
 
   .flow-band {
@@ -722,6 +866,7 @@ const css = `
     .hero,
     .section-title,
     .flow-band { grid-template-columns: 1fr; }
+    .feature-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .hero-stage { min-height: auto; perspective: none; }
     .preview-panel { min-height: auto; transform: none; overflow: hidden; }
     .preview-list { display: grid; height: auto; gap: 12px; }
@@ -743,7 +888,7 @@ const css = `
     .hero { padding-top: 62px; }
     .hero-stage { min-height: auto; }
     .bot-card { width: 100%; }
-    .feature-row { grid-template-columns: 1fr; gap: 8px; }
+    .feature-grid { grid-template-columns: 1fr; }
     .flow-line { grid-template-columns: 1fr 1fr; }
     .flow-line span:nth-child(2) { border-right: 0; }
     .flow-line span:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
