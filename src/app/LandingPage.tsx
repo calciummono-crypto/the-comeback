@@ -1,285 +1,457 @@
-import Link from "next/link";
-import { Logo, Wordmark } from "./Logo";
-
 export const features = [
   {
-    title: "Session token → IGN",
-    text: "Paste the session token; the panel resolves the Minecraft name before anything is started.",
-    tag: "Auth",
+    title: "Session token",
+    text: "Paste a session token and resolve the Minecraft username before launch.",
+    tag: "Resolve",
   },
   {
-    title: "Engine per bot",
-    text: "Pick Mineflayer for 1.8.9, Azalea for modern sidecar runs, or NMP for raw protocol sessions.",
-    tag: "Runtime",
+    title: "Engine selection",
+    text: "Choose Mineflayer, Azalea, or NMP depending on version and server behavior.",
+    tag: "Launch",
   },
   {
-    title: "Console inside the card",
-    text: "Join output, kicks, reconnects, and flow messages stay next to the bot they belong to.",
-    tag: "Logs",
+    title: "Live console",
+    text: "Read join output, kicks, reconnects, and inventory syncs next to the bot.",
+    tag: "Watch",
   },
   {
-    title: "Controls after join",
-    text: "Send chat, change hotbar slot, use or drop items, move, and inspect inventory from the same view.",
+    title: "Bot controls",
+    text: "Send chat, change hotbar slots, use or drop items, and move the bot.",
     tag: "Control",
   },
   {
-    title: "Flows, not magic",
-    text: "A flow sends an opener script, waits for a reply, runs a closing script, and deduplicates contacts across sessions.",
-    tag: "Flows",
-  },
-  {
     title: "License slots",
-    text: "Keys unlock slots; the dashboard shows used slots, remaining slots, and active time.",
+    text: "Redeem keys and see how many bot slots are available for the account.",
     tag: "Access",
   },
+  {
+    title: "Per-session state",
+    text: "Keep server, engine, version, username, and status attached to the running bot.",
+    tag: "State",
+  },
 ];
 
-const facts = [
-  ["Session token", "Resolves the IGN first so the operator knows which account is being launched."],
-  ["Mineflayer", "Use it for classic 1.8.9 sessions where plugin behavior is predictable."],
-  ["Azalea", "Rust sidecar path for modern versions and servers that need a different client stack."],
-  ["NMP", "Raw protocol mode for lower-level sessions and testing server behavior."],
-  ["Live console", "The bot card owns its log output instead of hiding it in a separate terminal."],
-  ["Controls", "Chat, hotbar, use/drop, movement, and inventory actions sit beside the running bot."],
-  ["Flows", "Opener script → wait for reply → closing script; memory prevents re-contacting the same player."],
-  ["License slots", "Redeemed keys gate access and show how many bot slots are still available."],
-];
-
-const consoleLines = [
-  "12:55:06 · profile resolved: vanta_qp",
-  "12:55:07 · mineflayer selected: 1.8.9",
-  "12:55:09 · connecting to eu.minemen.club",
-  "12:55:10 · joined lobby · hotbar synced",
-];
+const typewriterScript = `
+(() => {
+  const el = document.getElementById("typewriter-log");
+  if (!el) return;
+  const lines = [
+    "$ resolving session → vyrex_",
+    "$ connecting to eu.minemen.club:25565",
+    "$ engine: Mineflayer 1.8.9",
+    "✓ bot online",
+  ];
+  let line = 0;
+  let char = 0;
+  const tick = () => {
+    const current = lines.slice(0, line).join("\n");
+    const next = lines[line] ? lines[line].slice(0, char) : "";
+    el.textContent = current + (current && next ? "\n" : "") + next;
+    if (line >= lines.length) return;
+    if (char < lines[line].length) {
+      char += 1;
+      window.setTimeout(tick, 30);
+      return;
+    }
+    line += 1;
+    char = 0;
+    if (line < lines.length) window.setTimeout(tick, 400);
+  };
+  tick();
+})();
+`;
 
 export default function LandingPage() {
   return (
-    <main className="zbeam-page">
+    <main className="zbeam-home">
       <style>{landingCss}</style>
 
-      <nav className="topbar" aria-label="Primary navigation">
-        <Link href="/" className="brand" aria-label="Z-BEAM home">
-          <span className="brand-icon"><Logo size={28} /></span>
-          <span>
-            <Wordmark height={24} />
-            <span className="brand-subtitle">minecraft bot control</span>
-          </span>
-        </Link>
+      <nav className="nav" aria-label="Primary navigation">
+        <a className="brand" href="/">Z-BEAM</a>
         <div className="nav-links">
-          <a href="#facts">Facts</a>
-          <a href="#session">Session</a>
-          <a href="#flows">Flows</a>
-          <Link href="/dashboard" className="nav-primary">Dashboard</Link>
+          <a href="#features">Features</a>
+          <a href="/dashboard">Dashboard</a>
+          <a href="/license">License</a>
         </div>
       </nav>
 
       <section className="hero">
-        <div className="hero-copy">
-          <p className="eyebrow">Mineflayer · Azalea · NMP</p>
-          <h1>Paste a session. Pick an engine. Watch it join.</h1>
-          <p className="lede">
-            Z-BEAM is a browser panel for running Minecraft bot sessions. Resolve the IGN, choose the server and engine, then keep logs and controls in the same place.
-          </p>
-          <div className="hero-actions">
-            <Link href="/dashboard" className="button primary">Open dashboard</Link>
-            <a href="#facts" className="button secondary">Read the facts</a>
+        <h1>Paste a session. Pick an engine. Watch it join.</h1>
+        <p className="hero-sub">
+          Z-BEAM runs Mineflayer, Azalea, and NMP sessions from one panel. No terminal switching.
+        </p>
+        <a className="cta" href="/dashboard">Open dashboard</a>
+        <pre id="typewriter-log" className="typewriter" aria-label="Console log preview" />
+      </section>
+
+      <section id="features" className="section engines" aria-labelledby="engines-title">
+        <h2 id="engines-title">Engines</h2>
+        <div className="engine-row">
+          <div>
+            <h3>Mineflayer</h3>
+            <p>Node client for classic control, commonly used with 1.8.9 servers and familiar plugin behavior.</p>
           </div>
-          <div className="terminal-line" aria-label="Example terminal log line">
-            <span>12:55:10 · joined lobby · hotbar synced</span>
+          <div>
+            <h3>Azalea</h3>
+            <p>Rust sidecar for modern sessions where a different client stack is useful.</p>
+          </div>
+          <div>
+            <h3>NMP</h3>
+            <p>Raw protocol path for lower-level sessions and server behavior testing.</p>
           </div>
         </div>
+      </section>
 
-        <aside id="session" className="session-card" aria-label="Example bot session card">
-          <div className="session-head">
-            <div className="avatar" aria-hidden>VQ</div>
+      <section className="section" aria-labelledby="how-title">
+        <h2 id="how-title">How it works</h2>
+        <div className="info-table">
+          <div className="row">
+            <code>Resolve</code>
+            <p>Paste the session token; the panel resolves the IGN before starting the bot.</p>
+          </div>
+          <div className="row">
+            <code>Launch</code>
+            <p>Pick the server and choose Mineflayer, Azalea, or NMP for the session.</p>
+          </div>
+          <div className="row">
+            <code>Watch</code>
+            <p>Join output, kicks, reconnects, and inventory syncs appear in the bot card.</p>
+          </div>
+          <div className="row">
+            <code>Control</code>
+            <p>Send chat, swap hotbar slots, use or drop items, and move the bot live.</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="section" aria-labelledby="bot-title">
+        <h2 id="bot-title">Bot card example</h2>
+        <article className="bot-card">
+          <header>
             <div>
-              <h2>vanta_qp</h2>
-              <p>eu.minemen.club · Mineflayer 1.8.9</p>
+              <h3>vyrex_</h3>
+              <p><code>eu.minemen.club</code></p>
             </div>
-            <span className="status">connected</span>
+            <code className="status">online</code>
+          </header>
+          <div className="bot-meta">
+            <div><span>engine</span><code>Mineflayer</code></div>
+            <div><span>version</span><code>1.8.9</code></div>
           </div>
-
-          <div className="data-row">
-            <span>engine</span>
-            <code>mineflayer/1.8.9</code>
-          </div>
-          <div className="data-row">
-            <span>server</span>
-            <code>eu.minemen.club:25565</code>
-          </div>
-          <div className="data-row">
-            <span>license</span>
-            <code>connect a session to see slot usage</code>
-          </div>
-
-          <div className="console" aria-label="Example console output">
-            {consoleLines.map((line) => (
-              <p key={line}>{line}</p>
-            ))}
-          </div>
-
-          <div className="control-strip" aria-label="Available controls">
-            {['chat', 'slot', 'use', 'drop', 'move', 'inventory'].map((item) => <span key={item}>{item}</span>)}
-          </div>
-        </aside>
-      </section>
-
-      <section id="facts" className="facts-section">
-        <div className="section-head">
-          <p className="eyebrow">What it actually does</p>
-          <h2>No fake stats. No mystery features.</h2>
-          <p>Live numbers only belong inside a connected dashboard. This page explains the controls and data the panel exposes.</p>
-        </div>
-        <div className="fact-table">
-          {facts.map(([thing, meaning]) => (
-            <div className="fact-row" key={thing}>
-              <code>{thing}</code>
-              <p>{meaning}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section id="flows" className="flow-section">
-        <div>
-          <p className="eyebrow">Flows</p>
-          <h2>Opener, reply wait, closing script, memory.</h2>
-        </div>
-        <div className="flow-panel">
-          <p><code>opener</code> Bot sends the configured first lines.</p>
-          <p><code>wait</code> Incoming chat is watched for a reply from the target.</p>
-          <p><code>closing</code> Positive reply triggers the configured closing script.</p>
-          <p><code>memory</code> Contact history prevents repeating the same pitch across sessions.</p>
-        </div>
-      </section>
-
-      <section className="empty-state">
-        <div>
-          <p className="eyebrow">Live stats</p>
-          <h2>Connect a session to see live stats.</h2>
-        </div>
-        <p>Latency, online count, queue state, and slot usage should come from the running dashboard — not from hardcoded homepage numbers.</p>
-      </section>
-
-      <section className="cta">
-        <h2>Use the panel when you need the bot state, not a pitch deck.</h2>
-        <Link href="/dashboard" className="button primary">Go to dashboard</Link>
+          <pre className="console">[12:44:01] resolving profile: vyrex_
+[12:44:02] connecting eu.minemen.club:25565
+[12:44:03] join success · version 1.8.9
+[12:44:03] inventory synced · hotbar slot 1 active</pre>
+        </article>
       </section>
 
       <footer>Z-BEAM · Minecraft bot control · © 2026</footer>
+
+      <script dangerouslySetInnerHTML={{ __html: typewriterScript }} />
     </main>
   );
 }
 
 const landingCss = `
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Serif:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,600;6..72,700&display=swap');
 
-  .zbeam-page {
-    min-height: 100vh;
-    background: #0d0d0f;
-    color: #e8e8e8;
-    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-    letter-spacing: -0.015em;
+  :root {
+    --z-bg: #0D0D0F;
+    --z-surface: #131316;
+    --z-border: #222228;
+    --z-text: #E8E8E8;
+    --z-muted: #6B6B75;
+    --z-accent: #22D3EE;
+    --z-accent-dim: #0E4F5C;
   }
 
-  .zbeam-page * { box-sizing: border-box; }
+  .zbeam-home {
+    min-height: 100vh;
+    background: var(--z-bg);
+    color: var(--z-text);
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  }
 
-  .topbar {
-    position: sticky;
-    top: 0;
-    z-index: 20;
+  .zbeam-home * {
+    box-sizing: border-box;
+  }
+
+  .nav,
+  .hero,
+  .section,
+  footer {
+    width: min(900px, calc(100% - 32px));
+    margin-inline: auto;
+  }
+
+  .nav {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 24px;
-    width: min(1180px, calc(100% - 32px));
-    margin: 0 auto;
+    padding: 24px 0;
+    border-top: 0;
+  }
+
+  .brand {
+    color: var(--z-text);
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-decoration: none;
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .nav-links a {
+    color: var(--z-muted);
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .nav-links a:hover {
+    color: var(--z-text);
+  }
+
+  .hero {
+    padding: 96px 0 72px;
+  }
+
+  h1 {
+    max-width: 780px;
+    margin: 0;
+    color: var(--z-text);
+    font-family: Newsreader, Georgia, serif;
+    font-size: clamp(52px, 8vw, 92px);
+    font-weight: 700;
+    letter-spacing: -0.065em;
+    line-height: 0.92;
+  }
+
+  .hero-sub {
+    max-width: 620px;
+    margin: 24px 0 0;
+    color: var(--z-muted);
+    font-size: 17px;
+    line-height: 1.7;
+  }
+
+  .cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 28px;
+    min-height: 44px;
+    padding: 0 18px;
+    border: 2px solid var(--z-border);
+    border-radius: 2px;
+    background: transparent;
+    color: var(--z-text);
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: border-color 150ms ease;
+  }
+
+  .cta:hover {
+    border-color: var(--z-accent);
+  }
+
+  .typewriter {
+    min-height: 96px;
+    margin: 34px 0 0;
+    padding: 0;
+    background: var(--z-bg);
+    color: var(--z-accent);
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 14px;
+    line-height: 1.7;
+    text-align: left;
+    white-space: pre-wrap;
+  }
+
+  .section {
+    padding: 56px 0;
+    border-top: 1px solid var(--z-border);
+  }
+
+  h2 {
+    margin: 0 0 28px;
+    color: var(--z-text);
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+  }
+
+  .engine-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+  }
+
+  .engine-row h3,
+  .bot-card h3,
+  .status,
+  code {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  }
+
+  .engine-row h3 {
+    margin: 0 0 10px;
+    color: var(--z-text);
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .engine-row p,
+  .row p {
+    margin: 0;
+    color: var(--z-muted);
+    font-size: 14px;
+    line-height: 1.65;
+  }
+
+  .info-table {
+    border-top: 1px solid var(--z-border);
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 24px;
     padding: 18px 0;
-    background: linear-gradient(180deg, rgba(13,13,15,.98), rgba(13,13,15,.78));
-    backdrop-filter: blur(18px);
-    border-bottom: 1px solid rgba(232,232,232,.08);
+    border-bottom: 1px solid var(--z-border);
   }
 
-  .brand { display: flex; align-items: center; gap: 12px; color: inherit; text-decoration: none; }
-  .brand-icon { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid rgba(232,232,232,.1); border-radius: 12px; background: rgba(255,255,255,.03); }
-  .brand-subtitle { display: block; margin-top: 3px; color: #8b8b92; font: 500 11px/1.1 'IBM Plex Mono', monospace; letter-spacing: .02em; }
-
-  .nav-links { display: flex; align-items: center; gap: 6px; padding: 4px; border: 1px solid rgba(232,232,232,.08); border-radius: 999px; background: rgba(255,255,255,.025); }
-  .nav-links a { color: #a9a9b2; text-decoration: none; font-size: 13px; font-weight: 600; padding: 9px 13px; border-radius: 999px; }
-  .nav-links a:hover { color: #e8e8e8; background: rgba(255,255,255,.06); }
-  .nav-links .nav-primary { color: #07111f; background: #3b82f6; }
-  .nav-links .nav-primary:hover { color: #07111f; background: #60a5fa; }
-
-  .hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 520px); gap: 42px; width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 92px 0 56px; align-items: start; }
-  .eyebrow { margin: 0 0 14px; color: #3b82f6; font: 700 12px/1.2 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: .12em; }
-  h1, h2 { margin: 0; color: #f4f4f5; }
-  h1 { max-width: 760px; font: 700 clamp(48px, 7vw, 86px)/.92 'IBM Plex Serif', Georgia, serif; letter-spacing: -0.06em; }
-  .lede { max-width: 660px; margin: 24px 0 0; color: #b6b6bf; font-size: 17px; line-height: 1.75; }
-  .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
-  .button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 18px; border-radius: 10px; font-size: 14px; font-weight: 800; text-decoration: none; }
-  .button.primary { color: #07111f; background: #3b82f6; }
-  .button.primary:hover { background: #60a5fa; }
-  .button.secondary { color: #e8e8e8; border: 1px solid rgba(232,232,232,.12); background: rgba(255,255,255,.035); }
-  .button.secondary:hover { border-color: rgba(59,130,246,.5); }
-
-  .terminal-line { width: min(100%, 545px); margin-top: 34px; padding: 14px 16px; border: 1px solid rgba(59,130,246,.28); border-radius: 12px; background: #09090b; color: #bfdbfe; font: 600 13px/1.4 'IBM Plex Mono', monospace; overflow: hidden; }
-  .terminal-line span { display: block; width: 0; white-space: nowrap; overflow: hidden; animation: terminal-type 2.2s steps(43, end) .35s forwards; }
-  @keyframes terminal-type { to { width: 43ch; } }
-
-  .session-card { border: 1px solid rgba(232,232,232,.1); border-radius: 18px; background: #111114; box-shadow: 0 28px 80px rgba(0,0,0,.35); overflow: hidden; }
-  .session-head { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; padding: 18px; border-bottom: 1px solid rgba(232,232,232,.08); }
-  .avatar { display: grid; place-items: center; width: 48px; height: 48px; border: 1px solid rgba(59,130,246,.35); border-radius: 12px; background: rgba(59,130,246,.12); color: #bfdbfe; font: 800 14px 'IBM Plex Mono', monospace; }
-  .session-head h2 { font: 800 20px/1.1 Inter, sans-serif; }
-  .session-head p { margin: 5px 0 0; color: #8b8b92; font: 500 12px 'IBM Plex Mono', monospace; }
-  .status { color: #bfdbfe; border: 1px solid rgba(59,130,246,.28); border-radius: 999px; padding: 6px 9px; font: 700 11px 'IBM Plex Mono', monospace; }
-  .data-row { display: grid; grid-template-columns: 110px 1fr; gap: 12px; padding: 12px 18px; border-bottom: 1px solid rgba(232,232,232,.06); }
-  .data-row span { color: #777780; font-size: 12px; }
-  code { font-family: 'IBM Plex Mono', monospace; }
-  .data-row code { color: #d7d7dd; font-size: 12px; word-break: break-word; }
-  .console { margin: 18px; padding: 14px; border: 1px solid rgba(232,232,232,.08); border-radius: 12px; background: #09090b; }
-  .console p { margin: 0; color: #a9a9b2; font: 500 12px/1.8 'IBM Plex Mono', monospace; }
-  .console p:last-child { color: #bfdbfe; }
-  .control-strip { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 18px 18px; }
-  .control-strip span { border: 1px solid rgba(232,232,232,.08); border-radius: 8px; padding: 7px 9px; color: #b6b6bf; font: 700 11px 'IBM Plex Mono', monospace; background: rgba(255,255,255,.025); }
-
-  .facts-section, .flow-section, .empty-state, .cta { width: min(1180px, calc(100% - 32px)); margin: 0 auto; }
-  .facts-section { padding: 58px 0; border-top: 1px solid rgba(232,232,232,.08); }
-  .section-head { display: grid; grid-template-columns: .8fr 1fr; gap: 32px; align-items: end; margin-bottom: 24px; }
-  .section-head h2, .flow-section h2, .empty-state h2, .cta h2 { font: 800 clamp(28px, 4vw, 44px)/1 Inter, sans-serif; letter-spacing: -0.045em; }
-  .section-head p:last-child { margin: 0; color: #a9a9b2; line-height: 1.7; }
-  .fact-table { border: 1px solid rgba(232,232,232,.1); border-radius: 14px; overflow: hidden; background: #101013; }
-  .fact-row { display: grid; grid-template-columns: 220px 1fr; gap: 24px; padding: 16px 18px; border-bottom: 1px solid rgba(232,232,232,.07); }
-  .fact-row:last-child { border-bottom: 0; }
-  .fact-row code { color: #bfdbfe; font-weight: 700; }
-  .fact-row p { margin: 0; color: #b6b6bf; line-height: 1.6; }
-
-  .flow-section { display: grid; grid-template-columns: .75fr 1fr; gap: 28px; padding: 42px 0 58px; border-top: 1px solid rgba(232,232,232,.08); }
-  .flow-panel { border-left: 2px solid #3b82f6; padding-left: 18px; }
-  .flow-panel p { margin: 0 0 14px; color: #b6b6bf; line-height: 1.65; }
-  .flow-panel code { display: inline-block; min-width: 78px; color: #bfdbfe; font-weight: 700; }
-
-  .empty-state { display: grid; grid-template-columns: .8fr 1fr; gap: 28px; padding: 28px; border: 1px dashed rgba(59,130,246,.35); border-radius: 16px; background: rgba(59,130,246,.045); }
-  .empty-state p:last-child { margin: 0; color: #a9a9b2; line-height: 1.7; }
-
-  .cta { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 58px 0; border-bottom: 1px solid rgba(232,232,232,.08); }
-  .cta h2 { max-width: 760px; }
-  footer { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 22px 0 36px; color: #777780; font: 600 12px 'IBM Plex Mono', monospace; }
-
-  @media (max-width: 860px) {
-    .topbar { align-items: flex-start; }
-    .nav-links { display: none; }
-    .hero, .section-head, .flow-section, .empty-state { grid-template-columns: 1fr; }
-    .hero { padding-top: 58px; }
-    .session-card { min-width: 0; }
-    .fact-row { grid-template-columns: 1fr; gap: 8px; }
-    .cta { align-items: flex-start; flex-direction: column; }
+  .row code {
+    color: var(--z-accent);
+    font-size: 14px;
+    font-weight: 700;
   }
 
-  @media (max-width: 460px) {
-    .hero { width: min(100% - 24px, 1180px); }
-    h1 { font-size: 44px; }
-    .data-row { grid-template-columns: 1fr; gap: 6px; }
-    .terminal-line { font-size: 11px; }
-    .terminal-line span { animation: none; width: auto; white-space: normal; }
+  .bot-card {
+    max-width: 620px;
+    padding: 20px;
+    border: 1px solid var(--z-border);
+    background: var(--z-surface);
+  }
+
+  .bot-card header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--z-border);
+  }
+
+  .bot-card h3 {
+    margin: 0;
+    color: var(--z-text);
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .bot-card header p {
+    margin: 7px 0 0;
+    color: var(--z-muted);
+  }
+
+  .status {
+    color: var(--z-accent);
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .bot-meta {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+    border-bottom: 1px solid var(--z-border);
+  }
+
+  .bot-meta div {
+    padding: 16px 0;
+  }
+
+  .bot-meta span {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--z-muted);
+    font-size: 12px;
+  }
+
+  .bot-meta code {
+    color: var(--z-text);
+    font-size: 13px;
+  }
+
+  .console {
+    margin: 18px 0 0;
+    padding: 0;
+    background: transparent;
+    color: var(--z-muted);
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 13px;
+    line-height: 1.75;
+    white-space: pre-wrap;
+  }
+
+  footer {
+    padding: 28px 0 40px;
+    border-top: 1px solid var(--z-border);
+    color: var(--z-muted);
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 12px;
+  }
+
+  @media (max-width: 720px) {
+    .nav {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .nav-links {
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .hero {
+      padding: 64px 0 56px;
+    }
+
+    .engine-row,
+    .row {
+      grid-template-columns: 1fr;
+    }
+
+    .row {
+      gap: 8px;
+    }
+  }
+
+  @media (max-width: 430px) {
+    .nav,
+    .hero,
+    .section,
+    footer {
+      width: min(900px, calc(100% - 24px));
+    }
+
+    h1 {
+      font-size: 48px;
+    }
+
+    .bot-meta {
+      grid-template-columns: 1fr;
+    }
   }
 `;
