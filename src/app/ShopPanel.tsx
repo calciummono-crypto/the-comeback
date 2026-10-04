@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { LockIcon, TicketStarIcon } from "./Icons";
 import { toast } from "./toast";
 import { SkeletonBotCard } from "./Skeleton";
+import DiscordSupportBanner from "./DiscordSupportBanner";
 
 type Plan = {
   id: string;
@@ -388,6 +389,8 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
         <div className="absolute left-1/2 top-[-80px] h-[360px] w-[360px] -translate-x-1/2 rounded-full bg-indigo-600/15 blur-[90px]" />
         <div className="absolute right-[5%] top-[180px] h-[260px] w-[260px] rounded-full bg-emerald-400/10 blur-[90px]" />
       </div>
+
+      <DiscordSupportBanner className="mb-6" />
 
       <section className="overflow-hidden rounded-[2rem] border border-white/[0.08] bg-[linear-gradient(135deg,rgba(15,23,42,.72),rgba(2,6,23,.84))] p-5 shadow-[0_28px_100px_-70px_rgba(0,0,0,.95)] backdrop-blur-2xl sm:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">

@@ -1,5 +1,7 @@
 "use client";
 
+import DiscordSupportBanner from "./DiscordSupportBanner";
+
 export default function HowItWorksPanel() {
   const steps = [
     {
@@ -34,6 +36,8 @@ export default function HowItWorksPanel() {
           A simple flow for creating, launching, and controlling Minecraft bot sessions without crowding the Bots page.
         </p>
       </section>
+
+      <DiscordSupportBanner />
 
       <section className="grid gap-4 md:grid-cols-2">
         {steps.map((step, index) => (

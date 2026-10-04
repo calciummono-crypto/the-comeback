@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Logo, Wordmark } from "./Logo";
 
 export const features = [
@@ -61,11 +64,20 @@ const logs = [
 ];
 
 export default function LandingPage() {
+  const [navCompact, setNavCompact] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setNavCompact(window.scrollY > 90);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
     <main className="home-shell">
       <style>{css}</style>
 
-      <nav className="top-nav">
+      <nav className={`top-nav ${navCompact ? "compact" : ""}`}>
         <Link href="/" className="brand">
           <span className="brand-mark"><Logo size={28} /></span>
           <span>
@@ -310,6 +322,28 @@ const css = `
     background: rgba(8, 10, 13, 0.78);
     box-shadow: 0 18px 60px -42px rgba(0,0,0,.95);
     backdrop-filter: blur(20px);
+    transition: transform 260ms ease, opacity 260ms ease, padding 260ms ease, border-color 260ms ease, background 260ms ease, box-shadow 260ms ease;
+    will-change: transform, opacity;
+  }
+
+  .top-nav.compact {
+    transform: translateX(-50%) translateY(-72%) scale(.965);
+    opacity: .42;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    border-color: color-mix(in srgb, var(--accent) 18%, transparent);
+    background: rgba(8, 10, 13, 0.54);
+    box-shadow: 0 10px 40px -34px rgba(0,0,0,.9);
+  }
+
+  .top-nav.compact:hover,
+  .top-nav.compact:focus-within {
+    transform: translateX(-50%) translateY(0) scale(1);
+    opacity: 1;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    border-color: var(--line);
+    background: rgba(8, 10, 13, 0.82);
   }
 
   .brand {
@@ -1045,6 +1079,8 @@ const css = `
 
   @media (max-width: 880px) {
     .top-nav { align-items: flex-start; flex-direction: column; }
+    .top-nav.compact { transform: translateX(-50%) translateY(-64%) scale(.965); }
+    .top-nav.compact:hover, .top-nav.compact:focus-within { transform: translateX(-50%) translateY(0) scale(1); }
     .nav-links { flex-wrap: wrap; }
     .hero,
     .section-title,

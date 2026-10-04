@@ -103,10 +103,8 @@ export default function LicensePanel() {
 
   const hasLicense = status.totalSlots > 0;
   const slotDenom = Math.max(status.totalSlots, 1);
-  const usedPctExact = Math.min(100, (status.usedSlots / slotDenom) * 100);
-  const usedPct = Math.min(100, Math.round(usedPctExact));
-  const usedPctLabel = status.usedSlots > 0 && usedPctExact < 1 ? "<1" : String(usedPct);
-  const usedBarWidth = status.usedSlots > 0 ? Math.max(3, usedPctExact) : 0;
+  const usedPct = Math.min(100, Math.round((status.usedSlots / slotDenom) * 100));
+  const usedBarWidth = usedPct;
   const slotCells = Array.from({ length: Math.min(slotDenom, 12) }, (_, i) => i < status.usedSlots);
 
   return (
@@ -208,7 +206,7 @@ export default function LicensePanel() {
             </div>
             <div className="mt-4 flex items-end justify-between gap-4">
               <div>
-                <div className="text-3xl font-black tracking-[-0.06em] text-white">{usedPctLabel}%</div>
+                <div className="text-3xl font-black tracking-[-0.06em] text-white">{usedPct}%</div>
                 <div className="mt-1 text-xs text-slate-500">capacity in use</div>
               </div>
               <div className="flex-1">
