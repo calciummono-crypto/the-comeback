@@ -413,10 +413,6 @@ function LoginScreen({
 }) {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
-  const [mode, setMode] = useState<"login" | "register">("login");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
 
   async function devLogin() {
     setBusy(true);
@@ -432,149 +428,78 @@ function LoginScreen({
     }
   }
 
-  async function passwordAuth() {
-    setError(null);
-    if (!username.trim() || !password) {
-      setError("Username and password required");
-      return;
-    }
-    setBusy(true);
-    try {
-      const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: username.trim(), password }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Failed");
-        return;
-      }
-      onDevLogin();
-    } catch {
-      setError("Network error");
-    } finally {
-      setBusy(false);
-    }
-  }
-
   return (
     <div className="relative grid min-h-screen place-items-center overflow-hidden px-4">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute left-1/2 top-0 h-96 w-96 -translate-x-1/2 rounded-full bg-emerald-600/20 blur-[130px]" />
         <div className="absolute bottom-0 right-1/4 h-80 w-80 rounded-full bg-indigo-600/20 blur-[130px]" />
-        <div className="absolute left-1/4 top-1/3 h-72 w-72 rounded-full bg-fuchsia-600/10 blur-[130px]" />
       </div>
 
-      <div className="relative w-full max-w-md animate-pop-in rounded-3xl border border-slate-800/80 bg-slate-900/60 p-8 shadow-2xl backdrop-blur-xl">
+      <div className="relative w-full max-w-[460px] animate-pop-in overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950/58 p-6 shadow-[0_30px_110px_-60px_rgba(0,0,0,.95)] backdrop-blur-2xl sm:p-8">
+        <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-emerald-200/50 to-transparent" />
         <div className="flex flex-col items-center text-center">
-          <Logo
-            size={72}
-            className="drop-shadow-[0_8px_30px_color-mix(in_srgb,var(--color-emerald-500)_45%,transparent)]"
-          />
+          <div className="grid h-20 w-20 place-items-center rounded-[1.6rem] border border-white/10 bg-white/[0.045] shadow-[0_20px_70px_-40px_color-mix(in_srgb,var(--color-emerald-500)_70%,transparent)]">
+            <Logo size={58} />
+          </div>
           <h1 className="mt-5 text-2xl font-bold tracking-tight">
             <Wordmark height={34} className="mx-auto" />
           </h1>
-          <p className="mt-2 text-sm leading-relaxed text-slate-400">
-            Spin up Minecraft bots, watch their console live, and run the beam —
-            all from the Z-BEAM dashboard.
+          <p className="mt-3 max-w-sm text-sm leading-7 text-slate-400">
+            Sign in to open the dashboard. Session tokens, bot controls and license slots stay behind auth.
           </p>
         </div>
 
-        <div className="mt-7 space-y-4">
-          <div className="rounded-2xl border border-slate-700 bg-slate-900/60 p-4">
-            <div className="flex gap-1 rounded-xl bg-slate-950 p-1">
-              <button
-                onClick={() => setMode("login")}
-                className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition ${mode === "login" ? "bg-slate-800 text-white" : "text-slate-400 hover:text-slate-200"}`}
-              >
-                Login
-              </button>
-              <button
-                onClick={() => setMode("register")}
-                className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition ${mode === "register" ? "bg-slate-800 text-white" : "text-slate-400 hover:text-slate-200"}`}
-              >
-                Register
-              </button>
-            </div>
-
-            <div className="mt-4 space-y-3">
-              <input
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Username"
-                className="w-full rounded-xl border border-slate-700 bg-slate-950/60 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 outline-none transition focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/20"
-              />
-              <input
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && passwordAuth()}
-                placeholder="Password"
-                type="password"
-                className="w-full rounded-xl border border-slate-700 bg-slate-950/60 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 outline-none transition focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/20"
-              />
-              {error && (
-                <div className="rounded-xl bg-rose-500/10 px-3 py-2 text-xs text-rose-300 ring-1 ring-rose-500/20">
-                  {error}
-                </div>
-              )}
-              <button
-                onClick={passwordAuth}
-                disabled={busy}
-                className="btn-primary w-full rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-400 disabled:opacity-50"
-              >
-                {busy ? "Please wait…" : mode === "login" ? "Login with Username" : "Create Account"}
-              </button>
-              <p className="text-center text-[11px] text-slate-500">
-                {mode === "login" ? "New here? Switch to Register" : "Already have account? Switch to Login"} · First account becomes admin
-              </p>
-            </div>
-          </div>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-800" />
-            </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="bg-slate-900/60 px-2 text-slate-500">or</span>
-            </div>
-          </div>
-
-          {discordConfigured ? (
-            <a
-              href="/api/auth/discord/login"
-              className="group flex w-full items-center justify-center gap-2.5 rounded-xl bg-[#5865F2] px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-indigo-900/40 transition hover:bg-[#4752c4] active:scale-[.98]"
-            >
-              <DiscordIcon />
-              Continue with Discord
-            </a>
-          ) : (
-            <div className="space-y-3">
-              <div className="rounded-xl bg-amber-500/10 px-4 py-3 text-xs leading-relaxed text-amber-300 ring-1 ring-amber-500/20">
-                Discord OAuth isn&apos;t configured. Use a quick guest login for now:
+        <div className="mt-7 space-y-3">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#5865F2] text-white">
+                <DiscordIcon />
               </div>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && devLogin()}
-                placeholder="Pick a username"
-                className="w-full rounded-xl border border-slate-700 bg-slate-950/60 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 outline-none transition focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/20"
-              />
-              <button
-                onClick={devLogin}
-                disabled={busy}
-                className="w-full rounded-xl bg-slate-800 px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-slate-700 disabled:opacity-50"
-              >
-                {busy ? "Signing in…" : "Continue as guest"}
-              </button>
+              <div>
+                <p className="text-sm font-bold text-white">Discord login</p>
+                <p className="text-xs text-slate-500">Recommended for Z-BEAM access</p>
+              </div>
             </div>
-          )}
-        </div>
+            {discordConfigured ? (
+              <a
+                href="/api/auth/discord/login"
+                className="zb-soft-button group flex w-full items-center justify-center gap-2.5 rounded-2xl bg-[#5865F2] px-4 py-3.5 text-sm font-bold text-white shadow-[0_18px_60px_-32px_rgba(88,101,242,.9)] transition hover:bg-[#6773f6] active:scale-[.985]"
+              >
+                <DiscordIcon />
+                Continue with Discord
+              </a>
+            ) : (
+              <div className="space-y-3">
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs leading-relaxed text-amber-200">
+                  Discord OAuth is not configured in this environment. Guest login is available for local testing only.
+                </div>
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && devLogin()}
+                  placeholder="Guest username"
+                  className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 outline-none transition focus:border-emerald-400/50 focus:ring-2 focus:ring-emerald-400/15"
+                />
+                <button
+                  onClick={devLogin}
+                  disabled={busy}
+                  className="zb-soft-button w-full rounded-2xl border border-white/10 bg-white px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-emerald-100 disabled:opacity-50"
+                >
+                  {busy ? "Signing in…" : "Continue as guest"}
+                </button>
+              </div>
+            )}
+          </div>
 
-        <p className="mt-6 text-center text-[11px] text-slate-600">
-          Secure session · local auth for now, will be removed later
-        </p>
+          <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-emerald-200">after login</p>
+            <div className="mt-3 grid gap-2 text-xs text-slate-400 sm:grid-cols-3">
+              <span className="rounded-xl bg-white/[0.035] px-3 py-2">resolve token</span>
+              <span className="rounded-xl bg-white/[0.035] px-3 py-2">pick engine</span>
+              <span className="rounded-xl bg-white/[0.035] px-3 py-2">control bot</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
