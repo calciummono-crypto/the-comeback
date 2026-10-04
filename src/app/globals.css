@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Audiowide&family=Space+Grotesk:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 /* ---------------------------------------------------------------------------
@@ -52,8 +53,9 @@
   --panel: rgba(17, 24, 39, 0.6);
   --border: rgba(148, 163, 184, 0.12);
   --accent: #6366f1;
-  --font-body: "Inter", "SF Pro Text", "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-display: "Satoshi", "Inter", "SF Pro Display", "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-body: "Space Grotesk", "Inter", "SF Pro Text", "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Space Grotesk", "Inter", "SF Pro Display", "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-brand: "Audiowide", "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
 
   --zb-accent-200: var(--color-emerald-200);
   --zb-accent-300: var(--color-emerald-300);

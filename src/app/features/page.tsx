@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 const flow = [
   "Paste session token",
   "Resolve Minecraft IGN",
-  "Choose server + engine",
+  "Choose server profile",
   "Start and watch logs",
   "Control chat / inventory",
 ];

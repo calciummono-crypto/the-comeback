@@ -672,7 +672,7 @@ function LoginScreen({
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-emerald-200">after login</p>
             <div className="mt-3 grid gap-2 text-xs text-slate-400 sm:grid-cols-3">
               <span className="rounded-xl bg-white/[0.035] px-3 py-2">resolve token</span>
-              <span className="rounded-xl bg-white/[0.035] px-3 py-2">pick engine</span>
+              <span className="rounded-xl bg-white/[0.035] px-3 py-2">pick server</span>
               <span className="rounded-xl bg-white/[0.035] px-3 py-2">control bot</span>
             </div>
           </div>

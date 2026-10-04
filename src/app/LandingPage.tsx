@@ -8,9 +8,9 @@ export const features = [
     tag: "Resolve",
   },
   {
-    title: "Engine per server",
-    text: "Mineflayer for 1.8.9, Azalea for modern sidecar runs, NMP for raw protocol sessions.",
-    tag: "Engines",
+    title: "Server-aware launch",
+    text: "Choose the target server and Z-BEAM prepares the right session profile silently.",
+    tag: "Launch",
   },
   {
     title: "Console in the card",
@@ -35,9 +35,9 @@ export const features = [
 ];
 
 const bots = [
-  { name: "vyrex_", skin: "wisp", server: "eu.minemen.club", engine: "Mineflayer", version: "1.8.9", state: "online" },
-  { name: "aero_clip", skin: "xNestorio", server: "mc.hypixel.net", engine: "Azalea", version: "1.20.4", state: "joining" },
-  { name: "noxline", skin: "Stimpy", server: "catpvp.net", engine: "NMP", version: "raw", state: "idle" },
+  { name: "vyrex_", skin: "wisp", server: "eu.minemen.club", region: "EU", mode: "1v1", state: "online" },
+  { name: "aero_clip", skin: "xNestorio", server: "mc.hypixel.net", region: "NA", mode: "Lobby", state: "joining" },
+  { name: "noxline", skin: "Stimpy", server: "catpvp.net", region: "AS", mode: "Manual", state: "idle" },
 ];
 
 const logs = [
@@ -75,7 +75,7 @@ export default function LandingPage() {
           </span>
           <div>
             <strong>Join the Z-BEAM Discord</strong>
-            <p>Updates, setup help, license support, engine notes, and server-specific fixes.</p>
+            <p>Updates, setup help, license support, release notes, and server-specific fixes.</p>
           </div>
         </div>
         <a className="discord-button" href="https://discord.gg/" target="_blank" rel="noreferrer">
@@ -86,19 +86,19 @@ export default function LandingPage() {
 
       <section className="hero">
         <div className="hero-copy">
-          <p className="kicker">session tokens · engines · live console</p>
-          <h1>Paste a session. Pick an engine. Run the bot.</h1>
+          <p className="kicker">session tokens · servers · live console</p>
+          <h1>Paste a session. Pick a server. Run the bot.</h1>
           <p className="lead">
-            Z-BEAM keeps Minecraft bot sessions in one smooth panel: resolve the IGN, choose Mineflayer, Azalea, or NMP, then watch logs and control the bot live.
+            Z-BEAM keeps Minecraft bot sessions in one smooth panel: resolve the IGN, choose the server, then watch logs and control the bot live.
           </p>
           <div className="actions">
             <Link href="/dashboard" className="btn primary">Open dashboard</Link>
             <a href="#preview" className="btn ghost">See preview</a>
           </div>
           <div className="proof-row">
-            <code>Mineflayer 1.8.9</code>
-            <code>Azalea sidecar</code>
-            <code>NMP raw</code>
+            <code>fast launch</code>
+            <code>server profiles</code>
+            <code>live control</code>
           </div>
         </div>
 
@@ -123,9 +123,9 @@ export default function LandingPage() {
                     <code>{bot.state}</code>
                   </div>
                   <div className="bot-meta">
-                    <span>{bot.engine}</span>
-                    <span>{bot.version}</span>
-                    <span>{index === 0 ? "console" : "standby"}</span>
+                    <span>{bot.region}</span>
+                    <span>{bot.mode}</span>
+                    <span>{index === 0 ? "live" : "standby"}</span>
                   </div>
                   {index === 0 && (
                     <pre className="mini-console">{logs.join("\n")}</pre>
@@ -162,7 +162,7 @@ export default function LandingPage() {
         </div>
         <div className="flow-line">
           <span>token</span>
-          <span>engine</span>
+          <span>server</span>
           <span>console</span>
           <span>controls</span>
         </div>
@@ -176,7 +176,7 @@ export default function LandingPage() {
 }
 
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Audiowide&family=IBM+Plex+Mono:wght@500;600;700&family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
 
   :root {
     --bg: #080a0d;
@@ -196,7 +196,7 @@ const css = `
       radial-gradient(circle at 72% 12%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 28rem),
       linear-gradient(180deg, #080a0d 0%, #0b0e12 100%);
     color: var(--text);
-    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    font-family: "Space Grotesk", Inter, ui-sans-serif, system-ui, sans-serif;
   }
 
   .home-shell * { box-sizing: border-box; }
@@ -375,6 +375,7 @@ const css = `
     line-height: 0.92;
     letter-spacing: -0.07em;
     font-weight: 800;
+    font-family: "Space Grotesk", Inter, ui-sans-serif, sans-serif;
   }
 
   .lead {
@@ -449,7 +450,8 @@ const css = `
 
   .hero-stage {
     position: relative;
-    min-height: 540px;
+    min-height: 560px;
+    perspective: 1200px;
   }
 
   .stage-glow {
@@ -462,13 +464,16 @@ const css = `
 
   .preview-panel {
     position: relative;
-    overflow: hidden;
+    overflow: visible;
+    min-height: 520px;
     border: 1px solid var(--line);
-    border-radius: 30px;
-    background: linear-gradient(180deg, rgba(16, 20, 26, 0.9), rgba(6, 10, 14, 0.92));
-    padding: 14px;
+    border-radius: 34px;
+    background: linear-gradient(180deg, rgba(16, 20, 26, 0.78), rgba(6, 10, 14, 0.82));
+    padding: 16px;
     backdrop-filter: blur(18px);
-    box-shadow: 0 32px 90px -56px color-mix(in srgb, var(--accent) 55%, transparent);
+    transform: rotateX(7deg) rotateY(-10deg) rotateZ(1deg);
+    transform-style: preserve-3d;
+    box-shadow: 0 46px 110px -58px color-mix(in srgb, var(--accent) 60%, transparent), 0 34px 70px -50px rgba(0,0,0,.95);
   }
 
   .preview-topline {
@@ -489,28 +494,33 @@ const css = `
   }
 
   .preview-list {
-    display: grid;
-    gap: 12px;
+    position: relative;
+    height: 440px;
+    transform-style: preserve-3d;
   }
 
   .bot-card {
-    position: relative;
-    width: 100%;
-    border: 1px solid color-mix(in srgb, var(--accent) 16%, transparent);
-    border-radius: 22px;
+    position: absolute;
+    left: 0;
+    right: 0;
+    border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+    border-radius: 24px;
     background:
-      radial-gradient(circle at 8% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 14rem),
-      linear-gradient(180deg, rgba(18, 25, 31, 0.96), rgba(9, 13, 18, 0.97));
+      radial-gradient(circle at 8% 0%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 14rem),
+      linear-gradient(180deg, rgba(18, 25, 31, 0.98), rgba(9, 13, 18, 0.98));
     padding: 14px;
+    transform-style: preserve-3d;
+    box-shadow: 0 28px 60px -44px rgba(0,0,0,.95), inset 0 1px 0 rgba(255,255,255,.04);
     animation: card-float 6s ease-in-out infinite;
   }
 
-  .card-1 { animation-delay: -1.8s; opacity: 0.88; }
-  .card-2 { animation-delay: -3.4s; opacity: 0.78; }
+  .card-0 { top: 4px; z-index: 3; transform: translate3d(18px, 0, 70px) rotateY(7deg) rotateZ(-1.2deg); }
+  .card-1 { top: 154px; z-index: 2; opacity: 0.92; animation-delay: -1.8s; transform: translate3d(-24px, 0, 28px) rotateY(-9deg) rotateZ(2deg); }
+  .card-2 { top: 284px; z-index: 1; opacity: 0.82; animation-delay: -3.4s; transform: translate3d(32px, 0, -18px) rotateY(10deg) rotateZ(-2deg); }
 
   @keyframes card-float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-12px); }
+    0%, 100% { margin-top: 0; }
+    50% { margin-top: -12px; }
   }
 
   .bot-head {
@@ -684,7 +694,10 @@ const css = `
     .hero,
     .section-title,
     .flow-band { grid-template-columns: 1fr; }
-    .hero-stage { min-height: auto; }
+    .hero-stage { min-height: auto; perspective: none; }
+    .preview-panel { min-height: auto; transform: none; overflow: hidden; }
+    .preview-list { display: grid; height: auto; gap: 12px; }
+    .bot-card { position: relative; top: auto; transform: none !important; }
   }
 
   @media (max-width: 640px) {

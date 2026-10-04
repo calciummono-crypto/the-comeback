@@ -54,9 +54,9 @@ export function Wordmark({
       style={{
         fontSize: `${height}px`,
         lineHeight: 0.82,
-        fontFamily:
-          'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-        textShadow: "0 10px 30px rgba(0,0,0,.45)",
+        fontFamily: 'var(--font-brand), "Audiowide", "Space Grotesk", ui-sans-serif, system-ui, sans-serif',
+        letterSpacing: "-0.045em",
+        textShadow: "0 10px 30px rgba(0,0,0,.45), 0 0 18px color-mix(in srgb, var(--zb-accent-400) 26%, transparent)",
       }}
       aria-label="Z-BEAM"
     >

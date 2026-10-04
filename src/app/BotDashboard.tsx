@@ -112,7 +112,6 @@ export default function BotDashboard({
           bot.username,
           bot.host,
           bot.status,
-          bot.engine,
           bot.version,
           bot.beamType,
         ]
@@ -148,7 +147,7 @@ export default function BotDashboard({
                 )}
               </>
             ) : (
-              "Add sessions, pick engines, and control bots live."
+              "Add sessions, pick servers, and control bots live."
             )}
           </p>
         </div>
@@ -344,11 +343,6 @@ export function BotAvatar({
   );
 }
 
-function engineLabel(engine: string | null | undefined): string {
-  if (engine === "azalea") return "Azalea";
-  if (engine === "nmp") return "NMP";
-  return "Mineflayer";
-}
 
 function BotCard({
   bot,
@@ -363,7 +357,6 @@ function BotCard({
 }) {
   const [busy, setBusy] = useState(false);
   const running = bot.status === "online" || bot.status === "connecting";
-  const label = engineLabel(bot.engine);
   const version = bot.version && bot.version !== "auto" ? bot.version : "auto";
   const displayName = bot.username || bot.name;
 
@@ -428,10 +421,7 @@ function BotCard({
 
       <div className="mt-4 flex flex-wrap gap-2">
         <span className="rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-slate-300">
-          {label}
-        </span>
-        <span className="rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-slate-300">
-          {version}
+          {version === "auto" ? "auto profile" : version}
         </span>
       </div>
 
@@ -624,9 +614,7 @@ export function AddBotModal({
           <Field
             label="Minecraft version"
             hint={
-              engine === "azalea"
-                ? "Azalea always uses the latest vanilla protocol (Minecraft 26.1). This dropdown is ignored for Azalea bots. Use Mineflayer/NMP if you need to pin 1.8.9 or 1.20.1."
-                : "Leave on Auto-detect first. If you get a 'socketClosed' disconnect, pick the server's exact version here — that fixes most join failures on proxy/anticheat networks."
+              "Leave on Auto-detect first. If you get a disconnect, pick the server's exact version here — that fixes most join failures on proxy networks."
             }
           >
             <select
@@ -665,13 +653,6 @@ export function AddBotModal({
               placeholder="stood014"
               className={inputClass}
             />
-          </Field>
-
-          <Field
-            label="Bot Engine"
-            hint="Azalea is a Rust Minecraft client (not npm/mineflayer). It speaks the latest vanilla protocol with real client physics. Competitive networks can still ban bots — this is not an anticheat bypass."
-          >
-            <EnginePicker value={engine} onChange={setEngine} />
           </Field>
 
           {error && (

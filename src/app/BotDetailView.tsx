@@ -264,7 +264,6 @@ export default function BotDetailView({
             <p className="text-sm font-medium text-slate-400">
               {bot.host}:{bot.port}
               {bot.username && ` · as ${bot.username}`}
-              {bot.engine && ` · ${bot.engine === "azalea" ? "Azalea" : bot.engine === "nmp" ? "NMP" : "Mineflayer"}`}
             </p>
           </div>
         </div>
@@ -593,8 +592,8 @@ function BotScreen({
               <div className="relative overflow-hidden rounded-[20px] border border-slate-800 bg-slate-900/60 p-[1px]">
                 <div className="flex h-[300px] w-[300px] flex-col items-center justify-center rounded-[19px] bg-gradient-to-br from-slate-900 to-slate-950 text-center">
                   <div className="grid h-12 w-12 place-items-center rounded-xl bg-sky-500/10 text-2xl ring-1 ring-sky-500/20">📡</div>
-                  <span className="mt-4 font-semibold text-slate-200">Raw NMP Mode</span>
-                  <span className="mt-2 max-w-[220px] text-xs leading-relaxed text-slate-500">Radar and chunk processing disabled for stealth bypass. Pure protocol.</span>
+                  <span className="mt-4 font-semibold text-slate-200">Compact session view</span>
+                  <span className="mt-2 max-w-[220px] text-xs leading-relaxed text-slate-500">Live world preview is limited for this session. Chat and controls still work.</span>
                 </div>
               </div>
             ) : (
@@ -641,7 +640,7 @@ function BotScreen({
               </h3>
               <div className="max-h-56 space-y-1 overflow-y-auto rounded-xl border border-slate-800 bg-slate-900/40 p-2.5 backdrop-blur">
                 {engine === "nmp" ? (
-                   <p className="px-2 py-2 text-xs text-slate-500">Entity tracking disabled in NMP mode.</p>
+                   <p className="px-2 py-2 text-xs text-slate-500">Entity tracking is not available for this session.</p>
                 ) : snap.entities && snap.entities.length > 0 ? (
                   snap.entities.map((e, i) => (
                     <div key={i} className="flex items-center justify-between gap-2 rounded-lg px-2.5 py-2 transition hover:bg-slate-800/60">
