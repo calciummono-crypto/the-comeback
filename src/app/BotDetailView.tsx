@@ -345,17 +345,12 @@ export default function BotDetailView({
                 <p className="text-slate-600">No output yet…</p>
               ) : (
                 logs.map((l, i) => {
-                  const tone = consoleLineTone(l.line, l.level);
+                  const tone = consoleLineTone(l.line, l.level, beam.looping);
                   return (
                     <div key={i} className={`mb-1 whitespace-pre-wrap break-words rounded-lg px-2 py-1 transition ${tone.row}`}>
                       <span className="mr-1.5 text-slate-600">
                         {new Date(l.ts).toLocaleTimeString()}
                       </span>
-                      {tone.label && (
-                        <span className={`mr-2 rounded px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide ${tone.badge}`}>
-                          {tone.label}
-                        </span>
-                      )}
                       <span className={tone.text}>{l.line}</span>
                     </div>
                   );
@@ -825,56 +820,55 @@ function ItemIcon({ name, size = 32 }: { name: string; size?: number }) {
   );
 }
 
-function consoleLineTone(line: string, level: LogEntry["level"]) {
+function consoleLineTone(line: string, level: LogEntry["level"], beamActive: boolean) {
   const lower = line.toLowerCase();
   const base = {
-    label: "",
     row: "hover:bg-white/[0.025]",
-    badge: "",
     text: logColor(level),
   };
 
-  if (/^\s*<you>\s*\//i.test(line) || /^\s*you\s*[:>]/i.test(line) || /\byou whisper to\b/i.test(line)) {
+  const ownLine = /^\s*<you>\s*/i.test(line) || /^\s*you\s*[:>]/i.test(line) || /you whisper to/i.test(line);
+  const ownCommand = /^\s*<you>\s*\//i.test(line) || /^\s*you\s*[:>]\s*\//i.test(line);
+
+  if (ownCommand) {
     return {
-      label: "you",
-      row: "bg-indigo-500/[0.07] ring-1 ring-indigo-400/15",
-      badge: "bg-indigo-500/15 text-indigo-200 ring-1 ring-indigo-400/20",
+      row: "bg-indigo-500/[0.08] ring-1 ring-indigo-400/15",
       text: "font-semibold text-indigo-100",
     };
   }
 
-  if (/\(from\b/i.test(line) || /^\s*from\s+\w+/i.test(line) || /whispers to you/i.test(line)) {
+  if (ownLine) {
     return {
-      label: "dm",
-      row: "bg-cyan-500/[0.07] ring-1 ring-cyan-400/15",
-      badge: "bg-cyan-500/15 text-cyan-200 ring-1 ring-cyan-400/20",
+      row: "bg-indigo-500/[0.055] ring-1 ring-indigo-400/10",
+      text: "font-semibold text-indigo-100",
+    };
+  }
+
+  if (/\(from/i.test(line) || /^\s*from\s+\w+/i.test(line) || /whispers to you/i.test(line)) {
+    return {
+      row: "bg-cyan-500/[0.065] ring-1 ring-cyan-400/12",
       text: "font-semibold text-cyan-100",
     };
   }
 
-  if (/^\s*[A-Za-z0-9_]{2,16}:\s+/.test(line) || /^\s*<[^>]{2,32}>\s+/.test(line)) {
+  const normalPlayerChat = /^\s*[A-Za-z0-9_]{2,16}:\s+/.test(line) || /^\s*<[^>]{2,32}>\s+/.test(line);
+  if (normalPlayerChat && beamActive) {
     return {
-      label: "chat",
-      row: "bg-emerald-500/[0.06] ring-1 ring-emerald-400/15",
-      badge: "bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/20",
-      text: "font-semibold text-slate-100",
+      row: "bg-emerald-500/[0.06] ring-1 ring-emerald-400/12",
+      text: "font-semibold text-emerald-100",
     };
   }
 
   if (level === "error" || /not found|kicked|disconnect|failed|error|denied|invalid/i.test(lower)) {
     return {
-      label: "server",
-      row: "bg-amber-500/[0.065] ring-1 ring-amber-400/15",
-      badge: "bg-amber-500/15 text-amber-200 ring-1 ring-amber-400/20",
+      row: "bg-amber-500/[0.06] ring-1 ring-amber-400/12",
       text: level === "error" ? "font-semibold text-rose-200" : "font-semibold text-amber-100",
     };
   }
 
   if (level === "system") {
     return {
-      label: "info",
-      row: "bg-sky-500/[0.045] ring-1 ring-sky-400/10",
-      badge: "bg-sky-500/15 text-sky-200 ring-1 ring-sky-400/20",
+      row: "bg-sky-500/[0.04] ring-1 ring-sky-400/10",
       text: "text-sky-200",
     };
   }
