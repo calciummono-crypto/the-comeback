@@ -104,90 +104,76 @@ export default function LicensePanel() {
   const hasLicense = status.totalSlots > 0;
 
   return (
-    <div className="relative">
-      {/* background glow */}
+    <div className="relative space-y-6">
       <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute left-[-40px] top-[-40px] h-[260px] w-[260px] rounded-full bg-emerald-400/[0.07] blur-[80px]" />
-        <div className="absolute right-[-20px] top-[80px] h-[200px] w-[200px] rounded-full bg-teal-400/[0.05] blur-[80px]" />
+        <div className="absolute left-[-80px] top-[-80px] h-[320px] w-[320px] rounded-full bg-emerald-400/[0.08] blur-[90px]" />
+        <div className="absolute right-[-40px] top-[120px] h-[240px] w-[240px] rounded-full bg-indigo-400/[0.07] blur-[90px]" />
       </div>
 
-      <div className="flex items-start gap-4">
-        <div className="relative">
-          <div className="absolute inset-0 rounded-[16px] bg-gradient-to-br from-emerald-300 to-emerald-500 blur-[14px] opacity-50" />
-          <div className="relative grid h-[48px] w-[48px] place-items-center rounded-[16px] bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600 shadow-[0_8px_24px_color-mix(in_srgb,var(--color-emerald-500)_28%,transparent)] ring-1 ring-white/15">
-            <TicketThumbIcon />
-            <div className="absolute inset-0 rounded-[16px] bg-gradient-to-tr from-white/25 to-transparent" />
+      <section className="overflow-hidden rounded-[2rem] border border-white/[0.08] bg-[linear-gradient(135deg,rgba(15,23,42,.74),rgba(2,6,23,.86))] p-5 shadow-[0_28px_100px_-70px_rgba(0,0,0,.95)] backdrop-blur-2xl lg:p-6">
+        <div className="grid gap-6 lg:grid-cols-[1.05fr_.95fr] lg:items-center">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1.5 text-xs font-bold text-emerald-200">
+              <span className={`h-2 w-2 rounded-full ${hasLicense ? "bg-emerald-300 shadow-[0_0_12px_color-mix(in_srgb,var(--color-emerald-400)_80%,transparent)]" : "bg-slate-500"}`} />
+              {hasLicense ? `${status.totalSlots} slots active` : "No active license"}
+            </div>
+            <h2 className="mt-5 text-3xl font-black tracking-[-0.055em] text-white sm:text-4xl">License access</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-400">
+              Redeem your Z-BEAM key, unlock bot slots, and track how many sessions are used from one clean panel.
+            </p>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <StatCard label="TOTAL" value={status.totalSlots} accent="text-emerald-300" sub="slots" icon={<SlotsIcon />} gradient="from-emerald-500/15 to-teal-500/10" />
+              <StatCard label="USED" value={status.usedSlots} accent="text-slate-100" sub="active" icon={<UsedIcon />} gradient="from-slate-700/40 to-slate-800/20" />
+              <StatCard label="FREE" value={status.availableSlots} accent="text-emerald-300" sub="ready" icon={<AvailableIcon />} gradient="from-emerald-500/15 to-teal-500/10" />
+            </div>
           </div>
-        </div>
-        <div className="flex-1">
-          <h2 className="text-[20px] font-bold tracking-tight text-white">License</h2>
-          <p className="mt-1 text-[13px] leading-relaxed text-slate-400">
-            Redeem a license key to get bot slots. Keys look like{" "}
-            <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 font-mono text-emerald-300 ring-1 ring-emerald-500/20">abeam-key-xxxx-xxxx</span>
-          </p>
-        </div>
-        <div className="hidden sm:flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/60 px-3 py-1.5 text-[11px] text-slate-400 backdrop-blur">
-          <span className={`h-2 w-2 rounded-full ${hasLicense ? "bg-emerald-400 shadow-[0_0_8px_color-mix(in_srgb,var(--color-emerald-400)_50%,transparent)] animate-pulse" : "bg-slate-600"}`} />
-          {hasLicense ? `${status.totalSlots} slots active` : "No license"}
-        </div>
-      </div>
 
-      <div className="mt-7 grid grid-cols-3 gap-3">
-        <StatCard label="TOTAL SLOTS" value={status.totalSlots} accent="text-emerald-300" sub="max bots" icon={<SlotsIcon />} gradient="from-emerald-500/15 to-teal-500/10" />
-        <StatCard label="USED" value={status.usedSlots} accent="text-slate-100" sub="running" icon={<UsedIcon />} gradient="from-slate-700/40 to-slate-800/20" />
-        <StatCard label="AVAILABLE" value={status.availableSlots} accent="text-emerald-300" sub="free" icon={<AvailableIcon />} gradient="from-emerald-500/15 to-teal-500/10" />
-      </div>
+          <LicenseVisual hasLicense={hasLicense} slots={status.totalSlots} />
+        </div>
+      </section>
 
-      {/* Redeem section */}
-      <div className="group mt-6 relative overflow-hidden rounded-[18px] border border-slate-800 bg-slate-900/70 p-[1px] backdrop-blur-xl">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/10 via-transparent to-teal-400/10 opacity-0 transition-opacity group-hover:opacity-100" />
-        <div className="relative rounded-[17px] bg-[#0f121f]/80 p-5">
-          <div className="flex items-start justify-between gap-3">
+      <section className="grid gap-5 lg:grid-cols-[1.05fr_.95fr]">
+        <div className="overflow-hidden rounded-[1.7rem] border border-white/[0.08] bg-white/[0.035] p-5 backdrop-blur-xl">
+          <div className="flex items-start justify-between gap-4">
             <div>
-              <h3 className="flex items-center gap-2 text-[14px] font-semibold text-white">
-                <span className="grid h-6 w-6 place-items-center rounded-lg bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/20">
+              <h3 className="flex items-center gap-2 text-base font-black text-white">
+                <span className="grid h-8 w-8 place-items-center rounded-xl bg-emerald-300/10 text-emerald-200 ring-1 ring-emerald-300/20">
                   <KeyIcon />
                 </span>
-                Redeem License Key
+                Redeem license key
               </h3>
-              <p className="mt-1 text-[12px] leading-relaxed text-slate-400">
-                Enter your key like <code className="rounded bg-slate-800 px-1.5 py-0.5 font-mono text-emerald-300">abeam-key-aqiwok192k</code> to unlock slots instantly
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                Paste your key below. Slots update instantly after a successful redeem.
               </p>
             </div>
-            <div className="hidden sm:flex items-center gap-1 rounded-full bg-slate-800 px-2.5 py-1 text-[10px] font-medium text-slate-400 ring-1 ring-slate-700/50">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              Secure redeem
-            </div>
+            <span className="hidden rounded-full border border-white/10 bg-slate-950/50 px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-200 sm:inline-flex">secure</span>
           </div>
 
-          <div className="mt-5 flex gap-2.5">
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
             <div className="relative flex-1">
               <input
                 value={keyInput}
                 onChange={(e) => setKeyInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && redeem()}
                 placeholder="abeam-key-xxxxxxxxxx-xxxxxx"
-                className="w-full rounded-xl border border-slate-700/80 bg-slate-950/70 px-4 py-3.5 pr-10 text-[13px] font-mono tracking-wide text-slate-100 placeholder:text-slate-600 outline-none transition focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20"
+                className="h-13 w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 pr-11 font-mono text-sm tracking-wide text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-emerald-300/45 focus:ring-2 focus:ring-emerald-300/10"
               />
-              <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-600">
+              <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-600">
                 <TicketSmallIcon />
               </div>
             </div>
             <button
               onClick={redeem}
               disabled={redeeming}
-              className="group/btn relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-500 px-7 py-3.5 text-[13px] font-bold text-emerald-950 shadow-[0_8px_24px_color-mix(in_srgb,var(--color-emerald-500)_25%,transparent)] transition-all hover:from-emerald-300 hover:to-emerald-400 hover:shadow-[0_12px_32px_color-mix(in_srgb,var(--color-emerald-500)_35%,transparent)] active:scale-[0.98] disabled:opacity-50"
+              className="h-13 rounded-2xl bg-emerald-300 px-6 text-sm font-black text-slate-950 shadow-[0_18px_55px_-30px_color-mix(in_srgb,var(--color-emerald-500)_90%,transparent)] transition hover:bg-emerald-200 active:scale-[.985] disabled:opacity-50"
             >
-              <span className="relative z-10 flex items-center gap-1.5">
-                {redeeming ? "Redeeming…" : "Redeem"}
-                {!redeeming && <span className="text-[14px]">→</span>}
-              </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 transition-opacity group-hover/btn:opacity-100" />
+              {redeeming ? "Redeeming…" : "Redeem"}
             </button>
           </div>
 
           {redeemMsg && (
-            <div className={`mt-4 flex items-start gap-2 rounded-xl px-3.5 py-3 text-[12px] leading-relaxed ${redeemMsg.type === "success" ? "bg-emerald-500/10 text-emerald-300 ring-1 ring-emerald-500/20" : "bg-rose-500/10 text-rose-300 ring-1 ring-rose-500/20"}`}>
+            <div className={`mt-4 flex items-start gap-2 rounded-2xl px-4 py-3 text-sm leading-relaxed ${redeemMsg.type === "success" ? "bg-emerald-500/10 text-emerald-200 ring-1 ring-emerald-500/20" : "bg-rose-500/10 text-rose-200 ring-1 ring-rose-500/20"}`}>
               <span className={`mt-0.5 grid h-5 w-5 place-items-center rounded-full text-[11px] ${redeemMsg.type === "success" ? "bg-emerald-500/20" : "bg-rose-500/20"}`}>
                 {redeemMsg.type === "success" ? "✓" : "!"}
               </span>
@@ -195,70 +181,90 @@ export default function LicensePanel() {
             </div>
           )}
 
-          <div className="mt-4 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
-            <span>Need a key?</span>
-            <span className="rounded-full bg-slate-800 px-2 py-0.5 text-slate-400 ring-1 ring-slate-700/50">Go to Shop tab → choose $5 / $8 / $15</span>
-            <span>· Contact admin on Discord</span>
+          <div className="mt-5 flex flex-wrap gap-2 text-xs text-slate-500">
+            <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1.5">Need a key?</span>
+            <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1.5">Open Shop</span>
+            <span className="rounded-full border border-[#5865F2]/25 bg-[#5865F2]/10 px-3 py-1.5 text-indigo-200">Ask Discord support</span>
           </div>
         </div>
-      </div>
 
-      {!hasLicense ? (
-        <div className="mt-6 relative overflow-hidden rounded-[18px] border border-slate-800 bg-gradient-to-br from-slate-900/80 to-slate-900/40 p-[1px]">
-          <div className="rounded-[17px] bg-slate-900/80 p-8 text-center backdrop-blur">
-            <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-emerald-500/10 text-emerald-300 ring-1 ring-emerald-500/20"><LockIcon size={26} /></div>
-            <h3 className="mt-4 text-[15px] font-semibold text-slate-200">No active license</h3>
-            <p className="mx-auto mt-2 max-w-[420px] text-[12px] leading-relaxed text-slate-400">
-              You start with 0 bot slots. Redeem a key above to get slots.
-              <br />
-              License decides how many slots and for how long (days/hours) they stay.
-            </p>
+        <div className="overflow-hidden rounded-[1.7rem] border border-white/[0.08] bg-white/[0.035] p-5 backdrop-blur-xl">
+          <h3 className="text-base font-black text-white">Slot status</h3>
+          <p className="mt-2 text-sm leading-6 text-slate-400">
+            {hasLicense
+              ? `You have ${status.availableSlots} slots free out of ${status.totalSlots}.`
+              : "You start with 0 slots. Redeem a key to unlock bot sessions."}
+          </p>
+          <div className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/55 p-4">
+            <div className="flex items-center justify-between text-xs font-bold text-slate-400">
+              <span>Used slots</span>
+              <span>{status.usedSlots}/{Math.max(status.totalSlots, 1)}</span>
+            </div>
+            <div className="mt-3 h-3 overflow-hidden rounded-full bg-slate-800">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-emerald-300 to-indigo-300"
+                style={{ width: `${Math.min(100, Math.round((status.usedSlots / Math.max(status.totalSlots, 1)) * 100))}%` }}
+              />
+            </div>
             {status.nextExpiry && (
-              <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-slate-800 px-3 py-1 text-[11px] text-slate-400 ring-1 ring-slate-700/50">
-                <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
-                Next expiry: {new Date(status.nextExpiry).toLocaleString()}
-              </p>
+              <p className="mt-3 text-xs text-slate-500">Next expiry: {new Date(status.nextExpiry).toLocaleString()}</p>
             )}
           </div>
         </div>
+      </section>
+
+      {hasLicense ? (
+        <section className="rounded-[1.7rem] border border-white/[0.08] bg-white/[0.035] p-5 backdrop-blur-xl">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-black text-white">Active licenses</h3>
+              <p className="mt-1 text-sm text-slate-500">Current keys and remaining time.</p>
+            </div>
+            <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1.5 text-xs font-bold text-emerald-200">{status.activeLicenses.length} active</span>
+          </div>
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            {status.activeLicenses.map((lic) => (
+              <LicenseCard key={lic.id} lic={lic} />
+            ))}
+          </div>
+        </section>
       ) : (
-        <div className="mt-7 space-y-5">
-          <div className="relative overflow-hidden rounded-[16px] border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-teal-500/5 p-[1px]">
-            <div className="rounded-[15px] bg-slate-900/70 p-4 backdrop-blur">
-              <div className="flex items-center gap-2.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_10px_color-mix(in_srgb,var(--color-emerald-400)_60%,transparent)] animate-pulse" />
-                <span className="text-[13px] font-semibold tracking-wide text-emerald-200">Active License</span>
-                <span className="ml-auto rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-medium text-emerald-300 ring-1 ring-emerald-500/20">
-                  {status.availableSlots} free
-                </span>
-              </div>
-              <p className="mt-2.5 text-[12px] leading-relaxed text-emerald-200/60">
-                You have <span className="font-semibold text-emerald-200">{status.totalSlots} slots</span>,{" "}
-                <span className="font-semibold text-emerald-300">{status.availableSlots} available</span>.
-                {status.nextExpiry && (
-                  <>
-                    {" "}
-                    Expires {new Date(status.nextExpiry).toLocaleString()} ({status.activeLicenses[0]?.timeLeft})
-                  </>
-                )}
-              </p>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="flex items-center gap-2 text-[13px] font-semibold tracking-wide text-slate-200">
-              <span className="h-1 w-1 rounded-full bg-emerald-400" />
-              Active Licenses
-            </h3>
-            <div className="mt-3 space-y-2.5">
-              {status.activeLicenses.map((lic) => (
-                <LicenseCard key={lic.id} lic={lic} />
-              ))}
-            </div>
-          </div>
-
-        </div>
+        <section className="grid place-items-center rounded-[1.7rem] border border-dashed border-white/[0.12] bg-white/[0.025] px-6 py-14 text-center backdrop-blur-xl">
+          <div className="grid h-16 w-16 place-items-center rounded-2xl bg-emerald-300/10 text-emerald-200 ring-1 ring-emerald-300/20"><LockIcon size={28} /></div>
+          <h3 className="mt-5 text-lg font-black text-white">No active license yet</h3>
+          <p className="mt-2 max-w-md text-sm leading-7 text-slate-400">Redeem a valid key above to unlock bot slots and start using the dashboard.</p>
+        </section>
       )}
+    </div>
+  );
+}
+
+function LicenseVisual({ hasLicense, slots }: { hasLicense: boolean; slots: number }) {
+  return (
+    <div className="relative min-h-[260px] overflow-hidden rounded-[1.6rem] border border-white/10 bg-slate-950/55 p-5">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,color-mix(in_srgb,var(--color-emerald-400)_22%,transparent),transparent_18rem)]" />
+      <div className="relative flex h-full flex-col justify-between">
+        <div className="flex items-center justify-between">
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">access pass</span>
+          <span className="rounded-full bg-emerald-300 px-3 py-1.5 text-xs font-black text-slate-950">{hasLicense ? "active" : "locked"}</span>
+        </div>
+        <div className="mt-8 flex items-end justify-between gap-4">
+          <div>
+            <p className="text-5xl font-black tracking-[-0.08em] text-white">{slots}</p>
+            <p className="mt-1 text-sm font-semibold text-slate-400">bot slots</p>
+          </div>
+          <div className="flex -space-x-5">
+            {['wisp', 'xNestorio', 'Stimpy'].map((name) => (
+              <span key={name} className="grid h-20 w-16 place-items-end overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-xl">
+                <img src={`https://visage.surgeplay.com/bust/120/${name}`} alt="" className="h-full w-full object-cover object-bottom [image-rendering:pixelated]" />
+              </span>
+            ))}
+          </div>
+        </div>
+        <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.035] p-3 font-mono text-xs text-slate-500">
+          abeam-key-••••••••••••••••
+        </div>
+      </div>
     </div>
   );
 }

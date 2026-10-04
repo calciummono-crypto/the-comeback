@@ -35,16 +35,15 @@ export const features = [
 ];
 
 const bots = [
-  { name: "vyrex_", skin: "wisp", server: "eu.minemen.club", region: "EU", mode: "1v1", state: "online" },
-  { name: "aero_clip", skin: "xNestorio", server: "mc.hypixel.net", region: "NA", mode: "Lobby", state: "joining" },
-  { name: "noxline", skin: "Stimpy", server: "catpvp.net", region: "AS", mode: "Manual", state: "idle" },
+  { name: "vyrex_", skin: "wisp", server: "eu.minemen.club", region: "EU", mode: "1v1", state: "online", note: "Chat, inventory and controls are live." },
+  { name: "aero_clip", skin: "xNestorio", server: "mc.hypixel.net", region: "NA", mode: "Lobby", state: "joining", note: "Resolving profile and joining server." },
+  { name: "noxline", skin: "Stimpy", server: "catpvp.net", region: "AS", mode: "Manual", state: "idle", note: "Ready for launch when you are." },
 ];
 
 const logs = [
-  "12:44:01 · resolving profile: vyrex_",
-  "12:44:02 · connecting eu.minemen.club:25565",
-  "12:44:03 · join success · version 1.8.9",
-  "12:44:03 · inventory synced · hotbar slot 1 active",
+  "12:44:01 · resolving profile",
+  "12:44:02 · connecting server",
+  "12:44:03 · join success",
 ];
 
 export default function LandingPage() {
@@ -114,14 +113,15 @@ export default function LandingPage() {
                 <article key={bot.name} className={`bot-card card-${index}`}>
                   <div className="bot-head">
                     <span className="bot-avatar">
-                      <img src={`https://visage.surgeplay.com/bust/160/${bot.skin}`} alt="" />
+                      <img src={`https://visage.surgeplay.com/bust/180/${bot.skin}`} alt="" />
                     </span>
-                    <div>
+                    <div className="bot-title">
                       <h2>{bot.name}</h2>
                       <p>{bot.server}</p>
                     </div>
-                    <code>{bot.state}</code>
+                    <code className={`state-pill ${bot.state}`}>{bot.state}</code>
                   </div>
+                  <p className="bot-note">{bot.note}</p>
                   <div className="bot-meta">
                     <span>{bot.region}</span>
                     <span>{bot.mode}</span>
@@ -465,13 +465,13 @@ const css = `
   .preview-panel {
     position: relative;
     overflow: visible;
-    min-height: 520px;
+    min-height: 560px;
     border: 1px solid var(--line);
     border-radius: 34px;
     background: linear-gradient(180deg, rgba(16, 20, 26, 0.78), rgba(6, 10, 14, 0.82));
     padding: 16px;
     backdrop-filter: blur(18px);
-    transform: rotateX(7deg) rotateY(-10deg) rotateZ(1deg);
+    transform: rotateX(5deg) rotateY(-8deg) rotateZ(0.5deg);
     transform-style: preserve-3d;
     box-shadow: 0 46px 110px -58px color-mix(in srgb, var(--accent) 60%, transparent), 0 34px 70px -50px rgba(0,0,0,.95);
   }
@@ -494,33 +494,43 @@ const css = `
   }
 
   .preview-list {
-    position: relative;
-    height: 440px;
+    display: grid;
+    gap: 18px;
     transform-style: preserve-3d;
   }
 
   .bot-card {
-    position: absolute;
-    left: 0;
-    right: 0;
+    position: relative;
     border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
     border-radius: 24px;
     background:
       radial-gradient(circle at 8% 0%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 14rem),
       linear-gradient(180deg, rgba(18, 25, 31, 0.98), rgba(9, 13, 18, 0.98));
-    padding: 14px;
+    padding: 16px;
     transform-style: preserve-3d;
-    box-shadow: 0 28px 60px -44px rgba(0,0,0,.95), inset 0 1px 0 rgba(255,255,255,.04);
+    box-shadow: 0 28px 60px -44px rgba(0,0,0,.95), inset 0 1px 0 rgba(255,255,255,.05);
     animation: card-float 6s ease-in-out infinite;
   }
 
-  .card-0 { top: 4px; z-index: 3; transform: translate3d(18px, 0, 70px) rotateY(7deg) rotateZ(-1.2deg); }
-  .card-1 { top: 154px; z-index: 2; opacity: 0.92; animation-delay: -1.8s; transform: translate3d(-24px, 0, 28px) rotateY(-9deg) rotateZ(2deg); }
-  .card-2 { top: 284px; z-index: 1; opacity: 0.82; animation-delay: -3.4s; transform: translate3d(32px, 0, -18px) rotateY(10deg) rotateZ(-2deg); }
+  .bot-card::after {
+    content: "";
+    position: absolute;
+    inset: 10px;
+    z-index: -1;
+    border-radius: inherit;
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    filter: blur(26px);
+    transform: translateZ(-36px);
+    opacity: .55;
+  }
+
+  .card-0 { z-index: 3; transform: translate3d(18px, 0, 54px) rotateY(7deg) rotateZ(-1deg); }
+  .card-1 { z-index: 2; opacity: 0.94; animation-delay: -1.8s; transform: translate3d(-18px, 0, 22px) rotateY(-7deg) rotateZ(1.3deg); }
+  .card-2 { z-index: 1; opacity: 0.9; animation-delay: -3.4s; transform: translate3d(26px, 0, -6px) rotateY(8deg) rotateZ(-1.5deg); }
 
   @keyframes card-float {
-    0%, 100% { margin-top: 0; }
-    50% { margin-top: -12px; }
+    0%, 100% { translate: 0 0; }
+    50% { translate: 0 -10px; }
   }
 
   .bot-head {
@@ -563,16 +573,34 @@ const css = `
     font: 600 12px 'IBM Plex Mono', monospace;
   }
 
-  .bot-head code {
+  .bot-title { min-width: 0; }
+
+  .bot-head code,
+  .state-pill {
     color: var(--accent);
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 800;
+  }
+
+  .state-pill {
+    border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+    border-radius: 999px;
+    padding: 7px 9px;
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+  }
+
+  .bot-note {
+    margin-top: 12px;
+    color: #a4b2ba;
+    font-size: 13px;
+    line-height: 1.45;
   }
 
   .bot-meta {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
-    margin-top: 16px;
+    margin-top: 14px;
   }
 
   .bot-meta span {
@@ -585,8 +613,8 @@ const css = `
   }
 
   .mini-console {
-    margin: 18px 0 0;
-    padding: 14px;
+    margin: 14px 0 0;
+    padding: 12px;
     border: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
     border-radius: 18px;
     background: #06090d;

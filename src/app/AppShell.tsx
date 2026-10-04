@@ -544,6 +544,7 @@ export default function AppShell() {
         </div>
 
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-8 lg:py-8">
+          {activeTab === "dashboard" && <DashboardDiscordBanner />}
           <div key={activeTab} className="animate-fade-in">
             {activeTab === "dashboard" && <BotDashboard meRole={me.role} search={dashboardSearch} />}
             {activeTab === "license" && <LicensePanel />}
@@ -560,6 +561,32 @@ export default function AppShell() {
         </main>
       </div>
     </div>
+  );
+}
+
+function DashboardDiscordBanner() {
+  return (
+    <section className="mb-6 overflow-hidden rounded-[1.6rem] border border-[#5865F2]/30 bg-[linear-gradient(90deg,rgba(88,101,242,.18),rgba(255,255,255,.035))] p-4 shadow-[0_24px_80px_-60px_rgba(88,101,242,.9)] backdrop-blur-2xl">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4">
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#5865F2] text-white shadow-[0_18px_50px_-28px_rgba(88,101,242,.9)]">
+            <DiscordIcon />
+          </div>
+          <div>
+            <p className="text-sm font-black text-white">Join the Z-BEAM Discord</p>
+            <p className="mt-1 text-xs leading-5 text-slate-400">Get license help, update notes, server-specific fixes and support without leaving the dashboard.</p>
+          </div>
+        </div>
+        <a
+          href="https://discord.gg/"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#5865F2] px-4 text-sm font-black text-white transition hover:bg-[#6673ff] active:scale-[.985]"
+        >
+          <DiscordIcon /> Discord
+        </a>
+      </div>
+    </section>
   );
 }
 
