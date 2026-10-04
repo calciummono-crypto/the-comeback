@@ -249,7 +249,7 @@ export default function AppShell() {
     <div className="flex min-h-screen">
       <ToastHost />
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-cyan-300/10 bg-[#070b10]/92 shadow-[18px_0_70px_-55px_rgba(34,211,238,.55)] backdrop-blur-2xl transition-all duration-300 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-emerald-300/10 bg-[#070b10]/92 shadow-[18px_0_70px_-55px_color-mix(in_srgb,var(--color-emerald-500)_55%,transparent)] backdrop-blur-2xl transition-all duration-300 lg:translate-x-0 ${
           mobileNav ? "translate-x-0" : "-translate-x-full"
         } ${collapsed ? "lg:w-[76px]" : "lg:w-64"}`}
       >
@@ -258,13 +258,13 @@ export default function AppShell() {
           {!collapsed && (
             <div className="leading-tight">
               <Wordmark height={24} />
-              <div className="mt-0.5 font-mono text-[11px] text-cyan-200/55">session control</div>
+              <div className="mt-0.5 font-mono text-[11px] text-emerald-200/55">session control</div>
             </div>
           )}
           <button
             onClick={toggleCollapsed}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className={`hidden h-7 w-7 shrink-0 place-items-center rounded-lg border border-white/10 text-slate-500 transition hover:border-cyan-300/25 hover:text-slate-200 lg:grid ${
+            className={`hidden h-7 w-7 shrink-0 place-items-center rounded-lg border border-white/10 text-slate-500 transition hover:border-emerald-300/25 hover:text-slate-200 lg:grid ${
               collapsed ? "" : "ml-auto"
             }`}
           >
@@ -287,14 +287,14 @@ export default function AppShell() {
                   : "gap-3 px-3.5 py-2.5"
               } ${
                 activeTab === item.key
-                  ? "bg-cyan-300/10 text-cyan-100 ring-1 ring-cyan-300/20 shadow-[0_0_28px_-20px_rgba(34,211,238,.8)]"
+                  ? "bg-emerald-300/10 text-emerald-100 ring-1 ring-emerald-300/20 shadow-[0_0_28px_-20px_color-mix(in_srgb,var(--color-emerald-500)_80%,transparent)]"
                   : "text-slate-400 hover:bg-white/[0.045] hover:text-slate-100"
               }`}
             >
               <span
                 className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg transition ${
                   activeTab === item.key
-                    ? "bg-cyan-300/15 text-cyan-200"
+                    ? "bg-emerald-300/15 text-emerald-200"
                     : "bg-white/[0.045] text-slate-400 group-hover:text-slate-200"
                 }`}
               >
@@ -302,7 +302,7 @@ export default function AppShell() {
               </span>
               {!collapsed && item.label}
               {!collapsed && activeTab === item.key && (
-                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_14px_rgba(34,211,238,.9)]" />
+                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_14px_color-mix(in_srgb,var(--color-emerald-500)_90%,transparent)]" />
               )}
             </button>
           ))}
@@ -314,7 +314,7 @@ export default function AppShell() {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={me.avatar} alt="" className="h-9 w-9 rounded-full" />
             ) : (
-              <div className="grid h-9 w-9 place-items-center rounded-full bg-cyan-300 text-xs font-bold text-slate-950">
+              <div className="grid h-9 w-9 place-items-center rounded-full bg-emerald-300 text-xs font-bold text-slate-950">
                 {me.username.slice(0, 2).toUpperCase()}
               </div>
             )}
@@ -370,7 +370,7 @@ export default function AppShell() {
         />
       )}
 
-      <div className={`flex min-w-0 flex-1 flex-col bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,.06),transparent_34rem)] transition-all duration-300 ${collapsed ? "lg:pl-[76px]" : "lg:pl-64"}`}>
+      <div className={`flex min-w-0 flex-1 flex-col bg-[radial-gradient(circle_at_top_right,color-mix(in_srgb,var(--color-emerald-500)_6%,transparent),transparent_34rem)] transition-all duration-300 ${collapsed ? "lg:pl-[76px]" : "lg:pl-64"}`}>
         <div className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-800/80 bg-slate-950/80 px-4 py-3 backdrop-blur lg:hidden">
           <div className="flex items-center gap-2">
             <Logo size={28} />

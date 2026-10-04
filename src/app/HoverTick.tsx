@@ -24,21 +24,21 @@ export default function HoverTick() {
 
       osc.type = "sine";
       osc.frequency.setValueAtTime(baseFreq, startAt);
-      osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.42, startAt + 0.13);
+      osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.55, startAt + 0.09);
 
       filter.type = "lowpass";
-      filter.frequency.setValueAtTime(1600, startAt);
-      filter.frequency.exponentialRampToValueAtTime(520, startAt + 0.16);
+      filter.frequency.setValueAtTime(1200, startAt);
+      filter.frequency.exponentialRampToValueAtTime(460, startAt + 0.11);
 
       gain.gain.setValueAtTime(0.0001, startAt);
       gain.gain.exponentialRampToValueAtTime(volume, startAt + 0.012);
-      gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.18);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.12);
 
       osc.connect(filter);
       filter.connect(gain);
       gain.connect(audio.destination);
       osc.start(startAt);
-      osc.stop(startAt + 0.2);
+      osc.stop(startAt + 0.14);
     };
 
     const playDrop = () => {
@@ -51,8 +51,8 @@ export default function HoverTick() {
       if (audio.state === "suspended") void audio.resume().catch(() => {});
 
       const t = audio.currentTime;
-      drop(t, 620, 0.045);
-      drop(t + 0.065, 390, 0.026);
+      drop(t, 520, 0.032);
+      drop(t + 0.055, 300, 0.018);
     };
 
     const onClick = (event: MouseEvent) => {

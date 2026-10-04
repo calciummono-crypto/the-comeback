@@ -86,29 +86,38 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div id="preview" className="hero-stage" aria-label="Animated bot cards preview">
+        <div id="preview" className="hero-stage" aria-label="Bot cards preview">
           <div className="stage-glow" />
-          {bots.map((bot, index) => (
-            <article key={bot.name} className={`bot-card card-${index}`}>
-              <div className="bot-head">
-                <span className="bot-avatar">
-                  <img src={`https://visage.surgeplay.com/bust/160/${bot.skin}`} alt="" />
-                </span>
-                <div>
-                  <h2>{bot.name}</h2>
-                  <p>{bot.server}</p>
-                </div>
-                <code>{bot.state}</code>
-              </div>
-              <div className="bot-meta">
-                <span>{bot.engine}</span>
-                <span>{bot.version}</span>
-              </div>
-              {index === 0 && (
-                <pre className="mini-console">{logs.join("\n")}</pre>
-              )}
-            </article>
-          ))}
+          <div className="preview-panel">
+            <div className="preview-topline">
+              <span>live sessions</span>
+              <code>theme linked</code>
+            </div>
+            <div className="preview-list">
+              {bots.map((bot, index) => (
+                <article key={bot.name} className={`bot-card card-${index}`}>
+                  <div className="bot-head">
+                    <span className="bot-avatar">
+                      <img src={`https://visage.surgeplay.com/bust/160/${bot.skin}`} alt="" />
+                    </span>
+                    <div>
+                      <h2>{bot.name}</h2>
+                      <p>{bot.server}</p>
+                    </div>
+                    <code>{bot.state}</code>
+                  </div>
+                  <div className="bot-meta">
+                    <span>{bot.engine}</span>
+                    <span>{bot.version}</span>
+                    <span>{index === 0 ? "console" : "standby"}</span>
+                  </div>
+                  {index === 0 && (
+                    <pre className="mini-console">{logs.join("\n")}</pre>
+                  )}
+                </article>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -157,18 +166,18 @@ const css = `
     --bg: #080a0d;
     --panel: #10141a;
     --panel-2: #0c1015;
-    --line: rgba(34, 211, 238, 0.16);
+    --line: color-mix(in srgb, var(--zb-accent-400) 16%, transparent);
     --text: #edf7fb;
     --muted: #7f9198;
-    --accent: #22d3ee;
-    --accent-soft: rgba(34, 211, 238, 0.12);
+    --accent: var(--zb-accent-400);
+    --accent-soft: color-mix(in srgb, var(--zb-accent-400) 12%, transparent);
   }
 
   .home-shell {
     min-height: 100vh;
     overflow: hidden;
     background:
-      radial-gradient(circle at 72% 12%, rgba(34, 211, 238, 0.13), transparent 28rem),
+      radial-gradient(circle at 72% 12%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 28rem),
       linear-gradient(180deg, #080a0d 0%, #0b0e12 100%);
     color: var(--text);
     font-family: Inter, ui-sans-serif, system-ui, sans-serif;
@@ -314,7 +323,7 @@ const css = `
 
   .btn:hover {
     transform: translateY(-2px);
-    border-color: rgba(34, 211, 238, 0.55);
+    border-color: color-mix(in srgb, var(--accent) 55%, transparent);
   }
 
   .btn.primary {
@@ -347,41 +356,71 @@ const css = `
     padding: 8px 10px;
     border: 1px solid var(--line);
     border-radius: 12px;
-    background: rgba(34, 211, 238, 0.04);
+    background: color-mix(in srgb, var(--accent) 4%, transparent);
     color: #bff7ff;
     font-size: 12px;
   }
 
   .hero-stage {
     position: relative;
-    min-height: 520px;
+    min-height: 540px;
   }
 
   .stage-glow {
     position: absolute;
-    inset: 48px 10px 20px;
+    inset: 38px 14px 24px;
     border-radius: 999px;
-    background: radial-gradient(circle, rgba(34, 211, 238, 0.22), transparent 62%);
+    background: radial-gradient(circle, color-mix(in srgb, var(--accent) 20%, transparent), transparent 62%);
     filter: blur(64px);
   }
 
-  .bot-card {
-    position: absolute;
-    width: min(448px, 100%);
-    border: 1px solid rgba(34, 211, 238, 0.18);
-    border-radius: 28px;
-    background:
-      linear-gradient(180deg, rgba(18, 25, 31, 0.96), rgba(9, 13, 18, 0.97)),
-      radial-gradient(circle at 20% 0%, rgba(34, 211, 238, 0.12), transparent 15rem);
-    padding: 18px;
+  .preview-panel {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 30px;
+    background: linear-gradient(180deg, rgba(16, 20, 26, 0.9), rgba(6, 10, 14, 0.92));
+    padding: 14px;
     backdrop-filter: blur(18px);
-    box-shadow: 0 28px 90px rgba(0, 0, 0, 0.34);
+    box-shadow: 0 32px 90px -56px color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+
+  .preview-topline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 6px 14px;
+    color: var(--muted);
+    font: 700 12px 'IBM Plex Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+  }
+
+  .preview-topline code {
+    color: var(--accent);
+    font-size: 11px;
+  }
+
+  .preview-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  .bot-card {
+    position: relative;
+    width: 100%;
+    border: 1px solid color-mix(in srgb, var(--accent) 16%, transparent);
+    border-radius: 22px;
+    background:
+      radial-gradient(circle at 8% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 14rem),
+      linear-gradient(180deg, rgba(18, 25, 31, 0.96), rgba(9, 13, 18, 0.97));
+    padding: 14px;
     animation: card-float 6s ease-in-out infinite;
   }
 
-  .card-0 { right: 18px; top: 28px; z-index: 3; }
-  .card-1 { left: 0; top: 178px; z-index: 2; animation-delay: -1.8s; opacity: 0.88; }
-  .card-2 { right: 34px; bottom: 2px; z-index: 1; animation-delay: -3.4s; opacity: 0.74; }
+  .card-1 { animation-delay: -1.8s; opacity: 0.88; }
+  .card-2 { animation-delay: -3.4s; opacity: 0.78; }
 
   @keyframes card-float {
     0%, 100% { transform: translateY(0); }
@@ -404,7 +443,7 @@ const css = `
     border: 1px solid var(--line);
     border-radius: 18px;
     background:
-      radial-gradient(circle at 50% 10%, rgba(34, 211, 238, 0.16), transparent 70%),
+      radial-gradient(circle at 50% 10%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
       #090d12;
   }
 
@@ -452,7 +491,7 @@ const css = `
   .mini-console {
     margin: 18px 0 0;
     padding: 14px;
-    border: 1px solid rgba(34, 211, 238, 0.12);
+    border: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
     border-radius: 18px;
     background: #06090d;
     color: #90a4ac;
@@ -532,7 +571,7 @@ const css = `
     border: 1px solid var(--line);
     border-radius: 20px;
     overflow: hidden;
-    background: rgba(34, 211, 238, 0.035);
+    background: color-mix(in srgb, var(--accent) 3.5%, transparent);
   }
 
   .flow-line span {
@@ -559,10 +598,7 @@ const css = `
     .hero,
     .section-title,
     .flow-band { grid-template-columns: 1fr; }
-    .hero-stage { min-height: 560px; }
-    .card-0 { left: 0; right: auto; }
-    .card-1 { left: 24px; }
-    .card-2 { left: 0; right: auto; }
+    .hero-stage { min-height: auto; }
   }
 
   @media (max-width: 560px) {
@@ -573,11 +609,8 @@ const css = `
     footer { width: min(100% - 24px, 1120px); }
     h1 { font-size: 48px; }
     .hero { padding-top: 62px; }
-    .hero-stage { min-height: 610px; }
+    .hero-stage { min-height: auto; }
     .bot-card { width: 100%; }
-    .card-0 { top: 0; }
-    .card-1 { left: 0; top: 210px; }
-    .card-2 { left: 0; bottom: 0; }
     .feature-row { grid-template-columns: 1fr; gap: 8px; }
     .flow-line { grid-template-columns: 1fr 1fr; }
     .flow-line span:nth-child(2) { border-right: 0; }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { THEME_PRESETS } from "@/lib/theme";
 import type { ReactNode } from "react";
 import "./globals.css";
+import HoverTick from "./HoverTick";
 
 export const metadata: Metadata = {
   title: "Z-BEAM",
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body className="min-h-screen bg-[#0a0c15] text-slate-100 antialiased">
         <div className="app-bg" aria-hidden />
+        <HoverTick />
         {children}
       </body>
     </html>

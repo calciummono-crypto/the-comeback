@@ -137,7 +137,7 @@ export default function BotDashboard({ meRole = "user" }: { meRole?: string }) {
                 ? "No bot slots left — ask an admin"
                 : "Add a bot"
           }
-          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-300 px-4 py-2.5 text-sm font-bold text-slate-950 shadow-[0_18px_50px_-26px_rgba(34,211,238,.9)] transition hover:bg-cyan-200 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-300 px-4 py-2.5 text-sm font-bold text-slate-950 shadow-[0_18px_50px_-26px_color-mix(in_srgb,var(--color-emerald-500)_90%,transparent)] transition hover:bg-emerald-200 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-40"
         >
           <PlusIcon size={16} /> Add bot
         </button>
@@ -168,7 +168,7 @@ export default function BotDashboard({ meRole = "user" }: { meRole?: string }) {
                 onClick={() => setTab(t)}
                 className={`flex-1 rounded-lg px-3 py-2 font-medium capitalize transition ${
                   tab === t
-                    ? "bg-cyan-300 text-slate-950 shadow"
+                    ? "bg-emerald-300 text-slate-950 shadow"
                     : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200"
                 }`}
               >
