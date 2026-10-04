@@ -6,7 +6,7 @@ export const features = [
     title: "Resolve account",
     text: "Paste a session token and Z-BEAM turns it into the Minecraft IGN before launch.",
     tag: "Resolve",
-    icon: "🧭",
+    icon: "resolve",
     detail: "token → IGN",
     visual: "skin",
   },
@@ -14,7 +14,7 @@ export const features = [
     title: "Pick server",
     text: "Choose Minemen, CatPvP, PvP HQ, or your saved target and continue without extra clutter.",
     tag: "Launch",
-    icon: "🌐",
+    icon: "server",
     detail: "server profile",
     visual: "server",
   },
@@ -22,28 +22,28 @@ export const features = [
     title: "Watch live logs",
     text: "Join attempts, kicks, reconnects, and chat events stay readable beside the bot.",
     tag: "Logs",
-    icon: "📟",
+    icon: "logs",
     detail: "live console",
   },
   {
     title: "Control session",
     text: "Open the bot to send chat, use hotbar actions, move, inspect inventory, and stop safely.",
     tag: "Control",
-    icon: "🎮",
+    icon: "control",
     detail: "chat + inventory",
   },
   {
     title: "Run flows",
     text: "Use opener scripts, wait for replies, send closing messages, and dedupe contacts cleanly.",
     tag: "Flow",
-    icon: "⚡",
+    icon: "flow",
     detail: "scripted steps",
   },
   {
     title: "Manage access",
     text: "Redeem keys, see used slots, free slots, and the remaining active time in one place.",
     tag: "Access",
-    icon: "🎟️",
+    icon: "access",
     detail: "license slots",
   },
 ];
@@ -142,16 +142,16 @@ export default function LandingPage() {
                     <span>{index === 0 ? "live" : "standby"}</span>
                   </div>
                   <div className="bot-actions" aria-hidden>
-                    <span className={index === 0 ? "preview-btn stop" : "preview-btn start"}>{index === 0 ? "Stop" : "Start"}</span>
-                    <span className="preview-btn open">Open</span>
-                    <span className="preview-delete" title="Delete preview bot">
+                    <button type="button" className={index === 0 ? "preview-btn stop" : "preview-btn start"}>{index === 0 ? "Stop" : "Start"}</button>
+                    <button type="button" className="preview-btn open">Open</button>
+                    <button type="button" className="preview-delete" title="Delete preview bot">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M4 7h16" />
                         <path d="M10 11v6M14 11v6" />
                         <path d="M6 7l1 14h10l1-14" />
                         <path d="M9 7V4h6v3" />
                       </svg>
-                    </span>
+                    </button>
                   </div>
                   {index === 0 && (
                     <pre className="mini-console">{logs.join("\n")}</pre>
@@ -172,7 +172,7 @@ export default function LandingPage() {
           {features.map((feature, index) => (
             <article className="feature-card" key={feature.title}>
               <div className="feature-card-top">
-                <span className="feature-icon" aria-hidden>{feature.icon}</span>
+                <span className="feature-icon" aria-hidden><FeatureIcon kind={feature.icon} /></span>
                 <code>{String(index + 1).padStart(2, "0")}</code>
               </div>
               <span className="feature-tag">{feature.tag}</span>
@@ -201,6 +201,13 @@ export default function LandingPage() {
                   </div>
                 </div>
               )}
+              {index === 2 && (
+                <div className="logs-preview" aria-label="Logs preview">
+                  <span>12:44:01</span><b>profile resolved</b>
+                  <span>12:44:02</span><b>joining server</b>
+                  <span>12:44:03</span><b>session live</b>
+                </div>
+              )}
             </article>
           ))}
         </div>
@@ -225,6 +232,27 @@ export default function LandingPage() {
         <span>Z-BEAM · Minecraft bot control · © 2026</span>
       </footer>
     </main>
+  );
+}
+
+
+function FeatureIcon({ kind }: { kind: string }) {
+  if (kind === "resolve") {
+    return <img src="https://visage.surgeplay.com/face/64/wisp" alt="" />;
+  }
+  if (kind === "server") {
+    return <img src="https://api.mcsrvstat.us/icon/eu.minemen.club" alt="" />;
+  }
+  const paths: Record<string, string[]> = {
+    logs: ["M4 5h16", "M4 12h16", "M4 19h10"],
+    control: ["M6 12h12", "M12 6v12", "M5 5h14v14H5z"],
+    flow: ["M13 2 4 14h7l-1 8 10-13h-7l0-7z"],
+    access: ["M3 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2Z", "M13 5v14"],
+  };
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      {(paths[kind] || paths.logs).map((d) => <path key={d} d={d} />)}
+    </svg>
   );
 }
 
@@ -679,10 +707,18 @@ const css = `
     justify-content: center;
     height: 38px;
     border-radius: 14px;
+    border: 0;
     font-size: 12px;
     font-weight: 900;
     box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+    cursor: pointer;
+    transition: transform 160ms ease, filter 160ms ease, border-color 160ms ease;
   }
+
+  .preview-btn:hover,
+  .preview-delete:hover { transform: translateY(-1px); filter: brightness(1.08); }
+  .preview-btn:active,
+  .preview-delete:active { transform: translateY(0) scale(.985); }
 
   .preview-btn.start {
     border: 1px solid rgba(52, 211, 153, .35);
@@ -802,8 +838,21 @@ const css = `
     border: 1px solid var(--line);
     border-radius: 16px;
     background: color-mix(in srgb, var(--accent) 8%, transparent);
-    font-size: 22px;
+    color: var(--accent);
     box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+    overflow: hidden;
+  }
+
+  .feature-icon img {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    image-rendering: pixelated;
+  }
+
+  .feature-icon svg {
+    width: 22px;
+    height: 22px;
   }
 
   .feature-card-top code {
@@ -925,6 +974,22 @@ const css = `
     color: var(--muted);
     font-size: 11px;
   }
+
+  .logs-preview {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 7px 10px;
+    margin-top: 10px;
+    border: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
+    border-radius: 18px;
+    background: #06090d;
+    padding: 10px;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 11px;
+  }
+
+  .logs-preview span { color: #60727b; }
+  .logs-preview b { color: #c6d3d8; font-weight: 700; }
 
   .flow-band {
     display: grid;

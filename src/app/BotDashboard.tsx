@@ -401,10 +401,9 @@ function BotCard({
           />
           <div className="min-w-0">
             <div className="flex min-w-0 items-center gap-2">
-              <h3 className="truncate text-lg font-black tracking-[-0.035em] text-white">{bot.name}</h3>
+              <h3 className="truncate text-lg font-black tracking-[-0.035em] text-white">{displayName}</h3>
               <StatusBadge status={bot.status} />
             </div>
-            <p className="mt-1 truncate font-mono text-[11px] text-slate-500">{displayName}</p>
             <p className="mt-2 truncate font-mono text-xs font-semibold text-slate-300">{bot.host}:{bot.port}</p>
           </div>
         </div>

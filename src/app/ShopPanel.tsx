@@ -443,12 +443,13 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
       </div>
 
       {/* free trial */}
-      <div className="relative mt-8 overflow-hidden rounded-[1.7rem] p-[1px]">
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-500/40 via-slate-700/40 to-slate-800/50" />
-        <div className="relative rounded-[1.65rem] bg-slate-900/80 p-5 backdrop-blur-xl sm:p-6">
+      <div className="relative mt-8 overflow-hidden rounded-[1.8rem] p-[1px] shadow-[0_24px_90px_-70px_color-mix(in_srgb,var(--color-emerald-500)_75%,transparent)]">
+        <div className="absolute inset-0 rounded-[1.8rem] bg-gradient-to-r from-emerald-300/45 via-indigo-400/25 to-slate-700/40" />
+        <div className="relative overflow-hidden rounded-[1.75rem] bg-slate-900/82 p-5 backdrop-blur-xl sm:p-6">
+          <div className="pointer-events-none absolute right-8 top-[-70px] h-44 w-44 rounded-full bg-emerald-300/10 blur-3xl" />
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-lg shadow-black/30">
+              <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-emerald-300 to-emerald-600 text-slate-950 shadow-[0_18px_55px_-32px_color-mix(in_srgb,var(--color-emerald-500)_90%,transparent)] ring-1 ring-white/15">
                 <TicketStarIcon size={18} />
               </div>
               <div>
@@ -458,9 +459,8 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
                     free
                   </span>
                 </div>
-                <p className="mt-0.5 text-xs leading-relaxed text-slate-400">
-                  Try the panel with a bot — no payment, no key, activates
-                  instantly. One trial per account.
+                <p className="mt-1 text-sm leading-relaxed text-slate-400">
+                  Try the panel with one bot — no payment, no key, instant activation. One trial per account.
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {["1 bot", "24 hours", "no payment", "instant"].map((chip) => (
@@ -486,7 +486,7 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
               <button
                 onClick={() => void claimTrial()}
                 disabled={trialBusy}
-                className="btn-primary rounded-xl bg-gradient-to-b from-emerald-400 to-emerald-500 px-5 py-2.5 text-xs font-bold text-emerald-950 transition hover:from-emerald-300 hover:to-emerald-400 disabled:opacity-50"
+                className="rounded-2xl bg-emerald-300 px-5 py-3 text-sm font-black text-slate-950 shadow-[0_18px_55px_-34px_color-mix(in_srgb,var(--color-emerald-500)_90%,transparent)] transition hover:bg-emerald-200 active:scale-[.985] disabled:opacity-50"
               >
                 {trialBusy ? "Activating…" : "Claim free trial"}
               </button>
@@ -542,10 +542,10 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
       {/* Checkout Modal */}
       {invoice && (
         <div className="fixed inset-0 z-[100] grid place-items-center p-4 sm:p-6">
-          <div className="absolute inset-0 animate-fade-in bg-[#030712]/80 backdrop-blur-xl" onClick={cancelInvoice} />
+          <div className="absolute inset-0 animate-fade-in bg-[#020617]/84 backdrop-blur-2xl" onClick={cancelInvoice} />
           <div className="relative z-10 flex w-full animate-pop-in items-center justify-center">
-            <div className="max-h-[92vh] w-full max-w-[460px] overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl shadow-black/40">
-            <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
+            <div className="max-h-[92vh] w-full max-w-[500px] overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950/92 shadow-[0_35px_120px_-55px_rgba(0,0,0,.98)] backdrop-blur-2xl">
+            <div className="flex items-center justify-between border-b border-white/[0.08] bg-white/[0.025] px-5 py-4">
               <div className="flex items-center gap-2.5">
                 <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-800 text-slate-300 ring-1 ring-slate-700">
                   <LtcIcon />
@@ -555,21 +555,21 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
                   <p className="text-[11px] text-slate-500">{paidInfo ? "License ready to redeem" : `${tierOf(invoice)} · 1 month`}</p>
                 </div>
               </div>
-              <button onClick={cancelInvoice} className="grid h-7 w-7 place-items-center rounded-full bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white">
+              <button onClick={cancelInvoice} className="grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-slate-400 transition hover:bg-white/[0.08] hover:text-white">
                 ✕
               </button>
             </div>
 
-            <div className="p-5">
+            <div className="max-h-[calc(92vh-73px)] overflow-y-auto p-5">
               {!paidInfo ? (
                 <>
                   {/* order summary */}
-                  <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold text-white">{tierOf(invoice)} plan</span>
                       <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-medium text-slate-400">{invoice.bots ?? "—"} bots · {invoice.hours ?? "—"}h/day</span>
                     </div>
-                    <div className="mt-3 flex items-end justify-between border-t border-slate-800 pt-3">
+                    <div className="mt-3 flex items-end justify-between border-t border-white/[0.08] pt-3">
                       <span className="text-xs text-slate-500">Total due</span>
                       <div className="text-right">
                         <div className="text-lg font-bold text-white">{fmtUsd(invoice.amountUSD)}</div>
@@ -584,45 +584,45 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
                       <span className="text-slate-500">Rate locks for</span>
                       <span className={`font-mono font-bold ${urgent ? "text-rose-400" : "text-slate-300"}`}>{timeLeft || "30:00"}</span>
                     </div>
-                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-800">
+                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-800 p-0.5">
                       <div
-                        className={`h-full rounded-full transition-all duration-1000 ${urgent ? "bg-rose-500" : "bg-gradient-to-r from-indigo-500 to-blue-500"}`}
+                        className={`h-full rounded-full transition-all duration-1000 ${urgent ? "bg-rose-500" : "bg-gradient-to-r from-emerald-300 via-indigo-300 to-sky-300"}`}
                         style={{ width: `${Math.round(progress * 100)}%` }}
                       />
                     </div>
                   </div>
 
                   {/* payment details */}
-                  <div className="mt-4 grid grid-cols-[1fr_118px] gap-3">
+                  <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_128px]">
                     <div className="space-y-3">
                       <div>
                         <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Send exactly</div>
-                        <div className="mt-1.5 flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5">
+                        <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2.5">
                           <span className="flex-1 truncate font-mono text-xs font-bold text-white">{invoice.amountLTC} LTC</span>
-                          <button onClick={() => copy(invoice.amountLTC, "amt")} className="rounded bg-slate-800 px-2 py-1 text-[10px] font-bold text-slate-300 hover:bg-slate-700">
+                          <button onClick={() => copy(invoice.amountLTC, "amt")} className="rounded-lg border border-white/10 bg-white/[0.055] px-2 py-1 text-[10px] font-bold text-slate-300 hover:bg-white/[0.09]">
                             {copied === "amt" ? "✓" : "COPY"}
                           </button>
                         </div>
                       </div>
                       <div>
                         <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500">To address</div>
-                        <div className="mt-1.5 flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5">
+                        <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2.5">
                           <span className="flex-1 truncate font-mono text-[11px] text-white">{invoice.ltcAddress}</span>
-                          <button onClick={() => copy(invoice.ltcAddress, "addr")} className="rounded bg-slate-800 px-2 py-1 text-[10px] font-bold text-slate-300 hover:bg-slate-700">
+                          <button onClick={() => copy(invoice.ltcAddress, "addr")} className="rounded-lg border border-white/10 bg-white/[0.055] px-2 py-1 text-[10px] font-bold text-slate-300 hover:bg-white/[0.09]">
                             {copied === "addr" ? "✓" : "COPY"}
                           </button>
                         </div>
                       </div>
                       <button
                         onClick={() => copy(payUri, "uri")}
-                        className="w-full rounded-lg border border-slate-700 bg-slate-900 py-2 text-[11px] font-semibold text-slate-300 hover:bg-slate-800"
+                        className="w-full rounded-xl border border-white/10 bg-white/[0.04] py-2.5 text-[11px] font-bold text-slate-300 transition hover:bg-white/[0.075]"
                       >
                         {copied === "uri" ? "✓ Payment link copied" : "Copy payment link (opens wallet)"}
                       </button>
                     </div>
                     <div className="flex flex-col items-center gap-1.5">
                       {!qrFailed ? (
-                        <div className="rounded-lg bg-white p-1.5">
+                        <div className="rounded-2xl bg-white p-2 shadow-lg">
                           <img
                             src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=0&data=${encodeURIComponent(payUri)}`}
                             alt="LTC QR"
@@ -642,12 +642,12 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
                   </div>
 
                   {/* waiting */}
-                  <div className="mt-4 flex items-center justify-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-xs text-amber-300">
+                  <div className="mt-4 flex items-center justify-center gap-2 rounded-2xl border border-amber-500/20 bg-amber-500/8 px-3 py-3 text-xs font-semibold text-amber-200">
                     <span className="h-3 w-3 animate-spin rounded-full border-2 border-amber-500/30 border-t-amber-400" />
                     Waiting for payment — checking every 8s…
                   </div>
 
-                  <div className="mt-3 rounded-lg bg-slate-900/60 px-3 py-2.5 text-[11px] leading-relaxed text-slate-400">
+                  <div className="mt-3 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-3 py-2.5 text-[11px] leading-relaxed text-slate-400">
                     <div className="flex gap-2">
                       <span className="mt-0.5">ⓘ</span>
                       <span>
@@ -657,10 +657,10 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
                   </div>
 
                   <div className="mt-4 flex gap-2">
-                    <button onClick={checkPaymentNow} disabled={checking} className="flex-1 rounded-xl border border-slate-700 bg-slate-800 py-2.5 text-xs font-semibold text-slate-200 hover:bg-slate-700 disabled:opacity-50">
+                    <button onClick={checkPaymentNow} disabled={checking} className="flex-1 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 py-3 text-xs font-black text-emerald-200 transition hover:bg-emerald-300/15 disabled:opacity-50">
                       {checking ? "Checking…" : "I've paid — check now"}
                     </button>
-                    <button onClick={cancelInvoice} className="flex-1 rounded-xl border border-rose-900/40 bg-rose-500/10 py-2.5 text-xs font-semibold text-rose-400 hover:bg-rose-500/20">
+                    <button onClick={cancelInvoice} className="flex-1 rounded-2xl border border-rose-400/25 bg-rose-500/10 py-3 text-xs font-black text-rose-300 transition hover:bg-rose-500/20">
                       Cancel invoice
                     </button>
                   </div>
