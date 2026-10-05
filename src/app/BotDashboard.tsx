@@ -417,12 +417,12 @@ function BotCard({
         </div>
       )}
 
-      <div className="mt-auto grid grid-cols-[1fr_1fr_46px] gap-2 pt-4">
+      <div className="mt-auto grid grid-cols-[1fr_1fr_48px] gap-2 pt-4">
         {running ? (
           <button
             disabled={busy}
             onClick={() => act(`/api/bots/${bot.id}/stop`, "stop")}
-            className="inline-flex h-11 items-center justify-center rounded-2xl border border-rose-400/30 bg-gradient-to-b from-rose-400/95 to-rose-600/85 px-3 text-sm font-black text-white shadow-[0_18px_50px_-32px_rgba(244,63,94,.9)] transition hover:brightness-110 active:scale-[.985] disabled:opacity-50"
+            className="group/stop relative inline-flex h-12 items-center justify-center overflow-hidden rounded-2xl border border-rose-300/35 bg-[linear-gradient(180deg,rgba(251,113,133,.98),rgba(225,29,72,.88))] px-3 text-sm font-black text-white shadow-[0_20px_65px_-38px_rgba(244,63,94,.95)] transition hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 active:scale-[.985] disabled:opacity-50"
           >
             Stop
           </button>
@@ -430,14 +430,14 @@ function BotCard({
           <button
             disabled={busy}
             onClick={() => act(`/api/bots/${bot.id}/start`, "start")}
-            className="inline-flex h-11 items-center justify-center rounded-2xl border border-emerald-300/35 bg-gradient-to-b from-emerald-300 to-emerald-500 px-3 text-sm font-black text-slate-950 shadow-[0_18px_50px_-32px_color-mix(in_srgb,var(--color-emerald-500)_90%,transparent)] transition hover:brightness-110 active:scale-[.985] disabled:opacity-50"
+            className="group/start relative inline-flex h-12 items-center justify-center overflow-hidden rounded-2xl border border-emerald-200/45 bg-[linear-gradient(180deg,var(--color-emerald-300),var(--color-emerald-500))] px-3 text-sm font-black text-slate-950 shadow-[0_20px_65px_-38px_color-mix(in_srgb,var(--color-emerald-500)_95%,transparent)] transition hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 active:scale-[.985] disabled:opacity-50"
           >
             Start
           </button>
         )}
         <button
           onClick={onSelect}
-          className="inline-flex h-11 items-center justify-center rounded-2xl border border-indigo-300/25 bg-gradient-to-b from-indigo-400/18 to-indigo-500/10 px-3 text-sm font-black text-indigo-100 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-indigo-200/45 hover:bg-indigo-300/18 active:scale-[.985]"
+          className="inline-flex h-12 items-center justify-center rounded-2xl border border-indigo-300/25 bg-[linear-gradient(180deg,rgba(129,140,248,.2),rgba(99,102,241,.11))] px-3 text-sm font-black text-indigo-100 shadow-[inset_0_1px_0_rgba(255,255,255,.05),0_16px_48px_-38px_rgba(99,102,241,.9)] transition hover:-translate-y-0.5 hover:border-indigo-200/45 hover:bg-indigo-300/18 active:translate-y-0 active:scale-[.985]"
         >
           Open
         </button>
@@ -445,7 +445,7 @@ function BotCard({
           onClick={onManage}
           disabled={busy}
           title="Manage bot"
-          className="grid h-11 w-11 place-items-center rounded-2xl border border-sky-300/22 bg-sky-400/10 text-sky-200 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-sky-200/45 hover:bg-sky-300/16 hover:text-white active:scale-[.96] disabled:opacity-50"
+          className="grid h-12 w-12 place-items-center rounded-2xl border border-sky-300/24 bg-[linear-gradient(180deg,rgba(56,189,248,.14),rgba(99,102,241,.08))] text-sky-100 shadow-[inset_0_1px_0_rgba(255,255,255,.05),0_16px_48px_-40px_rgba(56,189,248,.9)] transition hover:-translate-y-0.5 hover:border-sky-200/45 hover:bg-sky-300/16 hover:text-white active:translate-y-0 active:scale-[.96] disabled:opacity-50"
         >
           <ManageGlyph />
         </button>
@@ -561,13 +561,13 @@ export function AddBotModal({
           </div>
           <button
             onClick={onClose}
-            className="grid h-8 w-8 place-items-center rounded-full bg-white/5 text-slate-400 transition hover:bg-white/10 hover:text-white"
+            className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-slate-400 transition hover:bg-white/[0.08] hover:text-white"
           >
             ✕
           </button>
         </div>
 
-        <div className="overflow-y-auto p-6 space-y-5">
+        <div className="scrollbar-thin relative space-y-5 overflow-y-auto p-6">
           <Field label="Bot name (optional)">
             <input
               value={name}
@@ -663,17 +663,17 @@ export function AddBotModal({
           )}
         </div>
 
-        <div className="flex justify-end gap-3 border-t border-white/5 bg-black/20 p-5">
+        <div className="relative flex justify-end gap-3 border-t border-white/[0.06] bg-black/25 p-5">
           <button
             onClick={onClose}
-            className="rounded-xl border border-white/10 px-5 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
+            className="rounded-2xl border border-white/10 bg-white/[0.035] px-5 py-2.5 text-sm font-bold text-slate-300 transition hover:bg-white/[0.06] hover:text-white active:scale-[.985]"
           >
             Cancel
           </button>
           <button
             onClick={submit}
             disabled={submitting}
-            className="rounded-xl bg-gradient-to-b from-emerald-400 to-emerald-500 px-5 py-2.5 text-sm font-bold text-emerald-950 shadow-[0_0_20px_-5px_color-mix(in_srgb,var(--color-emerald-500)_40%,transparent)] transition hover:from-emerald-300 hover:to-emerald-400 disabled:opacity-50"
+            className="rounded-2xl bg-gradient-to-b from-emerald-300 to-emerald-500 px-5 py-2.5 text-sm font-black text-slate-950 shadow-[0_18px_60px_-38px_color-mix(in_srgb,var(--color-emerald-500)_95%,transparent)] transition hover:brightness-110 active:scale-[.985] disabled:opacity-50"
           >
             {submitting ? "Creating…" : "Create & connect"}
           </button>
@@ -1006,29 +1006,29 @@ export function EditBotModal({
 
   return (
     <Overlay onClose={onClose}>
-      <div className="premium-modal flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-[24px]">
-        <div className="flex items-center justify-between border-b border-white/5 bg-white/[0.02] px-6 py-5">
-          <div className="flex items-center gap-4">
-            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-slate-600 to-slate-800 text-xl shadow-lg ring-1 ring-slate-600/50">
-              <GearIcon size={16} />
-            </div>
+      <div className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] border border-white/[0.09] bg-slate-950/92 shadow-[0_34px_120px_-55px_rgba(0,0,0,.98)] backdrop-blur-2xl">
+        <div className="pointer-events-none absolute right-[-70px] top-[-70px] h-48 w-48 rounded-full bg-emerald-300/10 blur-3xl" />
+        <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-emerald-200/45 to-transparent" />
+        <div className="relative flex items-center justify-between border-b border-white/[0.06] bg-white/[0.025] px-6 py-5">
+          <div className="flex min-w-0 items-center gap-4">
+            <BotAvatar username={bot.username} status={bot.status} className="h-14 w-12 rounded-2xl text-lg" />
             <div className="min-w-0">
-              <h2 className="truncate text-lg font-bold text-white">{bot.name}</h2>
-              <p className="truncate text-xs font-medium text-slate-400">
+              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-200/80">manage bot</p>
+              <h2 className="mt-1 truncate text-xl font-black tracking-[-0.04em] text-white">{bot.username || bot.name}</h2>
+              <p className="mt-0.5 truncate font-mono text-[11px] font-medium text-slate-400">
                 {bot.host}:{bot.port}
-                {bot.username ? ` · ${bot.username}` : ""}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="grid h-8 w-8 place-items-center rounded-full bg-white/5 text-slate-400 transition hover:bg-white/10 hover:text-white"
+            className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-slate-400 transition hover:bg-white/[0.08] hover:text-white"
           >
             ✕
           </button>
         </div>
 
-        <div className="overflow-y-auto p-6 space-y-5">
+        <div className="scrollbar-thin relative space-y-5 overflow-y-auto p-6">
           <Field
             label="New Minecraft token"
             hint="Paste a fresh minecraft.net / bearer (access) token. Leave blank to keep the current one."
@@ -1127,8 +1127,8 @@ export function EditBotModal({
             </Field>
           )}
           
-          <div className="border-t border-slate-800 pt-4 mt-4">
-            <h3 className="text-sm font-semibold text-slate-300 mb-4">Beam Settings</h3>
+          <div className="mt-4 rounded-[1.4rem] border border-white/[0.08] bg-white/[0.025] p-4">
+            <h3 className="mb-4 text-sm font-black text-white">Bot flow settings</h3>
             <div className="space-y-4">
               <Field label="Beam Type">
                 <select
@@ -1240,17 +1240,17 @@ export function EditBotModal({
           </p>
         </div>
 
-        <div className="flex justify-end gap-3 border-t border-white/5 bg-black/20 p-5">
+        <div className="relative flex justify-end gap-3 border-t border-white/[0.06] bg-black/25 p-5">
           <button
             onClick={onClose}
-            className="rounded-xl border border-white/10 px-5 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
+            className="rounded-2xl border border-white/10 bg-white/[0.035] px-5 py-2.5 text-sm font-bold text-slate-300 transition hover:bg-white/[0.06] hover:text-white active:scale-[.985]"
           >
             Cancel
           </button>
           <button
             onClick={save}
             disabled={saving}
-            className="rounded-xl bg-gradient-to-b from-emerald-400 to-emerald-500 px-5 py-2.5 text-sm font-bold text-emerald-950 shadow-[0_0_20px_-5px_color-mix(in_srgb,var(--color-emerald-500)_40%,transparent)] transition hover:from-emerald-300 hover:to-emerald-400 disabled:opacity-50"
+            className="rounded-2xl bg-gradient-to-b from-emerald-300 to-emerald-500 px-5 py-2.5 text-sm font-black text-slate-950 shadow-[0_18px_60px_-38px_color-mix(in_srgb,var(--color-emerald-500)_95%,transparent)] transition hover:brightness-110 active:scale-[.985] disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save changes"}
           </button>

@@ -215,8 +215,13 @@ h3 {
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--color-emerald-400) 30%, transparent);
-  color: #fff;
+  background: color-mix(in srgb, var(--color-emerald-400) 16%, transparent);
+  color: #e5edf5;
+}
+
+.home-shell ::selection {
+  background: color-mix(in srgb, var(--zb-accent-400) 14%, rgba(255, 255, 255, 0.04));
+  color: #eef9ff;
 }
 
 /* Reusable surface treatments */

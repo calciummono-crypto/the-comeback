@@ -283,16 +283,17 @@ export default function AddBotWizard({
         className="relative z-10 flex w-full animate-pop-in items-center justify-center"
       >
         <div className="absolute -inset-1 z-[-1] rounded-[2.1rem] bg-gradient-to-b from-emerald-300/24 via-indigo-400/12 to-transparent opacity-70 blur-2xl" />
-        <div className="premium-modal flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-[2rem] border border-white/[0.09] bg-slate-950/92 shadow-[0_34px_120px_-55px_rgba(0,0,0,.98)]">
+        <div className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] border border-white/[0.09] bg-slate-950/92 shadow-[0_34px_120px_-55px_rgba(0,0,0,.98)] backdrop-blur-2xl">
           {/* header */}
           <div className="relative flex items-center justify-between border-b border-white/5 bg-white/[0.025] px-6 py-5">
             <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-emerald-200/40 to-transparent" />
             <div className="flex items-center gap-4">
-              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white shadow-[0_0_20px_-5px_color-mix(in_srgb,var(--color-emerald-500)_50%,transparent)]">
+              <div className="grid h-13 w-13 place-items-center rounded-2xl border border-emerald-200/20 bg-gradient-to-br from-emerald-300 to-indigo-500 text-slate-950 shadow-[0_18px_60px_-36px_color-mix(in_srgb,var(--color-emerald-500)_90%,transparent)]">
                 <PlusIcon size={22} />
               </div>
               <div>
-                <h2 className="text-xl font-bold tracking-tight text-white">
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-200/80">new session</p>
+                <h2 className="mt-1 text-xl font-black tracking-[-0.04em] text-white">
                   Add a bot
                 </h2>
                 <p className="text-xs font-medium text-slate-400">
@@ -309,7 +310,7 @@ export default function AddBotWizard({
           </div>
 
           {/* step dots */}
-          <div className="flex items-center gap-2 border-b border-white/5 px-6 py-3">
+          <div className="flex items-center gap-2 border-b border-white/[0.06] bg-white/[0.015] px-6 py-3">
             {STEP_LABELS.map((label, i) => (
               <div key={label} className="flex flex-1 items-center gap-2">
                 <div
@@ -340,10 +341,10 @@ export default function AddBotWizard({
           </div>
 
           {/* body — keyed by step so each pane animates in */}
-          <div key={step} className="flex-1 overflow-y-auto p-6 animate-fade-in">
+          <div key={step} className="scrollbar-thin flex-1 overflow-y-auto p-6 animate-fade-in">
             {step === 0 && (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2 rounded-2xl border border-white/[0.06] bg-white/[0.025] p-1.5">
                   {(
                     [
                       { id: "session", label: "Session ID" },
@@ -357,7 +358,7 @@ export default function AddBotWizard({
                         setLoginMode(m.id);
                         setSessionError(null);
                       }}
-                      className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                      className={`rounded-xl border px-3 py-2.5 text-xs font-bold transition ${
                         loginMode === m.id
                           ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300 ring-1 ring-emerald-500/30"
                           : "border-slate-700/80 bg-slate-950/60 text-slate-400 hover:border-slate-500"
@@ -453,7 +454,7 @@ export default function AddBotWizard({
             )}
 
             {step === 1 && (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {SERVERS.map((s) => {
                   const on = serverId === s.id;
                   return (
@@ -491,7 +492,7 @@ export default function AddBotWizard({
                   <p className="text-xs font-semibold text-slate-300">Choose region</p>
                   <p className="mt-1 text-[11px] text-slate-500">Pick the closest proxy for smoother joins.</p>
                 </div>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   {(server?.regions ?? []).map((r) => {
                     const on = region === r.id;
                     return (
@@ -677,10 +678,10 @@ export default function AddBotWizard({
           </div>
 
           {/* footer */}
-          <div className="flex items-center justify-between gap-3 border-t border-white/5 bg-black/25 p-5 backdrop-blur">
+          <div className="flex items-center justify-between gap-3 border-t border-white/[0.06] bg-black/25 p-5 backdrop-blur">
             <button
               onClick={() => (step === 0 ? onClose() : setStep(step - 1))}
-              className="rounded-xl border border-white/10 px-5 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
+              className="rounded-2xl border border-white/10 bg-white/[0.035] px-5 py-2.5 text-sm font-bold text-slate-300 transition hover:bg-white/[0.06] hover:text-white active:scale-[.985]"
             >
               {step === 0 ? "Cancel" : "← Back"}
             </button>
@@ -688,7 +689,7 @@ export default function AddBotWizard({
               <button
                 onClick={() => canNext() && setStep(step + 1)}
                 disabled={!canNext() || checking}
-                className="btn-primary rounded-xl bg-gradient-to-b from-emerald-400 to-emerald-500 px-5 py-2.5 text-sm font-bold text-emerald-950 shadow-[0_0_20px_-5px_color-mix(in_srgb,var(--color-emerald-500)_40%,transparent)] transition-all duration-150 hover:from-emerald-300 hover:to-emerald-400 active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100"
+                className="btn-primary rounded-2xl bg-gradient-to-b from-emerald-300 to-emerald-500 px-5 py-2.5 text-sm font-black text-slate-950 shadow-[0_18px_60px_-38px_color-mix(in_srgb,var(--color-emerald-500)_90%,transparent)] transition-all duration-150 hover:brightness-110 active:scale-[0.985] disabled:opacity-40 disabled:active:scale-100"
               >
                 Next
               </button>
@@ -696,7 +697,7 @@ export default function AddBotWizard({
               <button
                 onClick={() => void create()}
                 disabled={creating}
-                className="btn-primary rounded-xl bg-gradient-to-b from-emerald-400 to-emerald-500 px-5 py-2.5 text-sm font-bold text-emerald-950 shadow-[0_0_20px_-5px_color-mix(in_srgb,var(--color-emerald-500)_40%,transparent)] transition-all duration-150 hover:from-emerald-300 hover:to-emerald-400 active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100"
+                className="btn-primary rounded-2xl bg-gradient-to-b from-emerald-300 to-emerald-500 px-5 py-2.5 text-sm font-black text-slate-950 shadow-[0_18px_60px_-38px_color-mix(in_srgb,var(--color-emerald-500)_90%,transparent)] transition-all duration-150 hover:brightness-110 active:scale-[0.985] disabled:opacity-40 disabled:active:scale-100"
               >
                 {creating ? "Creating…" : "Create & connect"}
               </button>
