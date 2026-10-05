@@ -694,40 +694,61 @@ function ConfirmDeleteModal({
   onClose: () => void;
   onConfirm: () => void;
 }) {
+  const displayName = bot.username || bot.name;
   return (
     <Overlay onClose={onClose}>
-      <div className="premium-modal flex w-full max-w-sm flex-col overflow-hidden rounded-[24px]">
-        <div className="flex items-center gap-4 border-b border-white/5 bg-white/[0.02] px-6 py-5">
-          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-rose-500 to-red-700 text-white shadow-[0_0_20px_-5px_rgba(244,63,94,0.5)]">
-            <TrashIcon size={22} />
+      <div className="relative w-full max-w-md overflow-hidden rounded-[2rem] border border-rose-300/18 bg-slate-950/92 shadow-[0_35px_120px_-55px_rgba(0,0,0,.98)] backdrop-blur-2xl">
+        <div className="pointer-events-none absolute right-[-70px] top-[-70px] h-44 w-44 rounded-full bg-rose-500/18 blur-3xl" />
+        <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-rose-200/50 to-transparent" />
+
+        <div className="relative flex items-start gap-4 border-b border-white/[0.06] bg-white/[0.025] px-6 py-5">
+          <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-rose-300/25 bg-rose-500/12 text-rose-200 shadow-[0_20px_70px_-38px_rgba(244,63,94,.95)]">
+            <TrashIcon size={24} />
           </div>
-          <div>
-            <h2 className="text-lg font-bold tracking-tight text-white">
-              Delete bot
-            </h2>
-            <p className="text-xs font-medium text-slate-400">
-              This stops the bot and removes it permanently.
-            </p>
+          <div className="min-w-0 flex-1">
+            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-rose-200/80">danger action</p>
+            <h2 className="mt-1 text-xl font-black tracking-[-0.04em] text-white">Delete this bot?</h2>
+            <p className="mt-1 text-xs leading-5 text-slate-400">This removes the bot card and stops any running session for this account.</p>
           </div>
-        </div>
-        <div className="px-6 py-5">
-          <p className="text-sm text-slate-300">
-            Delete bot <b className="text-white">&quot;{bot.name}&quot;</b>?
-          </p>
-        </div>
-        <div className="flex justify-end gap-3 border-t border-white/5 bg-black/20 p-5">
           <button
             onClick={onClose}
-            className="rounded-xl border border-white/10 px-5 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
+            disabled={busy}
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-slate-400 transition hover:bg-white/[0.08] hover:text-white disabled:opacity-50"
+            aria-label="Close delete confirmation"
           >
-            Cancel
+            ✕
+          </button>
+        </div>
+
+        <div className="relative px-6 py-5">
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.035] p-4">
+            <div className="flex items-center gap-3">
+              <BotAvatar username={bot.username} status={bot.status} className="h-12 w-12 rounded-2xl text-lg" />
+              <div className="min-w-0">
+                <div className="truncate text-sm font-black text-white">{displayName}</div>
+                <div className="mt-0.5 truncate font-mono text-[11px] text-slate-500">{bot.host}:{bot.port}</div>
+              </div>
+            </div>
+          </div>
+          <p className="mt-4 rounded-2xl border border-rose-400/20 bg-rose-500/[0.08] px-4 py-3 text-xs leading-6 text-rose-100/85">
+            This cannot be undone. You can add the account again later, but this saved bot entry and its local settings will be removed now.
+          </p>
+        </div>
+
+        <div className="relative grid gap-2 border-t border-white/[0.06] bg-black/25 p-5 sm:grid-cols-2">
+          <button
+            onClick={onClose}
+            disabled={busy}
+            className="rounded-2xl border border-white/10 bg-white/[0.035] px-5 py-3 text-sm font-bold text-slate-300 transition hover:bg-white/[0.06] hover:text-white active:scale-[.985] disabled:opacity-50"
+          >
+            Keep bot
           </button>
           <button
             onClick={onConfirm}
             disabled={busy}
-            className="rounded-xl bg-gradient-to-b from-rose-400 to-rose-500 px-5 py-2.5 text-sm font-bold text-rose-950 shadow-[0_0_20px_-5px_rgba(244,63,94,0.4)] transition hover:from-rose-300 hover:to-rose-400 disabled:opacity-50"
+            className="rounded-2xl border border-rose-300/25 bg-gradient-to-b from-rose-400 to-rose-600 px-5 py-3 text-sm font-black text-white shadow-[0_18px_60px_-35px_rgba(244,63,94,.95)] transition hover:brightness-110 active:scale-[.985] disabled:opacity-50"
           >
-            {busy ? "Deleting…" : "Delete"}
+            {busy ? "Deleting…" : "Delete permanently"}
           </button>
         </div>
       </div>
@@ -745,7 +766,7 @@ function Overlay({
   return (
     <div className="fixed inset-0 z-[100] grid place-items-center p-4 sm:p-6">
       <div
-        className="absolute inset-0 animate-fade-in bg-[#030712]/80 backdrop-blur-xl"
+        className="absolute inset-0 animate-fade-in bg-[#030712]/86 backdrop-blur-2xl"
         onClick={onClose}
       />
       <div
@@ -753,7 +774,7 @@ function Overlay({
         className="relative z-10 flex w-full animate-pop-in items-center justify-center"
       >
         {/* Subtle under-glow for the modal */}
-        <div className="absolute -inset-1 z-[-1] rounded-[2rem] bg-gradient-to-b from-emerald-500/20 to-indigo-500/10 blur-xl opacity-60" />
+        <div className="absolute -inset-1 z-[-1] rounded-[2rem] bg-gradient-to-b from-emerald-500/16 to-indigo-500/8 blur-2xl opacity-70" />
         {children}
       </div>
     </div>

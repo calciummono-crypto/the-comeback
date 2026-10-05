@@ -425,3 +425,16 @@ textarea {
   padding: 1.35rem;
   box-shadow: 0 28px 70px -40px rgba(0,0,0,.95), inset 0 1px 0 rgba(255,255,255,.06);
 }
+
+/* Sidebar stays usable at browser zoom / short heights. */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.34) transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.34);
+  border-radius: 999px;
+}

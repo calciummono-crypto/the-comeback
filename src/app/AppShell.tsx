@@ -337,7 +337,7 @@ export default function AppShell() {
     <div className="flex min-h-screen">
       <ToastHost />
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-emerald-300/10 bg-[#070b10]/92 shadow-[18px_0_70px_-55px_color-mix(in_srgb,var(--color-emerald-500)_55%,transparent)] backdrop-blur-2xl transition-all duration-300 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 min-w-0 flex-col overflow-hidden border-r border-emerald-300/10 bg-[#070b10]/92 shadow-[18px_0_70px_-55px_color-mix(in_srgb,var(--color-emerald-500)_55%,transparent)] backdrop-blur-2xl transition-all duration-300 lg:translate-x-0 ${
           mobileNav ? "translate-x-0" : "-translate-x-full"
         } ${collapsed ? "lg:w-[76px]" : "lg:w-64"}`}
       >
@@ -360,7 +360,7 @@ export default function AppShell() {
           </button>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-1.5 px-3 py-4">
+        <nav className="scrollbar-thin flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain px-3 py-4">
           {navItems.map((item) => (
             <button
               key={item.key}
@@ -372,7 +372,7 @@ export default function AppShell() {
               className={`group flex items-center rounded-xl text-sm font-medium transition-all ${
                 collapsed
                   ? "justify-center px-0 py-2.5"
-                  : "gap-3 px-3.5 py-2.5"
+                  : "min-w-0 gap-3 px-3.5 py-2.5"
               } ${
                 activeTab === item.key
                   ? "bg-emerald-300/10 text-emerald-100 ring-1 ring-emerald-300/20 shadow-[0_0_28px_-20px_color-mix(in_srgb,var(--color-emerald-500)_80%,transparent)]"
@@ -388,7 +388,7 @@ export default function AppShell() {
               >
                 {item.icon}
               </span>
-              {!collapsed && item.label}
+              {!collapsed && <span className="min-w-0 truncate">{item.label}</span>}
               {!collapsed && activeTab === item.key && (
                 <span className="ml-auto h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_14px_color-mix(in_srgb,var(--color-emerald-500)_90%,transparent)]" />
               )}
@@ -396,8 +396,8 @@ export default function AppShell() {
           ))}
         </nav>
 
-        <div className="border-t border-white/[0.06] p-3">
-          <div className={`flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.035] p-3 ${collapsed ? "lg:justify-center lg:gap-0 lg:p-2" : ""}`}>
+        <div className="shrink-0 border-t border-white/[0.06] bg-[#070b10]/70 p-3 backdrop-blur">
+          <div className={`flex min-w-0 items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.035] p-3 ${collapsed ? "lg:justify-center lg:gap-0 lg:p-2" : ""}`}>
             {me.avatar ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={me.avatar} alt="" className="h-9 w-9 rounded-full" />
@@ -442,11 +442,11 @@ export default function AppShell() {
           <button
             onClick={logout}
             title="Logout"
-            className={`mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-white/[0.08] px-3 py-2 text-xs font-medium text-slate-400 transition hover:border-rose-500/40 hover:text-rose-300 ${
+            className={`mt-2 flex min-w-0 w-full items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 py-2 text-xs font-bold text-slate-400 transition hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-300 active:scale-[.985] ${
               collapsed ? "lg:px-1" : ""
             }`}
           >
-            <LogoutIcon /> {!collapsed && "Logout"}
+            <LogoutIcon /> {!collapsed && <span className="truncate">Logout</span>}
           </button>
         </div>
       </aside>
