@@ -25,3 +25,8 @@ export const ADMIN_USERNAMES = (
 export function isDiscordConfigured(): boolean {
   return Boolean(DISCORD_CLIENT_ID && DISCORD_CLIENT_SECRET);
 }
+
+// Public Discord invite shown on the landing page and banners. Set
+// NEXT_PUBLIC_DISCORD_INVITE (e.g. https://discord.gg/abc123). When empty the
+// invite buttons are hidden instead of linking to a dead URL.
+export const DISCORD_INVITE_URL = process.env.NEXT_PUBLIC_DISCORD_INVITE || "";

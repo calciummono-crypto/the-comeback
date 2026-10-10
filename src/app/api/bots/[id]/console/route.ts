@@ -1,3 +1,4 @@
+import { rateLimitRequest } from "@/lib/ratelimit";
 import {
   getLogs,
   getRuntimeView,
@@ -34,6 +35,9 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const limited = rateLimitRequest(req, "bot-console", 60, 60000);
+  if (limited) return limited;
+
   const { id } = await params;
   const auth = await authorizeBot(id);
   if (!auth.ok) {

@@ -1,3 +1,4 @@
+import { rateLimitRequest } from "@/lib/ratelimit";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/db";
 import { invoices, shopPlans, licenseKeys } from "@/db/schema";
@@ -8,7 +9,10 @@ import { logDiscordEvent } from "@/lib/eventLog";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const limited = rateLimitRequest(req, "invoice-check", 30, 60000);
+  if (limited) return limited;
+
   const { id } = await params;
   const me = await getCurrentUser();
   if (!me) return Response.json({ error: "Unauthorized" }, { status: 401 });
@@ -54,7 +58,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   // Allow admin to force via special header? We'll implement a backdoor: if body contains forcePaid true and user is admin
   try {
-    const body = await _req.json().catch(() => ({}));
+    const body = await req.json().catch(() => ({}));
     if (body?.forcePaid && me.role === "admin") {
       paid = true;
     }

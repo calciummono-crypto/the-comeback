@@ -1,3 +1,4 @@
+import { rateLimitRequest } from "@/lib/ratelimit";
 import { db } from "@/db";
 import { bots } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -9,9 +10,12 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const limited = rateLimitRequest(req, "bot-stop", 60, 60000);
+  if (limited) return limited;
+
   const { id } = await params;
   const auth = await authorizeBot(id);
   if (!auth.ok) {

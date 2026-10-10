@@ -1,3 +1,4 @@
+import { rateLimitRequest } from "@/lib/ratelimit";
 import { getCurrentUser } from "@/lib/auth";
 import { redeemLicenseKey } from "@/lib/license";
 import { logDiscordEvent } from "@/lib/eventLog";
@@ -6,6 +7,9 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  const limited = rateLimitRequest(req, "redeem", 10, 900000);
+  if (limited) return limited;
+
   const me = await getCurrentUser();
   if (!me) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });

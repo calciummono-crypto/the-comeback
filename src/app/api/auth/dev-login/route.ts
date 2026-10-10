@@ -1,3 +1,4 @@
+import { rateLimitRequest } from "@/lib/ratelimit";
 import { NextResponse } from "next/server";
 import {
   getOrCreateDevUser,
@@ -11,6 +12,9 @@ export const runtime = "nodejs";
 
 // Dev/guest login — only available when Discord OAuth is NOT configured.
 export async function POST(req: Request) {
+  const limited = rateLimitRequest(req, "dev-login", 5, 900000);
+  if (limited) return limited;
+
   if (isDiscordConfigured()) {
     return NextResponse.json(
       { error: "Dev login is disabled; use Discord." },

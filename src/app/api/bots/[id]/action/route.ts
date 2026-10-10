@@ -1,3 +1,4 @@
+import { rateLimitRequest } from "@/lib/ratelimit";
 import {
   selectHotbarSlot,
   activateHeldItem,
@@ -17,6 +18,9 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const limited = rateLimitRequest(req, "bot-action", 240, 60000);
+  if (limited) return limited;
+
   const { id } = await params;
   const auth = await authorizeBot(id);
   if (!auth.ok) {

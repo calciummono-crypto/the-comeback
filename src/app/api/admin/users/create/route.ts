@@ -1,3 +1,4 @@
+import { rateLimitRequest } from "@/lib/ratelimit";
 import { NextResponse } from "next/server";
 import { getCurrentUser, createLocalUser } from "@/lib/auth";
 
@@ -5,6 +6,9 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  const limited = rateLimitRequest(req, "admin-create-user", 30, 60000);
+  if (limited) return limited;
+
   const me = await getCurrentUser();
   if (!me || me.role !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

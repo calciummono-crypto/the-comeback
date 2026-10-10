@@ -1,3 +1,4 @@
+import { rateLimitRequest } from "@/lib/ratelimit";
 import { randomBytes } from "crypto";
 import { db } from "@/db";
 import { users } from "@/db/schema";
@@ -25,6 +26,9 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const limited = rateLimitRequest(req, "admin-reset-pw", 20, 60000);
+  if (limited) return limited;
+
   const me = await getCurrentUser();
   if (!me || me.role !== "admin") {
     return Response.json({ error: "Forbidden" }, { status: 403 });

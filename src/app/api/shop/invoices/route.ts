@@ -1,3 +1,4 @@
+import { rateLimitRequest } from "@/lib/ratelimit";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/db";
 import { invoices, shopPlans } from "@/db/schema";
@@ -51,6 +52,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const limited = rateLimitRequest(req, "invoice-create", 10, 600000);
+  if (limited) return limited;
+
   const me = await getCurrentUser();
   if (!me) {
     return Response.json({ error: "Not logged in - please login properly" }, { status: 401 });

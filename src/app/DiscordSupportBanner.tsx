@@ -1,4 +1,5 @@
 "use client";
+import { DISCORD_INVITE_URL } from "@/lib/config";
 
 import { useState } from "react";
 
@@ -25,7 +26,7 @@ export default function DiscordSupportBanner({ className = "" }: { className?: s
           </div>
         </div>
         <a
-          href="https://discord.gg/"
+          href={DISCORD_INVITE_URL || "#"}
           target="_blank"
           rel="noreferrer"
           className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-2xl bg-[#5865F2] px-4 text-xs font-black text-white shadow-[0_16px_45px_-28px_rgba(88,101,242,.95)] transition hover:brightness-110 active:scale-[.985]"

@@ -1,3 +1,4 @@
+import { rateLimitRequest } from "@/lib/ratelimit";
 import { db } from "@/db";
 import { whenCreated } from "@/lib/webhook";
 import { logDiscordEvent } from "@/lib/eventLog";
@@ -63,6 +64,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const limited = rateLimitRequest(req, "bot-create", 20, 60000);
+  if (limited) return limited;
+
   const user = await getCurrentUser();
   if (!user) {
     return Response.json({ error: "Not authenticated" }, { status: 401 });

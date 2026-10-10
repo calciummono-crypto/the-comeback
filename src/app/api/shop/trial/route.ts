@@ -1,3 +1,4 @@
+import { rateLimitRequest } from "@/lib/ratelimit";
 import { db } from "@/db";
 import { licenses, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -15,7 +16,10 @@ const TRIAL_REASON = "Free trial";
 const TRIAL_SLOTS = 1;
 const TRIAL_HOURS = 24;
 
-export async function POST() {
+export async function POST(req: Request) {
+  const limited = rateLimitRequest(req, "trial", 5, 3600000);
+  if (limited) return limited;
+
   const me = await getCurrentUser();
   if (!me) {
     return Response.json({ error: "Not logged in" }, { status: 401 });
