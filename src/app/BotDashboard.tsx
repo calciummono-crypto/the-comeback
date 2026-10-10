@@ -380,7 +380,7 @@ function BotCard({
       className="mc-panel group relative flex min-h-[246px] flex-col overflow-hidden rounded-[10px] p-4 sm:p-5"
     >
       <div className="pointer-events-none absolute -right-14 -top-14 h-36 w-36 rounded-full bg-[color-mix(in_srgb,var(--mc-glow)_10%,transparent)] blur-3xl transition group-hover:bg-[color-mix(in_srgb,var(--mc-glow)_18%,transparent)]" />
-      <div className="mc-hot-edge pointer-events-none absolute inset-x-7 top-0 h-px" />
+      <div className="mc-hot-edge hot-edge-abs pointer-events-none absolute inset-x-7 top-0 h-px" />
       <div className="pointer-events-none absolute inset-x-7 top-0 h-px bg-gradient-to-r from-transparent via-[color-mix(in_srgb,var(--mc-glow)_60%,transparent)] to-transparent opacity-0 transition group-hover:opacity-100" />
 
       <div className="flex items-start justify-between gap-3">

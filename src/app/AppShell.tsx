@@ -328,7 +328,7 @@ export default function AppShell() {
     <div className="flex min-h-screen">
       <ToastHost />
       <aside
-        className={`mc-panel mc-hot-edge fixed inset-y-0 left-0 z-50 flex w-64 min-w-0 flex-col overflow-hidden !rounded-none !rounded-r-[var(--squircle)] border-y-0 border-l-0 !border-r-1 border-r-[color-mix(in_srgb,var(--mc-glow)_20%,transparent)] bg-[rgba(6,3,10,0.86)] !shadow-none backdrop-blur-2xl transition-all duration-300 lg:translate-x-0 ${
+        className={`mc-panel mc-hot-edge app-sidebar fixed inset-y-0 left-0 z-50 flex w-64 min-w-0 flex-col overflow-hidden !rounded-none !rounded-r-[var(--squircle)] border-y-0 border-l-0 !border-r-1 border-r-[color-mix(in_srgb,var(--mc-glow)_20%,transparent)] bg-[rgba(6,3,10,0.86)] !shadow-none backdrop-blur-2xl transition-all duration-300 lg:translate-x-0 ${
           mobileNav ? "translate-x-0" : "-translate-x-full"
         } ${collapsed ? "lg:w-[76px]" : "lg:w-64"}`}
       >
@@ -457,14 +457,40 @@ export default function AppShell() {
             <Wordmark height={22} />
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setNotificationsOpen((v) => !v)}
-              className="relative grid h-9 w-9 place-items-center rounded-lg border border-slate-800 text-slate-300"
-              aria-label="Open notifications"
-            >
-              <BellIcon />
-              {notifications.length > 0 && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-emerald-300" />}
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setNotificationsOpen((v) => !v)}
+                className="relative grid h-9 w-9 place-items-center rounded-lg border border-slate-800 text-slate-300"
+                aria-label="Open notifications"
+              >
+                <BellIcon />
+                {notifications.length > 0 && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-emerald-300" />}
+              </button>
+              {notificationsOpen && (
+                <div className="animate-pop-in absolute right-0 top-[calc(100%+10px)] z-40 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-white/10 bg-slate-950/95 shadow-[0_28px_100px_-50px_rgba(0,0,0,.95)] backdrop-blur-2xl">
+                  <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
+                    <p className="text-sm font-black text-white">Notifications</p>
+                    <button onClick={() => setNotifications([])} className="text-xs font-semibold text-slate-500">clear</button>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto p-2">
+                    {notifications.length === 0 ? (
+                      <div className="px-4 py-8 text-center text-sm text-slate-500">No notifications yet.</div>
+                    ) : notifications.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => openNotification(item)}
+                        className={`w-full rounded-xl border border-white/[0.06] bg-white/[0.035] p-3 text-left ${item.invoiceId ? "transition hover:border-amber-300/30 hover:bg-amber-300/[0.06]" : ""}`}
+                      >
+                        <p className="text-sm font-bold text-slate-100">{item.title}</p>
+                        <p className="mt-1 text-xs leading-5 text-slate-400">{item.text}</p>
+                        {item.invoiceId && <p className="mt-2 text-[10px] font-bold uppercase tracking-wide text-amber-300">Open invoice</p>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
             <button
               onClick={() => setMobileNav(true)}
               className="grid h-9 w-9 place-items-center rounded-lg border border-slate-800 text-slate-300"
@@ -484,33 +510,9 @@ export default function AppShell() {
               className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-100 outline-none placeholder:text-slate-600"
             />
           </label>
-          {notificationsOpen && (
-            <div className="mt-3 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/90 backdrop-blur-2xl">
-              <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
-                <p className="text-sm font-black text-white">Notifications</p>
-                <button onClick={() => setNotifications([])} className="text-xs font-semibold text-slate-500">clear</button>
-              </div>
-              <div className="max-h-64 overflow-y-auto p-2">
-                {notifications.length === 0 ? (
-                  <div className="px-4 py-8 text-center text-sm text-slate-500">No notifications yet.</div>
-                ) : notifications.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => openNotification(item)}
-                    className={`w-full rounded-xl border border-white/[0.06] bg-white/[0.035] p-3 text-left ${item.invoiceId ? "transition hover:border-amber-300/30 hover:bg-amber-300/[0.06]" : ""}`}
-                  >
-                    <p className="text-sm font-bold text-slate-100">{item.title}</p>
-                    <p className="mt-1 text-xs leading-5 text-slate-400">{item.text}</p>
-                    {item.invoiceId && <p className="mt-2 text-[10px] font-bold uppercase tracking-wide text-amber-300">Open invoice</p>}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
-        <div className="mc-hot-edge sticky top-0 z-20 hidden border-b border-white/[0.07] bg-[rgba(6,3,10,0.72)] px-8 py-4 backdrop-blur-2xl lg:block">
+        <div className="mc-hot-edge app-topbar sticky top-0 z-[60] hidden border-b border-white/[0.07] bg-[rgba(6,3,10,0.72)] px-8 py-4 backdrop-blur-2xl lg:block">
           <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4">
             <label className="mc-notch group flex h-12 w-full max-w-xl items-center gap-3 border border-white/10 bg-white/[0.035] px-4 text-slate-500 shadow-[0_18px_60px_-50px_rgba(0,0,0,.95)] transition focus-within:border-[color-mix(in_srgb,var(--mc-glow)_50%,transparent)] focus-within:bg-white/[0.055] focus-within:shadow-[0_0_26px_-14px_var(--mc-glow)]">
               <SearchIcon />
