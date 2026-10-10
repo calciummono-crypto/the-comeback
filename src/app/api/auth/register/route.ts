@@ -1,11 +1,21 @@
 import { NextResponse } from "next/server";
 import { registerLocalUser, attachSessionCookie } from "@/lib/auth";
 import { getClientIp, recordUserIp } from "@/lib/ip";
+import { rateLimit } from "@/lib/ratelimit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  // Account-creation guard: 5 registrations per IP per hour.
+  const rl = rateLimit(`register:${getClientIp(req)}`, 5, 60 * 60 * 1000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: `Too many attempts — try again in ${rl.retryAfterSec}s` },
+      { status: 429 },
+    );
+  }
+
   let body: { username?: string; password?: string };
   try {
     body = await req.json();

@@ -1,11 +1,21 @@
 import { NextResponse } from "next/server";
 import { authenticateLocalUser, attachSessionCookie } from "@/lib/auth";
 import { getClientIp, recordUserIp } from "@/lib/ip";
+import { rateLimit } from "@/lib/ratelimit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  // Brute-force guard: 10 attempts per IP per 15 minutes.
+  const rl = rateLimit(`login:${getClientIp(req)}`, 10, 15 * 60 * 1000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: `Too many attempts — try again in ${rl.retryAfterSec}s` },
+      { status: 429 },
+    );
+  }
+
   let body: { username?: string; password?: string };
   try {
     body = await req.json();

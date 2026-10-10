@@ -1615,7 +1615,7 @@ export async function selectHotbarSlot(
   }
 }
 
-export async function useHeldItem(id: string): Promise<BotActionResult> {
+export async function activateHeldItem(id: string): Promise<BotActionResult> {
   const rt = runtimes.get(id);
   if (!rt || !rt.bot || rt.status !== "online") {
     return { ok: false, message: "Bot is not online" };
