@@ -53,6 +53,29 @@
   --panel: rgba(17, 24, 39, 0.6);
   --border: rgba(148, 163, 184, 0.12);
   --accent: #6366f1;
+
+  /* Minecraft sunset scene — preset-driven, painted by applySunset() and by
+     the pre-paint script in layout.tsx. These are the "Sunset" fallbacks. */
+  --mc-zenith: #07040a;
+  --mc-dusk: #2a0e2c;
+  --mc-horizon: #7a1445;
+  --mc-glow: #ff2e7e;
+  --mc-sun: #ffc98a;
+  --mc-water: #180a1c;
+  --mc-shimmer: #ff6aa5;
+  --mc-silhouette: #0a050d;
+  /* --- */
+  --sunset-sky: linear-gradient(
+    180deg,
+    var(--mc-zenith) 0%,
+    color-mix(in srgb, var(--mc-dusk) 72%, var(--mc-zenith)) 34%,
+    var(--mc-dusk) 58%,
+    color-mix(in srgb, var(--mc-horizon) 70%, var(--mc-dusk)) 78%,
+    var(--mc-horizon) 90%,
+    var(--mc-glow) 100%
+  );
+  --sunset-glow: color-mix(in srgb, var(--mc-glow) 70%, var(--mc-sun));
+
   --font-body: "Space Grotesk", "Inter", "SF Pro Text", "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-display: "Space Grotesk", "Inter", "SF Pro Display", "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-brand: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -172,27 +195,100 @@ h3 {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
-/* Ambient animated background with premium grid */
-.app-bg {
+/* ---------------------------------------------------------------------------
+   Minecraft sunset backdrop.
+   Layer 1 (the SVG scene) paints the graded sky, blocky sun, cube clouds,
+   treeline and reflective water. Layer 2 is a legibility scrim so UI text
+   stays readable over the horizon. Layer 3 is a 32px pixel grid — the tell
+   that this is Minecraft and not just a gradient.
+--------------------------------------------------------------------------- */
+.mc-backdrop {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background-color: #0b0d1a;
-  background-image: 
-    linear-gradient(rgba(255, 255, 255, 0.014) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.014) 1px, transparent 1px),
-    radial-gradient(
-      90rem 60rem at 20% -20%,
-      color-mix(in srgb, var(--color-emerald-600) 7%, transparent),
-      transparent 60%
-    ),
-    radial-gradient(
-      70rem 50rem at 110% 10%,
-      color-mix(in srgb, var(--color-emerald-500) 5%, transparent),
-      transparent 55%
-    );
-  background-size: 32px 32px, 32px 32px, 100% 100%, 100% 100%;
   pointer-events: none;
+  overflow: hidden;
+  background: var(--mc-zenith);
+  contain: strict;
+}
+
+.mc-scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  animation: mc-rise 1.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Slow sun pulse — a blocky sun should still feel alive. */
+.mc-sun {
+  transform-origin: center;
+  animation: mc-sun-pulse 9s ease-in-out infinite;
+  filter: drop-shadow(0 0 26px color-mix(in srgb, var(--mc-glow) 55%, transparent));
+}
+
+/* Clouds drift right-to-left and wrap; -7s stagger keeps them unsynchronised. */
+.mc-cloud {
+  animation: mc-drift 96s linear infinite;
+}
+
+.mc-clouds {
+  animation: mc-cloud-breathe 24s ease-in-out infinite;
+}
+
+/* Treeline gets a faint rim so the silhouette reads against the glow. */
+.mc-treeline rect {
+  shape-rendering: crispEdges;
+}
+
+.mc-reflection {
+  opacity: 0.34;
+  filter: blur(1.5px);
+  animation: mc-water-sway 11s ease-in-out infinite;
+  shape-rendering: crispEdges;
+}
+
+/* Legibility scrim: transparent over the deep sky, heavier where content
+   sits, so panels never fight the horizon. */
+.mc-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 78% at 50% 8%, transparent 30%, rgba(4, 2, 8, 0.55) 100%),
+    linear-gradient(180deg, rgba(4, 2, 8, 0.62) 0%, rgba(4, 2, 8, 0.28) 42%, rgba(4, 2, 8, 0.5) 100%);
+}
+
+/* 32px pixel grid — pixel-art texture over the whole scene. */
+.mc-grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.25) 70%, transparent);
+}
+
+@keyframes mc-rise {
+  from { opacity: 0; transform: scale(1.04) translateY(2%); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes mc-sun-pulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 22px color-mix(in srgb, var(--mc-glow) 45%, transparent)); }
+  50%      { transform: scale(1.035); filter: drop-shadow(0 0 40px color-mix(in srgb, var(--mc-glow) 70%, transparent)); }
+}
+@keyframes mc-drift {
+  from { transform: translateX(-18vw); }
+  to   { transform: translateX(18vw); }
+}
+@keyframes mc-cloud-breathe {
+  0%, 100% { opacity: 0.78; }
+  50%      { opacity: 1; }
+}
+@keyframes mc-water-sway {
+  0%, 100% { transform: translateX(-4px); }
+  50%      { transform: translateX(4px); }
 }
 
 /* Custom scrollbars */
@@ -224,39 +320,50 @@ h3 {
   color: #eef9ff;
 }
 
-/* Reusable surface treatments */
+/* Reusable surface treatments.
+   Panels are near-black plum glass with a hot hairline — the horizon glow
+   leaks through their edges so they sit inside the sunset rather than on top
+   of it. Borders stay 1px (Vercel rule); radius stays tight (MC rule). */
 .glass {
   background: linear-gradient(
     180deg,
-    rgba(15, 23, 42, 0.4),
-    rgba(9, 9, 11, 0.6)
+    color-mix(in srgb, var(--mc-dusk) 34%, rgba(6, 4, 10, 0.62)),
+    rgba(5, 3, 9, 0.74)
   );
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 8px 32px -16px rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(16px);
+  border: 1px solid color-mix(in srgb, var(--mc-glow) 14%, rgba(255, 255, 255, 0.05));
+  box-shadow:
+    0 8px 32px -16px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(18px) saturate(120%);
 }
 
 .premium-modal {
-  background: linear-gradient(145deg, #0e1226 0%, #0b0d1a 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 
+  background: linear-gradient(
+    150deg,
+    color-mix(in srgb, var(--mc-dusk) 45%, #0b0713) 0%,
+    #07040b 62%,
+    #050309 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--mc-glow) 22%, rgba(255, 255, 255, 0.07));
+  box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.02),
-    0 30px 60px -10px rgba(0, 0, 0, 0.8),
-    0 0 80px -20px color-mix(in srgb, var(--color-emerald-500) 13%, transparent);
+    0 30px 60px -10px rgba(0, 0, 0, 0.85),
+    0 0 90px -24px color-mix(in srgb, var(--mc-glow) 40%, transparent);
 }
 
 .card-hover {
   transition:
-    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+    transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.22s ease,
+    box-shadow 0.22s ease;
 }
 .card-hover:hover {
-  transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--color-emerald-400) 22%, transparent);
-  box-shadow: 
-    0 12px 32px -16px rgba(0, 0, 0, 0.5),
-    0 0 0 1px color-mix(in srgb, var(--color-emerald-400) 7%, transparent) inset;
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--mc-glow) 34%, transparent);
+  box-shadow:
+    0 16px 40px -18px rgba(0, 0, 0, 0.6),
+    0 0 26px -14px color-mix(in srgb, var(--mc-glow) 60%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--mc-glow) 12%, transparent) inset;
 }
 
 /* Fluidity: interactive elements ease color/shadow gently (150–200ms). */
@@ -270,15 +377,288 @@ textarea {
   transition-timing-function: ease;
 }
 
-/* Primary CTA: gentle scale + emerald glow on hover. */
+/* Primary CTA: hot sunset glow + a pixel-crisp inner edge on hover. */
 .btn-primary:hover:not(:disabled) {
   transform: scale(1.02);
   box-shadow:
-    0 0 24px -6px color-mix(in srgb, var(--color-emerald-500) 40%, transparent),
-    0 10px 30px -12px rgba(0, 0, 0, 0.55);
+    0 0 26px -6px color-mix(in srgb, var(--mc-glow) 55%, transparent),
+    0 10px 30px -12px rgba(0, 0, 0, 0.6);
 }
 .btn-primary:active:not(:disabled) {
   transform: scale(0.98);
+}
+
+/* ---------------------------------------------------------------------------
+   Minecraft panel language.
+   `mc-panel` is the standard container: plum glass, hot hairline, and a
+   stepped corner notch so panels read as blocks rather than pills.
+--------------------------------------------------------------------------- */
+.mc-panel {
+  position: relative;
+  border: 1px solid color-mix(in srgb, var(--mc-glow) 16%, rgba(255, 255, 255, 0.06));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--mc-dusk) 30%, rgba(7, 4, 11, 0.66)),
+    rgba(5, 3, 9, 0.8)
+  );
+  backdrop-filter: blur(18px) saturate(115%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 20px 50px -30px rgba(0, 0, 0, 0.9);
+  transition:
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.mc-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mc-glow) 6%, transparent);
+}
+.mc-panel:hover {
+  border-color: color-mix(in srgb, var(--mc-glow) 30%, transparent);
+  transform: translateY(-2px);
+}
+
+/* Hot top edge — the horizon line drawn across a card. */
+.mc-hot-edge {
+  position: relative;
+  overflow: hidden;
+}
+.mc-hot-edge::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--mc-glow) 70%, transparent),
+    color-mix(in srgb, var(--mc-sun) 60%, transparent),
+    transparent
+  );
+  opacity: 0.7;
+}
+
+/* Stepped blocky corners, Minecraft-style. */
+.mc-notch {
+  clip-path: polygon(
+    0 0,
+    calc(100% - 14px) 0,
+    100% 14px,
+    100% 100%,
+    14px 100%,
+    0 calc(100% - 14px)
+  );
+}
+
+/* Chunky, squared-off button with a crisp press — the MC interaction feel. */
+.mc-btn {
+  position: relative;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--mc-glow) 30%, rgba(255, 255, 255, 0.08));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--mc-dusk) 55%, rgba(12, 8, 18, 0.9)),
+    rgba(6, 4, 10, 0.92)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 3px 0 0 rgba(0, 0, 0, 0.5);
+  transition:
+    transform 140ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease;
+}
+.mc-btn:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--mc-glow) 55%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 3px 0 0 rgba(0, 0, 0, 0.5),
+    0 0 22px -8px color-mix(in srgb, var(--mc-glow) 70%, transparent);
+}
+.mc-btn:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 0 0 rgba(0, 0, 0, 0.5);
+}
+.mc-btn:disabled {
+  opacity: 0.45;
+}
+
+/* Hot (primary) variant. */
+.mc-btn-hot {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--mc-glow) 88%, #fff) 0%,
+    var(--mc-glow) 45%,
+    color-mix(in srgb, var(--mc-glow) 78%, #000) 100%
+  );
+  border-color: color-mix(in srgb, var(--mc-glow) 70%, #fff);
+  color: #1a0510;
+  font-weight: 700;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+/* ---------------------------------------------------------------------------
+   Motion layer.
+--------------------------------------------------------------------------- */
+
+/* Staggered entrance: apply to children with an inline --i. */
+.mc-stagger > * {
+  animation: mc-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+
+/* Panel reveal used on section containers. */
+.mc-reveal {
+  animation: mc-reveal 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes mc-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes mc-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* Live status dot — used for online bots. */
+@keyframes mc-ping {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+.mc-ping {
+  animation: mc-ping 1.8s ease-out infinite;
+}
+
+/* Sliding underline for nav / tabs. */
+@keyframes mc-scan {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(220%);
+  }
+}
+.mc-scan::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 45%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--mc-glow) 45%, transparent),
+    transparent
+  );
+  animation: mc-scan 3.4s ease-in-out infinite;
+}
+
+/* Sidebar nav item: active state gets a hot left rail (the selected-slot
+   highlight in an inventory) plus a faint fill. */
+.mc-nav::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  bottom: 50%;
+  width: 2px;
+  background: var(--mc-glow);
+  box-shadow: 0 0 12px var(--mc-glow);
+  opacity: 0;
+  transition:
+    top 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+    bottom 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.24s ease;
+}
+.mc-nav:hover::before {
+  top: 22%;
+  bottom: 22%;
+  opacity: 0.35;
+}
+.mc-nav-on {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--mc-glow) 22%, transparent),
+    color-mix(in srgb, var(--mc-glow) 5%, transparent) 70%,
+    transparent
+  );
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--mc-glow) 22%, transparent);
+}
+.mc-nav-on::before {
+  top: 12%;
+  bottom: 12%;
+  opacity: 1;
+}
+.mc-nav:active {
+  transform: translateY(1px);
+}
+
+/* Tab/panel swap: a short wipe so switching tabs feels deliberate. */
+.mc-tab {
+  animation: mc-tab-in 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes mc-tab-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-stagger > *,
+  .mc-reveal,
+  .mc-ping,
+  .mc-scan::after {
+    animation: none !important;
+    filter: none !important;
+    clip-path: none !important;
+    transform: none !important;
+  }
+  .card-hover:hover,
+  .mc-panel:hover,
+  .btn-primary:hover {
+    transform: none !important;
+  }
 }
 
 /* Animations.
@@ -373,7 +753,12 @@ textarea {
   .animate-slide-up,
   .landing-cut-card,
   .animate-fade-in,
-  .animate-pop-in {
+  .animate-pop-in,
+  .mc-scene,
+  .mc-sun,
+  .mc-cloud,
+  .mc-clouds,
+  .mc-reflection {
     animation: none !important;
   }
 }

@@ -296,7 +296,7 @@ export default function AppShell() {
         <div className="flex flex-col items-center gap-4">
           <Logo size={56} className="animate-pulse" />
           <div className="flex items-center gap-2 text-sm text-slate-400">
-            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-600 border-t-emerald-400" />
+            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-600 border-t-[var(--mc-glow)]" />
             Loading…
           </div>
         </div>
@@ -337,7 +337,7 @@ export default function AppShell() {
     <div className="flex min-h-screen">
       <ToastHost />
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 min-w-0 flex-col overflow-hidden border-r border-emerald-300/10 bg-[#070b10]/92 shadow-[18px_0_70px_-55px_color-mix(in_srgb,var(--color-emerald-500)_55%,transparent)] backdrop-blur-2xl transition-all duration-300 lg:translate-x-0 ${
+        className={`mc-panel mc-hot-edge fixed inset-y-0 left-0 z-50 flex w-64 min-w-0 flex-col overflow-hidden rounded-none border-y-0 border-l-0 !border-r-1 border-r-[color-mix(in_srgb,var(--mc-glow)_20%,transparent)] bg-[rgba(6,3,10,0.86)] !shadow-none backdrop-blur-2xl transition-all duration-300 lg:translate-x-0 ${
           mobileNav ? "translate-x-0" : "-translate-x-full"
         } ${collapsed ? "lg:w-[76px]" : "lg:w-64"}`}
       >
@@ -360,8 +360,8 @@ export default function AppShell() {
           </button>
         </div>
 
-        <nav className="scrollbar-thin flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain px-3 py-4">
-          {navItems.map((item) => (
+        <nav className="scrollbar-thin flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain px-3 py-4">
+          {navItems.map((item, i) => (
             <button
               key={item.key}
               title={item.label}
@@ -369,28 +369,29 @@ export default function AppShell() {
                 setTab(item.key);
                 setMobileNav(false);
               }}
-              className={`group flex items-center rounded-xl text-sm font-medium transition-all ${
+              style={{ ["--i" as string]: i }}
+              className={`mc-nav group relative flex items-center rounded-[5px] text-sm font-medium transition-all ${
                 collapsed
                   ? "justify-center px-0 py-2.5"
-                  : "min-w-0 gap-3 px-3.5 py-2.5"
+                  : "min-w-0 gap-3 px-3 py-2.5"
               } ${
                 activeTab === item.key
-                  ? "bg-emerald-300/10 text-emerald-100 ring-1 ring-emerald-300/20 shadow-[0_0_28px_-20px_color-mix(in_srgb,var(--color-emerald-500)_80%,transparent)]"
-                  : "text-slate-400 hover:bg-white/[0.045] hover:text-slate-100"
+                  ? "mc-nav-on text-white"
+                  : "text-slate-400 hover:bg-white/[0.05] hover:text-slate-100"
               }`}
             >
               <span
-                className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg transition ${
+                className={`grid h-8 w-8 shrink-0 place-items-center rounded-[4px] transition ${
                   activeTab === item.key
-                    ? "bg-emerald-300/15 text-emerald-200"
-                    : "bg-white/[0.045] text-slate-400 group-hover:text-slate-200"
+                    ? "bg-[color-mix(in_srgb,var(--mc-glow)_30%,transparent)] text-white shadow-[0_0_16px_-4px_var(--mc-glow)]"
+                    : "bg-white/[0.05] text-slate-400 group-hover:text-slate-200"
                 }`}
               >
                 {item.icon}
               </span>
               {!collapsed && <span className="min-w-0 truncate">{item.label}</span>}
               {!collapsed && activeTab === item.key && (
-                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_14px_color-mix(in_srgb,var(--color-emerald-500)_90%,transparent)]" />
+                <span className="mc-ping ml-auto h-1.5 w-1.5 rounded-full bg-[color-mix(in_srgb,var(--mc-glow)_85%,#fff)] text-[var(--mc-glow)]" />
               )}
             </button>
           ))}
@@ -458,7 +459,7 @@ export default function AppShell() {
         />
       )}
 
-      <div className={`flex min-w-0 flex-1 flex-col bg-[radial-gradient(circle_at_top_right,color-mix(in_srgb,var(--color-emerald-500)_6%,transparent),transparent_34rem)] transition-all duration-300 ${collapsed ? "lg:pl-[76px]" : "lg:pl-64"}`}>
+      <div className={`flex min-w-0 flex-1 flex-col transition-all duration-300 ${collapsed ? "lg:pl-[76px]" : "lg:pl-64"}`}>
         <div className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-800/80 bg-slate-950/80 px-4 py-3 backdrop-blur lg:hidden">
           <div className="flex items-center gap-2">
             <Logo size={28} />
@@ -518,9 +519,9 @@ export default function AppShell() {
           )}
         </div>
 
-        <div className="sticky top-0 z-20 hidden border-b border-white/[0.06] bg-slate-950/55 px-8 py-4 backdrop-blur-2xl lg:block">
+        <div className="mc-hot-edge sticky top-0 z-20 hidden border-b border-white/[0.07] bg-[rgba(6,3,10,0.72)] px-8 py-4 backdrop-blur-2xl lg:block">
           <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4">
-            <label className="group flex h-12 w-full max-w-xl items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] px-4 text-slate-500 shadow-[0_18px_60px_-50px_rgba(0,0,0,.95)] transition focus-within:border-emerald-300/45 focus-within:bg-white/[0.055] focus-within:ring-2 focus-within:ring-emerald-300/10">
+            <label className="mc-notch group flex h-12 w-full max-w-xl items-center gap-3 border border-white/10 bg-white/[0.035] px-4 text-slate-500 shadow-[0_18px_60px_-50px_rgba(0,0,0,.95)] transition focus-within:border-[color-mix(in_srgb,var(--mc-glow)_50%,transparent)] focus-within:bg-white/[0.055] focus-within:shadow-[0_0_26px_-14px_var(--mc-glow)]">
               <SearchIcon />
               <input
                 value={dashboardSearch}
@@ -543,16 +544,16 @@ export default function AppShell() {
             <div className="relative">
               <button
                 onClick={() => setNotificationsOpen((v) => !v)}
-                className="relative grid h-12 w-12 place-items-center rounded-2xl border border-white/10 bg-white/[0.04] text-slate-300 transition hover:border-emerald-300/25 hover:bg-white/[0.065] hover:text-white"
+                className="mc-notch relative grid h-12 w-12 place-items-center border border-white/10 bg-white/[0.04] text-slate-300 transition hover:border-[color-mix(in_srgb,var(--mc-glow)_45%,transparent)] hover:bg-white/[0.065] hover:text-white"
                 aria-label="Open notifications"
               >
                 <BellIcon />
                 {notifications.length > 0 && (
-                  <span className="absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full bg-emerald-300 shadow-[0_0_14px_color-mix(in_srgb,var(--color-emerald-500)_90%,transparent)]" />
+                  <span className="mc-ping absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full bg-[color-mix(in_srgb,var(--mc-glow)_85%,#fff)] text-[var(--mc-glow)]" />
                 )}
               </button>
               {notificationsOpen && (
-                <div className="absolute right-0 top-14 w-[360px] overflow-hidden rounded-3xl border border-white/10 bg-slate-950/92 shadow-[0_28px_100px_-50px_rgba(0,0,0,.95)] backdrop-blur-2xl">
+                <div className="animate-pop-in mc-notch absolute right-0 top-14 w-[360px] overflow-hidden border border-white/10 bg-[rgba(6,3,10,0.94)] shadow-[0_28px_100px_-50px_rgba(0,0,0,.95)] backdrop-blur-2xl">
                   <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
                     <div>
                       <p className="text-sm font-black text-white">Notifications</p>
@@ -603,7 +604,7 @@ export default function AppShell() {
 
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-8 lg:py-8">
           {activeTab === "dashboard" && <DashboardDiscordBanner />}
-          <div key={activeTab} className="animate-fade-in">
+          <div key={activeTab} className="mc-tab">
             {activeTab === "dashboard" && <BotDashboard meRole={me.role} search={dashboardSearch} />}
             {activeTab === "guide" && <HowItWorksPanel />}
             {activeTab === "license" && <LicensePanel />}
@@ -694,14 +695,13 @@ function LoginScreen({
   return (
     <div className="relative grid min-h-screen place-items-center overflow-hidden px-4">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/2 top-0 h-96 w-96 -translate-x-1/2 rounded-full bg-emerald-600/20 blur-[130px]" />
-        <div className="absolute bottom-0 right-1/4 h-80 w-80 rounded-full bg-indigo-600/20 blur-[130px]" />
+        <div className="absolute left-1/2 top-0 h-96 w-96 -translate-x-1/2 rounded-full bg-[color-mix(in_srgb,var(--mc-glow)_26%,transparent)] blur-[130px]" />
+        <div className="absolute bottom-0 right-1/4 h-80 w-80 rounded-full bg-[color-mix(in_srgb,var(--mc-horizon)_40%,transparent)] blur-[130px]" />
       </div>
 
-      <div className="relative w-full max-w-[460px] animate-pop-in overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950/58 p-6 shadow-[0_30px_110px_-60px_rgba(0,0,0,.95)] backdrop-blur-2xl sm:p-8">
-        <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-emerald-200/50 to-transparent" />
+      <div className="mc-panel mc-hot-edge mc-notch animate-pop-in relative w-full max-w-[460px] overflow-hidden p-6 sm:p-8">
         <div className="flex flex-col items-center text-center">
-          <div className="grid h-20 w-20 place-items-center rounded-[1.6rem] border border-white/10 bg-white/[0.045] shadow-[0_20px_70px_-40px_color-mix(in_srgb,var(--color-emerald-500)_70%,transparent)]">
+          <div className="mc-notch grid h-20 w-20 place-items-center border border-white/10 bg-white/[0.045] shadow-[0_20px_70px_-40px_var(--mc-glow)]">
             <Logo size={58} />
           </div>
           <h1 className="mt-5 text-2xl font-bold tracking-tight">
@@ -713,7 +713,7 @@ function LoginScreen({
         </div>
 
         <div className="mt-7 space-y-3">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+          <div className="mc-notch border border-white/10 bg-white/[0.035] p-4">
             <div className="mb-4 flex items-center gap-3">
               <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#5865F2] text-white">
                 <DiscordIcon />

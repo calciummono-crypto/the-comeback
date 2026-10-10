@@ -74,6 +74,60 @@ export default function LandingPage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Scroll reveal: every [data-reveal] node fades/slides in once as it enters
+  // the viewport. Unobserved after firing, and skipped entirely when the user
+  // prefers reduced motion.
+  useEffect(() => {
+    const nodes = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-reveal]"),
+    );
+    if (
+      !nodes.length ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      typeof IntersectionObserver === "undefined"
+    ) {
+      nodes.forEach((n) => n.classList.add("is-revealed"));
+      return;
+    }
+    // Once the entrance animation finishes, drop the reveal classes so the
+    // element's own hover transforms aren't pinned by animation fill-mode.
+    const reveal = (el: HTMLElement) => {
+      if (el.classList.contains("is-revealed")) return;
+      el.classList.add("is-revealed");
+      el.addEventListener(
+        "animationend",
+        (e) => {
+          if (e.target !== el) return;
+          el.classList.remove("is-revealed", "reveal-pending");
+        },
+        { once: true },
+      );
+    };
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          io.unobserve(entry.target);
+          reveal(entry.target as HTMLElement);
+        }
+      },
+      { rootMargin: "0px 0px -12% 0px", threshold: 0.12 },
+    );
+    nodes.forEach((n) => {
+      const r = n.getBoundingClientRect();
+      if (r.top < window.innerHeight * 0.9 && r.bottom > 0) {
+        // Already on screen — animate it in now.
+        reveal(n);
+      } else {
+        // Off screen — hide it until it scrolls in.
+        n.classList.add("reveal-pending");
+        io.observe(n);
+      }
+    });
+    return () => io.disconnect();
+  }, []);
+
   return (
     <main className="home-shell">
       <style>{css}</style>
@@ -123,7 +177,7 @@ export default function LandingPage() {
       </section>
 
       <section className="hero">
-        <div className="hero-copy">
+        <div className="hero-copy" data-reveal>
           <p className="kicker">session tokens · servers · live console</p>
           <h1>Paste a session. Pick a server. Run the bot.</h1>
           <p className="lead">
@@ -140,7 +194,7 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div id="preview" className="hero-stage" aria-label="Bot cards preview">
+        <div id="preview" className="hero-stage" aria-label="Bot cards preview" data-reveal>
           <div className="stage-glow" />
           <div className="preview-panel">
             <div className="preview-topline">
@@ -189,13 +243,18 @@ export default function LandingPage() {
       </section>
 
       <section id="features" className="features">
-        <div className="section-title">
+        <div className="section-title" data-reveal>
           <p className="kicker">what the panel handles</p>
           <h2>Less switching around. More session state on screen.</h2>
         </div>
         <div className="feature-grid">
           {features.map((feature, index) => (
-            <article className="feature-card" key={feature.title}>
+            <article
+              className="feature-card"
+              key={feature.title}
+              data-reveal
+              style={{ ["--d" as string]: `${(index % 3) * 80}ms` }}
+            >
               <div className="feature-card-top">
                 <span className="feature-icon" aria-hidden><FeatureIcon kind={feature.icon} /></span>
                 <code>{String(index + 1).padStart(2, "0")}</code>
@@ -238,7 +297,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="flow-band">
+      <section className="flow-band" data-reveal>
         <div>
           <p className="kicker">session flow</p>
           <h2>Resolve → launch → watch → control.</h2>
@@ -307,14 +366,40 @@ const css = `
     min-height: 100vh;
     overflow-x: clip;
     overflow-y: visible;
+    /* Transparent: the Minecraft sunset backdrop (app-level) shows through.
+       Only a soft veil is laid down so copy stays readable over the horizon. */
     background:
-      radial-gradient(circle at 72% 12%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 28rem),
-      linear-gradient(180deg, #080a0d 0%, #0b0e12 100%);
+      radial-gradient(circle at 72% 12%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 28rem),
+      linear-gradient(180deg, rgba(8,4,12,0.35) 0%, rgba(6,3,10,0.55) 60%, rgba(4,2,7,0.72) 100%);
     color: var(--text);
     font-family: "Space Grotesk", Inter, ui-sans-serif, system-ui, sans-serif;
   }
 
   .home-shell { padding-top: 92px; }
+
+  /* Scroll reveal. Nodes start hidden only once JS has marked them
+     with reveal-pending, so the SSR HTML is never blank if scripts fail. */
+  [data-reveal].reveal-pending {
+    opacity: 0;
+    transform: translateY(26px);
+  }
+  [data-reveal].is-revealed {
+    animation: reveal-in 0.72s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: var(--d, 0ms);
+  }
+  @keyframes reveal-in {
+    from {
+      opacity: 0;
+      transform: translateY(26px);
+      filter: blur(6px);
+    }
+    60% { filter: blur(0); }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+  }
 
   .home-shell * { box-sizing: border-box; }
 
@@ -1153,5 +1238,7 @@ const css = `
     .bot-card,
     .nav-links a,
     .btn { animation: none; transition: none; }
+    [data-reveal].reveal-pending { opacity: 1; transform: none; }
+    [data-reveal].is-revealed { animation: none; }
   }
 `;

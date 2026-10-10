@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo, Wordmark } from "../Logo";
 import { features } from "../LandingPage";
+import MinecraftBackdrop from "../MinecraftBackdrop";
 
 export const dynamic = "force-dynamic";
 
@@ -15,8 +16,7 @@ const flow = [
 export default function FeaturesPage() {
   return (
     <main className="relative min-h-screen overflow-hidden text-slate-100">
-      <div className="app-bg" aria-hidden />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(99,102,241,.20),transparent_36rem)]" />
+      <MinecraftBackdrop />
 
       <nav className="fixed left-1/2 top-4 z-50 flex w-[min(1180px,calc(100%_-_24px))] -translate-x-1/2 items-center justify-between rounded-[1.6rem] border border-white/10 bg-[#0b1020]/78 px-4 py-3 shadow-[0_22px_70px_-28px_rgba(0,0,0,.9)] ring-1 ring-white/[0.03] backdrop-blur-2xl sm:px-5">
         <Link href="/" className="flex items-center gap-3">

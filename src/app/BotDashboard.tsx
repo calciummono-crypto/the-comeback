@@ -123,9 +123,9 @@ export default function BotDashboard({
 
   return (
     <div>
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-200/80">dashboard</p>
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="mc-reveal">
+          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-[color-mix(in_srgb,var(--mc-glow)_70%,#fff)]">dashboard</p>
           <h2 className="mt-1 text-2xl font-black tracking-[-0.04em] text-white">Bots</h2>
           <p className="mt-1 text-sm text-slate-400">
             {slots > 0 ? (
@@ -160,7 +160,7 @@ export default function BotDashboard({
                 ? "No bot slots left — ask an admin"
                 : "Add a bot"
           }
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-emerald-300 px-5 text-sm font-black text-slate-950 shadow-[0_18px_50px_-26px_color-mix(in_srgb,var(--color-emerald-500)_90%,transparent)] transition hover:bg-emerald-200 active:scale-[.985] disabled:cursor-not-allowed disabled:opacity-40"
+          className="mc-btn mc-btn-hot mc-notch inline-flex h-11 items-center justify-center gap-2 px-5 text-sm font-black transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <PlusIcon size={16} /> Add bot
         </button>
@@ -191,11 +191,12 @@ export default function BotDashboard({
           ) : visibleItems.length === 0 ? (
             <NoSearchResults query={search} />
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {visibleItems.map((bot) => (
+            <div className="mc-stagger grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {visibleItems.map((bot, i) => (
                 <BotCard
                   key={bot.id}
                   bot={bot}
+                  index={i}
                   onChanged={refresh}
                   onSelect={() => setActiveBotId(bot.id)}
                   onManage={() => setEditId(bot.id)}
@@ -273,9 +274,11 @@ export function StatusBadge({ status }: { status: BotStatus }) {
   const meta = STATUS_META[status];
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${meta.ring} ${meta.text}`}
+      className={`mc-notch inline-flex shrink-0 items-center gap-1.5 px-2.5 py-1 text-xs font-medium ring-1 ${meta.ring} ${meta.text}`}
     >
-      <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
+      <span
+        className={`h-2 w-2 rounded-full ${meta.dot} ${status === "online" ? "mc-ping" : ""}`}
+      />
       {meta.label}
     </span>
   );
@@ -324,12 +327,14 @@ export function BotAvatar({
 
 function BotCard({
   bot,
+  index = 0,
   onChanged,
   onSelect,
   onManage,
   onDelete,
 }: {
   bot: BotItem;
+  index?: number;
   onChanged: () => void;
   onSelect: () => void;
   onManage: () => void;
@@ -369,16 +374,20 @@ function BotCard({
   }
 
   return (
-    <article className="group relative flex min-h-[246px] flex-col overflow-hidden rounded-[1.7rem] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(15,23,42,.78),rgba(2,6,23,.9))] p-4 shadow-[0_28px_90px_-62px_rgba(0,0,0,.96)] transition duration-300 hover:-translate-y-1 hover:border-emerald-300/30 hover:shadow-[0_32px_105px_-70px_color-mix(in_srgb,var(--color-emerald-500)_60%,rgba(0,0,0,.9))] sm:p-5">
-      <div className="pointer-events-none absolute -right-14 -top-14 h-36 w-36 rounded-full bg-emerald-300/8 blur-3xl transition group-hover:bg-emerald-300/12" />
-      <div className="pointer-events-none absolute inset-x-7 top-0 h-px bg-gradient-to-r from-transparent via-emerald-200/45 to-transparent opacity-0 transition group-hover:opacity-100" />
+    <article
+      style={{ ["--i" as string]: index }}
+      className="mc-panel group relative flex min-h-[246px] flex-col overflow-hidden rounded-[10px] p-4 sm:p-5"
+    >
+      <div className="pointer-events-none absolute -right-14 -top-14 h-36 w-36 rounded-full bg-[color-mix(in_srgb,var(--mc-glow)_10%,transparent)] blur-3xl transition group-hover:bg-[color-mix(in_srgb,var(--mc-glow)_18%,transparent)]" />
+      <div className="mc-hot-edge pointer-events-none absolute inset-x-7 top-0 h-px" />
+      <div className="pointer-events-none absolute inset-x-7 top-0 h-px bg-gradient-to-r from-transparent via-[color-mix(in_srgb,var(--mc-glow)_60%,transparent)] to-transparent opacity-0 transition group-hover:opacity-100" />
 
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <BotAvatar
             username={bot.username}
             status={bot.status}
-            className="h-[70px] w-[58px] rounded-2xl text-lg"
+            className="mc-notch h-[70px] w-[58px] rounded-[6px] text-lg"
           />
           <div className="min-w-0">
             <div className="flex min-w-0 items-center gap-2">
@@ -392,7 +401,7 @@ function BotCard({
         <button
           disabled={busy}
           onClick={onDelete}
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-rose-400/30 bg-rose-500/12 text-rose-300 shadow-[0_12px_35px_-25px_rgba(244,63,94,.9)] transition hover:border-rose-300/55 hover:bg-rose-500/20 hover:text-rose-100 active:scale-[.96] disabled:opacity-50"
+          className="mc-btn grid h-8 w-8 shrink-0 place-items-center rounded-[4px] border-rose-400/30 bg-rose-500/12 text-rose-300 transition hover:border-rose-300/55 hover:bg-rose-500/20 hover:text-rose-100 active:translate-y-0 disabled:opacity-50"
           title="Delete bot"
         >
           <TrashIcon size={14} />
@@ -400,19 +409,26 @@ function BotCard({
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <span className="rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-slate-300">
+        <span className="mc-notch border border-white/10 bg-white/[0.035] px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-slate-300">
           {version === "auto" ? "auto profile" : version}
         </span>
       </div>
 
       {bot.status === "error" && bot.lastError ? (
-        <p className="mt-4 line-clamp-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-xs leading-5 text-rose-200">
+        <p className="mc-notch mt-4 line-clamp-2 border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-xs leading-5 text-rose-200">
           {bot.lastError}
         </p>
       ) : (
-        <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/42 px-3 py-2.5">
+        <div className="mc-notch mt-4 border border-white/10 bg-[rgba(4,2,7,0.5)] px-3 py-2.5">
           <p className="truncate text-xs font-medium text-slate-400">
-            {running ? "Session active. Open for controls." : "Ready to start."}
+            {running ? (
+              <>
+                <span className="mc-scan relative mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-[color-mix(in_srgb,var(--mc-glow)_85%,#fff)] align-middle text-[var(--mc-glow)]" />
+                Session active. Open for controls.
+              </>
+            ) : (
+              "Ready to start."
+            )}
           </p>
         </div>
       )}
@@ -422,7 +438,12 @@ function BotCard({
           <button
             disabled={busy}
             onClick={() => act(`/api/bots/${bot.id}/stop`, "stop")}
-            className="group/stop relative inline-flex h-12 items-center justify-center overflow-hidden rounded-2xl border border-rose-300/35 bg-[linear-gradient(180deg,rgba(251,113,133,.98),rgba(225,29,72,.88))] px-3 text-sm font-black text-white shadow-[0_20px_65px_-38px_rgba(244,63,94,.95)] transition hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 active:scale-[.985] disabled:opacity-50"
+            className="mc-btn mc-notch relative inline-flex h-12 items-center justify-center overflow-hidden px-3 text-sm font-black text-white transition hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 disabled:opacity-50"
+            style={{
+              background:
+                "linear-gradient(180deg, rgba(251,113,133,.98), rgba(225,29,72,.88))",
+              borderColor: "rgba(253,164,175,.4)",
+            }}
           >
             Stop
           </button>
@@ -430,14 +451,14 @@ function BotCard({
           <button
             disabled={busy}
             onClick={() => act(`/api/bots/${bot.id}/start`, "start")}
-            className="group/start relative inline-flex h-12 items-center justify-center overflow-hidden rounded-2xl border border-emerald-200/45 bg-[linear-gradient(180deg,var(--color-emerald-300),var(--color-emerald-500))] px-3 text-sm font-black text-slate-950 shadow-[0_20px_65px_-38px_color-mix(in_srgb,var(--color-emerald-500)_95%,transparent)] transition hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 active:scale-[.985] disabled:opacity-50"
+            className="mc-btn mc-btn-hot mc-notch relative inline-flex h-12 items-center justify-center overflow-hidden px-3 text-sm font-black transition hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 disabled:opacity-50"
           >
             Start
           </button>
         )}
         <button
           onClick={onSelect}
-          className="inline-flex h-12 items-center justify-center rounded-2xl border border-indigo-300/25 bg-[linear-gradient(180deg,rgba(129,140,248,.2),rgba(99,102,241,.11))] px-3 text-sm font-black text-indigo-100 shadow-[inset_0_1px_0_rgba(255,255,255,.05),0_16px_48px_-38px_rgba(99,102,241,.9)] transition hover:-translate-y-0.5 hover:border-indigo-200/45 hover:bg-indigo-300/18 active:translate-y-0 active:scale-[.985]"
+          className="mc-btn mc-notch inline-flex h-12 items-center justify-center px-3 text-sm font-black text-white transition hover:-translate-y-0.5 hover:border-white/25 active:translate-y-0"
         >
           Open
         </button>
@@ -445,7 +466,7 @@ function BotCard({
           onClick={onManage}
           disabled={busy}
           title="Manage bot"
-          className="grid h-12 w-12 place-items-center rounded-2xl border border-sky-300/24 bg-[linear-gradient(180deg,rgba(56,189,248,.14),rgba(99,102,241,.08))] text-sky-100 shadow-[inset_0_1px_0_rgba(255,255,255,.05),0_16px_48px_-40px_rgba(56,189,248,.9)] transition hover:-translate-y-0.5 hover:border-sky-200/45 hover:bg-sky-300/16 hover:text-white active:translate-y-0 active:scale-[.96] disabled:opacity-50"
+          className="mc-btn mc-notch grid h-12 w-12 place-items-center text-slate-300 transition hover:-translate-y-0.5 hover:border-white/25 hover:text-white active:translate-y-0 disabled:opacity-50"
         >
           <ManageGlyph />
         </button>
@@ -483,8 +504,8 @@ function NoSearchResults({ query }: { query: string }) {
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
-    <div className="grid animate-fade-in place-items-center rounded-3xl border border-dashed border-slate-700/60 bg-slate-900/30 px-6 py-20 text-center">
-      <div className="grid h-20 w-20 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500/20 to-indigo-500/20 text-4xl ring-1 ring-slate-700/50">
+    <div className="mc-panel mc-notch grid animate-fade-in place-items-center border-dashed px-6 py-20 text-center">
+      <div className="mc-notch grid h-20 w-20 place-items-center bg-gradient-to-br from-[color-mix(in_srgb,var(--mc-glow)_26%,transparent)] to-[color-mix(in_srgb,var(--mc-horizon)_40%,transparent)] text-4xl ring-1 ring-white/10">
         🛰️
       </div>
       <h3 className="mt-5 text-lg font-semibold">No bots yet</h3>
@@ -494,7 +515,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       </p>
       <button
         onClick={onAdd}
-        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-emerald-950 shadow-lg shadow-emerald-900/30 transition hover:bg-emerald-400 active:scale-[.98]"
+        className="mc-btn mc-btn-hot mc-notch mt-6 inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold transition hover:-translate-y-0.5"
       >
         <PlusIcon size={16} /> Add your first bot
       </button>
