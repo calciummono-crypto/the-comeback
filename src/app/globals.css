@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Audiowide&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap");
 @import "tailwindcss";
 
 /* ---------------------------------------------------------------------------
@@ -76,9 +76,11 @@
   );
   --sunset-glow: color-mix(in srgb, var(--mc-glow) 70%, var(--mc-sun));
 
-  --font-body: "Space Grotesk", "Inter", "SF Pro Text", "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-display: "Space Grotesk", "Inter", "SF Pro Display", "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-brand: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Inter", "SF Pro Text", "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Sora", "Inter", "SF Pro Display", ui-sans-serif, system-ui, sans-serif;
+  --font-brand: "Sora", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
 
   --zb-accent-200: var(--color-emerald-200);
   --zb-accent-300: var(--color-emerald-300);
@@ -389,12 +391,24 @@ textarea {
 }
 
 /* ---------------------------------------------------------------------------
-   Minecraft panel language.
-   `mc-panel` is the standard container: plum glass, hot hairline, and a
-   stepped corner notch so panels read as blocks rather than pills.
+   Panel language.
+   `mc-panel` is the standard container: plum glass with a hot hairline.
+   Corners are squircles rather than circles — a superellipse reads as "soft
+   but deliberate", where a plain circle reads as generic.
 --------------------------------------------------------------------------- */
+
+/* Squircle token: a superellipse radius. Squarer than `border-radius: 50%`,
+   softer than a rounded rect. Use with `border-radius: var(--squircle)`. */
+:root {
+  --squircle: 28px;
+  --squircle-sm: 16px;
+  --squircle-xs: 11px;
+  --squircle-lg: 36px;
+}
+
 .mc-panel {
   position: relative;
+  border-radius: var(--squircle);
   border: 1px solid color-mix(in srgb, var(--mc-glow) 16%, rgba(255, 255, 255, 0.06));
   background: linear-gradient(
     180deg,
@@ -445,22 +459,15 @@ textarea {
   opacity: 0.7;
 }
 
-/* Stepped blocky corners, Minecraft-style. */
+/* Compact squircle for chips, badges, inputs and small controls. */
 .mc-notch {
-  clip-path: polygon(
-    0 0,
-    calc(100% - 14px) 0,
-    100% 14px,
-    100% 100%,
-    14px 100%,
-    0 calc(100% - 14px)
-  );
+  border-radius: var(--squircle-sm);
 }
 
-/* Chunky, squared-off button with a crisp press — the MC interaction feel. */
+/* Rounded, softly-inset button with a crisp press. */
 .mc-btn {
   position: relative;
-  border-radius: 4px;
+  border-radius: var(--squircle-sm);
   border: 1px solid color-mix(in srgb, var(--mc-glow) 30%, rgba(255, 255, 255, 0.08));
   background: linear-gradient(
     180deg,
@@ -528,10 +535,15 @@ textarea {
     transform: translateY(14px) scale(0.985);
     filter: blur(6px);
   }
+  /* End on `none`, not on an identity value. With fill-mode `both` the `to`
+     state persists after the animation ends, and any non-none filter,
+     transform or clip-path turns the element into a containing block for
+     `position: fixed` descendants — modals would then centre inside the
+     panel instead of the viewport. */
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
-    filter: blur(0);
+    transform: none;
+    filter: none;
   }
 }
 
@@ -543,8 +555,8 @@ textarea {
   }
   to {
     opacity: 1;
-    transform: translateY(0);
-    clip-path: inset(0 0 0 0);
+    transform: none;
+    clip-path: none;
   }
 }
 
@@ -627,7 +639,9 @@ textarea {
   transform: translateY(1px);
 }
 
-/* Tab/panel swap: a short wipe so switching tabs feels deliberate. */
+/* Tab/panel swap: a short wipe so switching tabs feels deliberate.
+   Ends on `none` for the same containing-block reason documented in mc-in —
+   this wrapper holds every panel AND their modals. */
 .mc-tab {
   animation: mc-tab-in 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -639,8 +653,140 @@ textarea {
   }
   to {
     opacity: 1;
-    transform: translateY(0);
-    filter: blur(0);
+    transform: none;
+    filter: none;
+  }
+}
+
+/* Boot screen: slim gradient track, travelling highlight, phase line. */
+.boot {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+}
+
+.boot-card {
+  width: min(420px, 100%);
+  padding: 40px 36px 32px;
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--mc-glow) 16%, rgba(255, 255, 255, 0.06));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--mc-dusk) 30%, rgba(7, 4, 11, 0.7)),
+    rgba(5, 3, 9, 0.86)
+  );
+  backdrop-filter: blur(22px) saturate(120%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 40px 90px -50px rgba(0, 0, 0, 0.95);
+  text-align: center;
+  animation: boot-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.boot-mark {
+  display: grid;
+  place-items: center;
+}
+
+.boot-brand {
+  margin-top: 18px;
+}
+
+.boot-track {
+  position: relative;
+  height: 6px;
+  margin-top: 34px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--mc-glow) 10%, rgba(255, 255, 255, 0.06));
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.boot-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--mc-glow) 75%, transparent),
+    var(--mc-glow) 55%,
+    color-mix(in srgb, var(--mc-glow) 55%, var(--mc-sun))
+  );
+  box-shadow: 0 0 14px -3px var(--mc-glow);
+  transition: width 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Indeterminate highlight running the full track, so motion never stops
+   even while the real percentage plateaus. */
+.boot-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, #ffffff 34%, transparent),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: boot-shimmer 1.5s ease-in-out infinite;
+}
+
+.boot-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 14px;
+  min-height: 18px;
+}
+
+.boot-phase {
+  font-size: 13px;
+  font-weight: 500;
+  color: #9aa6b2;
+  animation: boot-phase 0.4s ease both;
+}
+
+.boot-pct {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  font-weight: 600;
+  color: #6d7885;
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes boot-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+@keyframes boot-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  60%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes boot-phase {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 
@@ -682,7 +828,7 @@ textarea {
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: none;
   }
 }
 @keyframes shimmer {
@@ -726,8 +872,8 @@ textarea {
   }
   to {
     opacity: 1;
-    transform: translateY(0);
-    filter: blur(0);
+    transform: none;
+    filter: none;
   }
 }
 
@@ -744,8 +890,11 @@ textarea {
   animation: slide-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Cut corner, expressed as a squircle rather than a clip-path polygon —
+   clip-path would turn the element into a containing block for fixed
+   descendants, same trap documented in mc-in. */
 .landing-cut-card {
-  clip-path: polygon(0 0, calc(100% - 42px) 0, 100% 42px, 100% 100%, 42px 100%, 0 calc(100% - 42px));
+  border-radius: var(--squircle-lg);
   animation: soft-float 7s ease-in-out infinite;
 }
 
@@ -827,4 +976,99 @@ textarea {
 .scrollbar-thin::-webkit-scrollbar-thumb {
   background: rgba(148, 163, 184, 0.34);
   border-radius: 999px;
+}
+
+/* ---------------------------------------------------------------------------
+   Low-end pass.
+
+   The pre-paint script in layout.tsx stamps data-perf="low" on <html> for
+   devices reporting few cores, little memory, or Save-Data. Everything costly
+   on integrated GPUs and mobile is dropped here — blur is the dominant cost
+   in this UI, and the scene animations are pure decoration.
+--------------------------------------------------------------------------- */
+[data-perf="low"] .mc-scene,
+[data-perf="low"] .mc-sun,
+[data-perf="low"] .mc-cloud,
+[data-perf="low"] .mc-clouds,
+[data-perf="low"] .mc-reflection {
+  animation: none !important;
+}
+
+[data-perf="low"] .mc-reflection {
+  filter: none;
+}
+
+[data-perf="low"] .mc-sun {
+  filter: none;
+}
+
+/* Blur is the single biggest paint cost here. Drop it and compensate with
+   opacity so the surfaces still read as layered glass. */
+[data-perf="low"] .mc-panel,
+[data-perf="low"] .premium-modal,
+[data-perf="low"] .glass,
+[data-perf="low"] .mc-notch,
+[data-perf="low"] .mc-btn,
+[data-perf="low"] .top-nav,
+[data-perf="low"] .nav-links a,
+[data-perf="low"] .discord-banner,
+[data-perf="low"] .landing-cut-card,
+[data-perf="low"] .bot-showcase-card,
+[data-perf="low"] .hero-bot-card,
+[data-perf="low"] .boot-card,
+[data-perf="low"] .app-sidebar,
+[data-perf="low"] .sticky.top-0 {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+[data-perf="low"] .mc-panel,
+[data-perf="low"] .premium-modal,
+[data-perf="low"] .bot-showcase-card,
+[data-perf="low"] .boot-card {
+  background: linear-gradient(180deg, rgba(12, 8, 18, 0.97), rgba(5, 3, 9, 0.99));
+}
+
+/* Entrance animations become a straight fade — no transform means no
+   composited layer churn, and no lingering transform on a scroll ancestor. */
+[data-perf="low"] .mc-tab,
+[data-perf="low"] .mc-stagger > *,
+[data-perf="low"] .mc-reveal,
+[data-perf="low"] .animate-slide-up,
+[data-perf="low"] .animate-pop-in,
+[data-perf="low"] .landing-cut-card,
+[data-perf="low"] .hero-bot-card-0,
+[data-perf="low"] .hero-bot-card-1,
+[data-perf="low"] .hero-bot-card-2 {
+  animation-name: fade-in !important;
+  animation-duration: 0.18s !important;
+}
+
+[data-perf="low"] .bot-card-track {
+  animation: none !important;
+}
+
+[data-perf="low"] [data-reveal].is-revealed {
+  animation-name: fade-in !important;
+  animation-duration: 0.2s !important;
+}
+
+/* Long lists: skip layout/paint for offscreen rows. */
+[data-perf="low"] .mc-stagger > *,
+[data-perf="low"] .bot-card-track > * {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 240px;
+}
+
+/* The pixel grid is a 32px repeating gradient — worth its cost only when the
+   GPU has headroom. */
+[data-perf="low"] .mc-grid {
+  display: none;
+}
+
+/* Hover-lift is a repaint on every pointer move; not worth it here. */
+[data-perf="low"] .mc-panel:hover,
+[data-perf="low"] .nav-links a:hover,
+[data-perf="low"] .discord-button:hover {
+  transform: none;
 }

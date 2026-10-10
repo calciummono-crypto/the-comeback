@@ -5,6 +5,7 @@ import { LockIcon, TicketStarIcon } from "./Icons";
 import { toast } from "./toast";
 import { SkeletonBotCard } from "./Skeleton";
 import DiscordSupportBanner from "./DiscordSupportBanner";
+import Overlay from "./Overlay";
 
 type Plan = {
   id: string;
@@ -611,9 +612,7 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
 
       {/* Checkout Modal */}
       {invoice && (
-        <div className="fixed inset-0 z-[100] grid place-items-center p-4 sm:p-6">
-          <div className="absolute inset-0 animate-fade-in bg-[#020617]/84 backdrop-blur-2xl" onClick={() => closeInvoiceModal(true)} />
-          <div className="relative z-10 flex w-full animate-pop-in items-center justify-center">
+        <Overlay onClose={() => closeInvoiceModal(true)} backdropClassName="bg-[#020617]/84 backdrop-blur-2xl">
             <div className="max-h-[92vh] w-full max-w-[500px] overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950/92 shadow-[0_35px_120px_-55px_rgba(0,0,0,.98)] backdrop-blur-2xl">
             <div className="flex items-center justify-between border-b border-white/[0.08] bg-white/[0.025] px-5 py-4">
               <div className="flex items-center gap-2.5">
@@ -776,9 +775,8 @@ export default function ShopPanel({ onGoLicense }: { onGoLicense?: () => void })
                 </div>
               )}
             </div>
-          </div>
-        </div>
-        </div>
+            </div>
+        </Overlay>
       )}
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { PlusIcon, SwordsIcon, MegaphoneIcon } from "./Icons";
+import Overlay from "./Overlay";
 
 // ---------------------------------------------------------------------------
 // Add-bot wizard (quick flow for everyone):
@@ -272,17 +273,12 @@ export default function AddBotWizard({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] grid place-items-center p-4 sm:p-6">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,.16),transparent_34rem)]" />
-      <div
-        className="absolute inset-0 animate-fade-in bg-[#030712]/84 backdrop-blur-2xl"
-        onClick={onClose}
-      />
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="relative z-10 flex w-full animate-pop-in items-center justify-center"
-      >
-        <div className="absolute -inset-1 z-[-1] rounded-[2.1rem] bg-gradient-to-b from-emerald-300/24 via-indigo-400/12 to-transparent opacity-70 blur-2xl" />
+    <Overlay
+      onClose={onClose}
+      backdropClassName="bg-[#030712]/84 backdrop-blur-2xl"
+      ambientClassName="bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,.16),transparent_34rem)]"
+      underglowClassName="rounded-[2.1rem] bg-gradient-to-b from-[color-mix(in_srgb,var(--mc-glow)_22%,transparent)] via-indigo-400/12 to-transparent"
+    >
         <div className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] border border-white/[0.09] bg-slate-950/92 shadow-[0_34px_120px_-55px_rgba(0,0,0,.98)] backdrop-blur-2xl">
           {/* header */}
           <div className="relative flex items-center justify-between border-b border-white/5 bg-white/[0.025] px-6 py-5">
@@ -704,8 +700,7 @@ export default function AddBotWizard({
             )}
           </div>
         </div>
-      </div>
-    </div>
+    </Overlay>
   );
 }
 

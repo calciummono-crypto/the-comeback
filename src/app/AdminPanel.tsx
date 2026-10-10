@@ -6,6 +6,7 @@ import { EditBotModal } from "./BotDashboard";
 import { ChartIcon, UsersIcon, TicketStarIcon, KeyIcon, CartIcon, BotFaceIcon, BrainIcon, EyeIcon, TargetIcon } from "./Icons";
 import { toast } from "./toast";
 import { SkeletonTable } from "./Skeleton";
+import Overlay from "./Overlay";
 import { BotItem } from "./types";
 
 type AdminUser = {
@@ -2874,9 +2875,11 @@ export default function AdminPanel({ meId }: { meId: string }) {
 
       {/* styled confirm modal */}
       {confirmState && (
-        <div className="fixed inset-0 z-[100] grid place-items-center p-4 sm:p-6">
-          <div className="absolute inset-0 animate-fade-in bg-[#030712]/80 backdrop-blur-xl" onClick={() => !confirmBusy && setConfirmState(null)} />
-          <div className="relative z-10 flex w-full animate-pop-in items-center justify-center">
+        <Overlay
+          onClose={() => setConfirmState(null)}
+          backdropClassName="bg-[#030712]/80 backdrop-blur-xl"
+          closeDisabled={confirmBusy}
+        >
             <div className="premium-modal w-full max-w-sm overflow-hidden rounded-[24px]">
               <div className="p-6">
                 <h3 className="text-base font-bold text-white">{confirmState.title}</h3>
@@ -2903,18 +2906,16 @@ export default function AdminPanel({ meId }: { meId: string }) {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+        </Overlay>
       )}
 
       {/* admin: reset a local account's password */}
       {pwUser && (
-        <div className="fixed inset-0 z-[100] grid place-items-center p-4 sm:p-6">
-          <div
-            className="absolute inset-0 animate-fade-in bg-[#030712]/80 backdrop-blur-xl"
-            onClick={() => !pwBusy && closePwModal()}
-          />
-          <div className="relative z-10 flex w-full animate-pop-in items-center justify-center">
+        <Overlay
+          onClose={() => closePwModal()}
+          backdropClassName="bg-[#030712]/80 backdrop-blur-xl"
+          closeDisabled={pwBusy}
+        >
             <div className="premium-modal w-full max-w-sm overflow-hidden rounded-[24px]">
               <div className="p-6">
                 <h3 className="text-base font-bold text-white">Reset password</h3>
@@ -2977,8 +2978,7 @@ export default function AdminPanel({ meId }: { meId: string }) {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+        </Overlay>
       )}
 
       {/* admin: edit any bot's config */}

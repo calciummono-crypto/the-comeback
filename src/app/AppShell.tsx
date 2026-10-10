@@ -13,6 +13,7 @@ import ShopPanel from "./ShopPanel";
 import HowItWorksPanel from "./HowItWorksPanel";
 import AdminAddBotPanel from "./AdminAddBotPanel";
 import ToastHost from "./ToastHost";
+import BootLoader from "./BootLoader";
 import { Logo, Wordmark } from "./Logo";
 
 type Me = {
@@ -291,17 +292,7 @@ export default function AppShell() {
   }
 
   if (!loaded) {
-    return (
-      <div className="grid min-h-screen place-items-center">
-        <div className="flex flex-col items-center gap-4">
-          <Logo size={56} className="animate-pulse" />
-          <div className="flex items-center gap-2 text-sm text-slate-400">
-            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-600 border-t-[var(--mc-glow)]" />
-            Loading…
-          </div>
-        </div>
-      </div>
-    );
+    return <BootLoader />;
   }
 
   if (!me) {
@@ -337,7 +328,7 @@ export default function AppShell() {
     <div className="flex min-h-screen">
       <ToastHost />
       <aside
-        className={`mc-panel mc-hot-edge fixed inset-y-0 left-0 z-50 flex w-64 min-w-0 flex-col overflow-hidden rounded-none border-y-0 border-l-0 !border-r-1 border-r-[color-mix(in_srgb,var(--mc-glow)_20%,transparent)] bg-[rgba(6,3,10,0.86)] !shadow-none backdrop-blur-2xl transition-all duration-300 lg:translate-x-0 ${
+        className={`mc-panel mc-hot-edge fixed inset-y-0 left-0 z-50 flex w-64 min-w-0 flex-col overflow-hidden !rounded-none !rounded-r-[var(--squircle)] border-y-0 border-l-0 !border-r-1 border-r-[color-mix(in_srgb,var(--mc-glow)_20%,transparent)] bg-[rgba(6,3,10,0.86)] !shadow-none backdrop-blur-2xl transition-all duration-300 lg:translate-x-0 ${
           mobileNav ? "translate-x-0" : "-translate-x-full"
         } ${collapsed ? "lg:w-[76px]" : "lg:w-64"}`}
       >

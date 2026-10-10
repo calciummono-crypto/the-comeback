@@ -7,6 +7,7 @@ import AddBotWizard from "./AddBotWizard";
 import { BotItem, BotStatus, LogEntry } from "./types";
 import BotDetailView from "./BotDetailView";
 import { toast } from "./toast";
+import OverlayRoot from "./Overlay";
 
 const STATUS_META: Record<
   BotStatus,
@@ -780,25 +781,20 @@ function ConfirmDeleteModal({
 function Overlay({
   children,
   onClose,
+  closeDisabled,
 }: {
   children: React.ReactNode;
   onClose: () => void;
+  closeDisabled?: boolean;
 }) {
   return (
-    <div className="fixed inset-0 z-[100] grid place-items-center p-4 sm:p-6">
-      <div
-        className="absolute inset-0 animate-fade-in bg-[#030712]/86 backdrop-blur-2xl"
-        onClick={onClose}
-      />
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="relative z-10 flex w-full animate-pop-in items-center justify-center"
-      >
-        {/* Subtle under-glow for the modal */}
-        <div className="absolute -inset-1 z-[-1] rounded-[2rem] bg-gradient-to-b from-emerald-500/16 to-indigo-500/8 blur-2xl opacity-70" />
-        {children}
-      </div>
-    </div>
+    <OverlayRoot
+      onClose={onClose}
+      closeDisabled={closeDisabled}
+      underglowClassName="rounded-[2rem] bg-gradient-to-b from-[color-mix(in_srgb,var(--mc-glow)_16%,transparent)] to-indigo-500/8"
+    >
+      {children}
+    </OverlayRoot>
   );
 }
 

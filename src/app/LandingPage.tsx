@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -64,15 +64,10 @@ const logs = [
 ];
 
 export default function LandingPage() {
-  const [navCompact, setNavCompact] = useState(false);
+  // The top bar is hidden by default and only slides in when the pointer
+  // enters the strip along the top edge (or the bar itself, so the pointer
+  // can travel into it without it snapping shut).
   const [navPeek, setNavPeek] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setNavCompact(window.scrollY > 90);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   // Scroll reveal: every [data-reveal] node fades/slides in once as it enters
   // the viewport. Unobserved after firing, and skipped entirely when the user
@@ -132,23 +127,27 @@ export default function LandingPage() {
     <main className="home-shell">
       <style>{css}</style>
 
-      <div
-        className={`nav-hover-zone ${navCompact ? "show" : ""}`}
-        onMouseEnter={() => setNavPeek(true)}
-        aria-hidden="true"
-      />
-
+      {/* A single blurred pill pinned to the top edge. Collapsed it is just
+          the logo mark; hovering (or focusing, or tapping) expands it to the
+          full bar. No separate trigger element, so there is nothing to get
+          stuck half-open. */}
       <nav
-        className={`top-nav ${navCompact && !navPeek ? "compact" : ""}`}
+        className={`top-nav ${navPeek ? "is-open" : ""}`}
         onMouseEnter={() => setNavPeek(true)}
-        onMouseLeave={() => navCompact && setNavPeek(false)}
+        onMouseLeave={() => setNavPeek(false)}
         onFocus={() => setNavPeek(true)}
-        onBlur={() => navCompact && setNavPeek(false)}
+        onBlur={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+            setNavPeek(false);
+          }
+        }}
+        onClick={() => setNavPeek(true)}
+        aria-label="Main"
       >
         <Link href="/" className="brand">
-          <span className="brand-mark"><Logo size={28} /></span>
-          <span>
-            <Wordmark height={24} />
+          <span className="brand-mark"><Logo size={26} /></span>
+          <span className="brand-copy">
+            <Wordmark height={23} />
             <small>minecraft bot panel</small>
           </span>
         </Link>
@@ -349,7 +348,7 @@ function FeatureIcon({ kind }: { kind: string }) {
 }
 
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Audiowide&family=IBM+Plex+Mono:wght@500;600;700&family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
 
   :root {
     --bg: #080a0d;
@@ -372,7 +371,7 @@ const css = `
       radial-gradient(circle at 72% 12%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 28rem),
       linear-gradient(180deg, rgba(8,4,12,0.35) 0%, rgba(6,3,10,0.55) 60%, rgba(4,2,7,0.72) 100%);
     color: var(--text);
-    font-family: "Space Grotesk", Inter, ui-sans-serif, system-ui, sans-serif;
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
   }
 
   .home-shell { padding-top: 92px; }
@@ -393,17 +392,15 @@ const css = `
       transform: translateY(26px);
       filter: blur(6px);
     }
-    60% { filter: blur(0); }
     to {
       opacity: 1;
-      transform: translateY(0);
-      filter: blur(0);
+      transform: none;
+      filter: none;
     }
   }
 
   .home-shell * { box-sizing: border-box; }
 
-  .top-nav,
   .hero,
   .features,
   .flow-band,
@@ -412,18 +409,10 @@ const css = `
     margin: 0 auto;
   }
 
-  .nav-hover-zone {
-    position: fixed;
-    left: 0;
-    top: 0;
-    z-index: 79;
-    display: none;
-    height: 38px;
-    width: 100vw;
-  }
-
-  .nav-hover-zone.show { display: block; }
-
+  /* Collapsed state: a small blurred pill holding only the logo mark.
+     Hovering or focusing it expands into the full bar. Driven by CSS
+     :hover/:focus-within so the reaction is instant, with the is-open
+     class covering touch where hover never fires. */
   .top-nav {
     position: fixed;
     top: 14px;
@@ -432,46 +421,80 @@ const css = `
     z-index: 80;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 18px;
-    margin-top: 0;
-    padding: 12px 14px;
+    gap: 0;
+    padding: 8px;
     border: 1px solid var(--line);
-    border-radius: 22px;
-    background: rgba(8, 10, 13, 0.78);
-    box-shadow: 0 18px 60px -42px rgba(0,0,0,.95);
-    backdrop-filter: blur(20px);
-    transition: transform 260ms ease, opacity 260ms ease, padding 260ms ease, border-color 260ms ease, background 260ms ease, box-shadow 260ms ease;
-    will-change: transform, opacity;
+    border-radius: 999px;
+    background: rgba(8, 10, 13, 0.72);
+    box-shadow: 0 18px 60px -42px rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(20px) saturate(120%);
+    cursor: pointer;
+    transition:
+      gap 320ms cubic-bezier(0.16, 1, 0.3, 1),
+      padding 320ms cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 260ms ease,
+      background 260ms ease,
+      box-shadow 260ms ease;
   }
 
-  .top-nav.compact {
-    transform: translateX(-50%) translateY(calc(-100% - 18px)) scale(.98);
-    opacity: 0;
-    pointer-events: none;
-    padding-top: 8px;
-    padding-bottom: 8px;
-    border-color: color-mix(in srgb, var(--accent) 18%, transparent);
-    background: rgba(8, 10, 13, 0.54);
-    box-shadow: 0 10px 40px -34px rgba(0,0,0,.9);
+  .top-nav:hover,
+  .top-nav:focus-within,
+  .top-nav.is-open {
+    gap: 14px;
+    padding: 8px 8px 8px 8px;
+    border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
+    background: rgba(8, 10, 13, 0.88);
+    box-shadow:
+      0 18px 60px -42px rgba(0, 0, 0, 0.95),
+      0 0 30px -16px color-mix(in srgb, var(--accent) 60%, transparent);
   }
 
   .brand {
     display: flex;
     align-items: center;
-    gap: 11px;
+    gap: 0;
     color: var(--text);
     text-decoration: none;
+    overflow: hidden;
+    transition: gap 320ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .top-nav:hover .brand,
+  .top-nav:focus-within .brand,
+  .top-nav.is-open .brand {
+    gap: 11px;
   }
 
   .brand-mark {
     display: grid;
     place-items: center;
-    width: 42px;
-    height: 42px;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 auto;
     border: 1px solid var(--line);
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.035);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.045);
+  }
+
+  /* Wordmark + tagline are hidden until expansion; animated by max-width so
+     the pill genuinely grows rather than having content pop in. */
+  .brand-copy {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    max-width: 0;
+    opacity: 0;
+    transition:
+      max-width 320ms cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 220ms ease;
+  }
+
+  .top-nav:hover .brand-copy,
+  .top-nav:focus-within .brand-copy,
+  .top-nav.is-open .brand-copy {
+    max-width: 240px;
+    opacity: 1;
   }
 
   .brand small {
@@ -485,6 +508,21 @@ const css = `
     display: flex;
     align-items: center;
     gap: 4px;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    max-width: 0;
+    opacity: 0;
+    transition:
+      max-width 360ms cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 240ms ease;
+  }
+
+  .top-nav:hover .nav-links,
+  .top-nav:focus-within .nav-links,
+  .top-nav.is-open .nav-links {
+    max-width: 520px;
+    opacity: 1;
   }
 
   .discord-banner {
@@ -606,7 +644,7 @@ const css = `
     line-height: 0.96;
     letter-spacing: -0.07em;
     font-weight: 800;
-    font-family: "Space Grotesk", Inter, ui-sans-serif, sans-serif;
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
   }
 
   .lead {
@@ -1189,8 +1227,6 @@ const css = `
   }
 
   @media (max-width: 880px) {
-    .top-nav { align-items: flex-start; flex-direction: column; }
-    .nav-links { flex-wrap: wrap; max-width: 100%; }
     .nav-links a { padding: 9px 10px; }
     .hero,
     .section-title,
@@ -1208,17 +1244,21 @@ const css = `
   }
 
   @media (max-width: 560px) {
-    .top-nav,
     .hero,
     .features,
     .flow-band,
     footer { width: min(calc(100vw - 20px), 1120px); }
-    .top-nav { gap: 12px; padding: 10px; border-radius: 18px; }
-    .brand-mark { width: 36px; height: 36px; border-radius: 12px; }
-    .brand small { font-size: 10px; }
+    /* The pill can only grow so far before it runs off the viewport, so the
+       links wrap into a compact grid underneath the brand row. */
+    .top-nav { max-width: calc(100vw - 20px); border-radius: 22px; }
+    .top-nav:hover,
+    .top-nav:focus-within,
+    .top-nav.is-open { flex-wrap: wrap; justify-content: center; }
     .nav-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; gap: 6px; }
     .nav-links a { display: flex; justify-content: center; padding: 8px; font-size: 12px; }
-    .home-shell { padding-top: 142px; }
+    .brand-mark { width: 36px; height: 36px; }
+    .brand small { font-size: 10px; }
+    .home-shell { padding-top: 92px; }
     h1 { font-size: clamp(34px, 11vw, 40px); letter-spacing: -0.055em; }
     .lead { font-size: 15px; line-height: 1.65; }
     .hero { gap: 34px; padding-top: 42px; padding-bottom: 56px; }
