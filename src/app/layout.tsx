@@ -1,25 +1,31 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { Inter } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
-
 export const metadata: Metadata = {
-  title: "MC Bot Manager",
+  title: "The Comeback — MC Bot Manager",
   description:
-    "Spin up Minecraft bots, watch them join servers, and control their consoles.",
+    "Spin up Minecraft bots, watch them join servers, and drive the beam from one console.",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#07040a",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="min-h-screen bg-[#070b14] text-slate-100 antialiased">
-        <div className="app-bg" aria-hidden />
+    <html
+      lang="en"
+      className={`${GeistSans.variable} ${GeistMono.variable}`}
+      suppressHydrationWarning
+    >
+      <body className="min-h-dvh">
+        <div className="sunset" aria-hidden />
+        <div className="tree-line" aria-hidden />
         {children}
       </body>
     </html>

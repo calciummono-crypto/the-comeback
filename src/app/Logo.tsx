@@ -13,50 +13,47 @@ export function Logo({
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
-      aria-label="MC Bot Manager logo"
+      role="img"
+      aria-label="The Comeback logo"
     >
       <defs>
-        <linearGradient id="logoBg" x1="0" y1="0" x2="48" y2="48">
-          <stop offset="0" stopColor="#34d399" />
-          <stop offset="1" stopColor="#0f766e" />
+        <linearGradient id="cbSky" x1="0" y1="0" x2="0" y2="48">
+          <stop offset="0" stopColor="#2a0e2c" />
+          <stop offset="0.62" stopColor="#6b1440" />
+          <stop offset="1" stopColor="#ff9a5c" />
         </linearGradient>
-        <linearGradient id="logoFace" x1="10" y1="12" x2="38" y2="38">
-          <stop offset="0" stopColor="#ecfdf5" />
-          <stop offset="1" stopColor="#a7f3d0" />
+        <linearGradient id="cbSun" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ffc98a" />
+          <stop offset="1" stopColor="#ff2e7e" />
         </linearGradient>
       </defs>
-      {/* rounded square base */}
-      <rect width="48" height="48" rx="13" fill="url(#logoBg)" />
-      <rect
-        width="48"
-        height="48"
-        rx="13"
-        fill="url(#logoBg)"
-        opacity="0.4"
+
+      {/* world tile */}
+      <rect width="48" height="48" rx="10" fill="url(#cbSky)" />
+
+      {/* pixel sun setting behind the horizon */}
+      <rect x="17" y="24" width="14" height="14" fill="url(#cbSun)" />
+      <rect x="14" y="27" width="20" height="8" fill="url(#cbSun)" opacity="0.5" />
+
+      {/* horizon line */}
+      <rect x="0" y="31" width="48" height="2" fill="#1a0510" opacity="0.55" />
+
+      {/* stepped treeline silhouettes */}
+      <path
+        d="M0 48V36h3v-3h3v4h3v-6h3v5h3v-4h3v6h3v-5h3v4h3v-6h3v7h3v-4h3v5h3v-6h3v4h3v-3h3v5h3v-4h3v5h3v-3h3v13H0Z"
+        fill="#0a050d"
       />
-      {/* antenna */}
-      <circle cx="24" cy="9" r="2.4" fill="#ecfdf5" />
-      <rect x="23" y="10.5" width="2" height="4" rx="1" fill="#ecfdf5" />
-      {/* robot head */}
-      <rect
-        x="11"
-        y="14"
-        width="26"
-        height="21"
-        rx="6"
-        fill="url(#logoFace)"
-      />
-      {/* eyes */}
-      <rect x="16.5" y="21" width="5" height="6.5" rx="2.5" fill="#0f766e" />
-      <rect x="26.5" y="21" width="5" height="6.5" rx="2.5" fill="#0f766e" />
-      {/* eye glints */}
-      <circle cx="19" cy="23" r="1" fill="#a7f3d0" />
-      <circle cx="29" cy="23" r="1" fill="#a7f3d0" />
-      {/* mouth / status bar */}
-      <rect x="18" y="30.5" width="12" height="2" rx="1" fill="#0f766e" opacity="0.55" />
-      {/* side ears */}
-      <rect x="8.5" y="22" width="3" height="6" rx="1.5" fill="#ecfdf5" />
-      <rect x="36.5" y="22" width="3" height="6" rx="1.5" fill="#ecfdf5" />
+
+      {/* water shimmer under the sun */}
+      <rect x="19" y="34" width="10" height="2" fill="#ff6aa5" opacity="0.7" />
+      <rect x="21" y="38" width="6" height="2" fill="#ff6aa5" opacity="0.45" />
+      <rect x="22" y="42" width="4" height="2" fill="#ff6aa5" opacity="0.28" />
+
+      {/* stars */}
+      <rect x="8" y="8" width="2" height="2" fill="#fff" opacity="0.85" />
+      <rect x="35" y="6" width="2" height="2" fill="#fff" opacity="0.7" />
+      <rect x="26" y="12" width="2" height="2" fill="#fff" opacity="0.5" />
+      <rect x="13" y="16" width="2" height="2" fill="#fff" opacity="0.4" />
     </svg>
   );
 }

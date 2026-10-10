@@ -1,36 +1,47 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { BotItem, BotStatus, LogEntry } from "./types";
+import { useCallback, useEffect, useState } from "react";
+import {
+  ChevronLeft,
+  CircleSlash,
+  Play,
+  Plus,
+  Settings2,
+  Trash2,
+  X,
+} from "lucide-react";
+import { BotItem, BotStatus } from "./types";
 import BotDetailView from "./BotDetailView";
+import { AnimatedNumber } from "@/components/ui/skiper/animated-number";
+import { cn } from "@/lib/utils";
 
 const STATUS_META: Record<
   BotStatus,
-  { label: string; dot: string; text: string; ring: string }
+  { label: string; dot: string; text: string; chip: string }
 > = {
   online: {
-    label: "Joined",
-    dot: "bg-emerald-400",
-    text: "text-emerald-300",
-    ring: "ring-emerald-500/30 bg-emerald-500/10",
+    label: "joined",
+    dot: "bg-live",
+    text: "text-live",
+    chip: "border-live/35 bg-live/10",
   },
   connecting: {
-    label: "Connecting",
-    dot: "bg-amber-400 animate-pulse",
-    text: "text-amber-300",
-    ring: "ring-amber-500/30 bg-amber-500/10",
+    label: "connecting",
+    dot: "bg-wait animate-blink",
+    text: "text-wait",
+    chip: "border-wait/35 bg-wait/10",
   },
   error: {
-    label: "Failed",
-    dot: "bg-rose-500",
-    text: "text-rose-300",
-    ring: "ring-rose-500/30 bg-rose-500/10",
+    label: "failed",
+    dot: "bg-fail",
+    text: "text-fail",
+    chip: "border-fail/35 bg-fail/10",
   },
   offline: {
-    label: "Stopped",
-    dot: "bg-slate-500",
-    text: "text-slate-400",
-    ring: "ring-slate-600/40 bg-slate-700/20",
+    label: "stopped",
+    dot: "bg-dead",
+    text: "text-ink-3",
+    chip: "border-line bg-white/[0.03]",
   },
 };
 
@@ -66,47 +77,96 @@ export default function BotDashboard() {
   const [editId, setEditId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
 
+  const applyBots = useCallback(
+    (data: { bots?: BotItem[]; slots?: number } | null) => {
+      setItems(data?.bots ?? []);
+      if (typeof data?.slots === "number") setSlots(data.slots);
+      setLoaded(true);
+    },
+    [],
+  );
+
+  const readBots = useCallback(
+    () =>
+      fetch("/api/bots", { cache: "no-store" }).then(
+        (res) => res.json() as Promise<{ bots?: BotItem[]; slots?: number }>,
+      ),
+    [],
+  );
+
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch("/api/bots", { cache: "no-store" });
-      const data = await res.json();
-      setItems(data.bots ?? []);
-      if (typeof data.slots === "number") setSlots(data.slots);
+      applyBots(await readBots());
     } catch {
-      /* ignore */
-    } finally {
-      setLoaded(true);
+      applyBots(null);
     }
-  }, []);
+  }, [applyBots, readBots]);
 
   const slotsFull = slots > 0 && items.length >= slots;
+  const online = items.filter((b) => b.status === "online").length;
 
   useEffect(() => {
-    refresh();
-    const t = setInterval(refresh, 2500);
-    return () => clearInterval(t);
-  }, [refresh]);
+    let alive = true;
+    const tick = () =>
+      readBots()
+        .then((data) => {
+          if (alive) applyBots(data);
+        })
+        .catch(() => {
+          /* ignore */
+        });
+    tick();
+    const t = setInterval(tick, 2500);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, [readBots, applyBots]);
 
   const activeBot = items.find((b) => b.id === activeBotId) ?? null;
   const editBot = items.find((b) => b.id === editId) ?? null;
 
+  if (activeBot) {
+    return (
+      <div className="animate-rise">
+        <button
+          onClick={() => setActiveBotId(null)}
+          className="mb-4 inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-3 transition-colors hover:text-ink"
+        >
+          <ChevronLeft size={15} /> Bots
+        </button>
+        <BotDetailView bot={activeBot} onChanged={refresh} />
+      </div>
+    );
+  }
+
   return (
     <div>
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* ---- header ---- */}
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight">My Bots</h2>
-          <p className="text-sm text-slate-400">
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-3">
+            control center
+          </p>
+          <h1 className="mt-1 text-[26px] font-semibold leading-none tracking-tight">
+            My Bots
+          </h1>
+          <p className="mt-2 text-sm text-ink-2">
             {slots > 0 ? (
               <>
-                Using{" "}
                 <span
-                  className={
-                    slotsFull ? "font-semibold text-amber-300" : "text-slate-200"
-                  }
+                  className={cn(
+                    "font-mono font-semibold",
+                    slotsFull ? "text-wait" : "text-ink",
+                  )}
                 >
-                  {items.length}/{slots}
+                  <AnimatedNumber value={items.length} />/{slots}
                 </span>{" "}
-                bot slots
+                slots in use ·{" "}
+                <span className="font-mono font-semibold text-live">
+                  <AnimatedNumber value={online} />
+                </span>{" "}
+                online
               </>
             ) : (
               "Spin up Minecraft bots and control them."
@@ -117,64 +177,67 @@ export default function BotDashboard() {
           onClick={() => setShowAdd(true)}
           disabled={slotsFull}
           title={slotsFull ? "No bot slots left — ask an admin" : "Add a bot"}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-emerald-950 shadow-lg shadow-emerald-900/30 transition hover:bg-emerald-400 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-40"
+          className="btn btn-primary"
         >
-          <span className="text-lg leading-none">＋</span> Add bot
+          <Plus size={15} strokeWidth={2.5} /> Add bot
         </button>
       </header>
 
-      {!activeBot ? (
-        <>
-          <nav className="mt-6 flex gap-1 rounded-xl border border-slate-800 bg-slate-900/60 p-1 text-sm">
-            {(["bots", "about"] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`flex-1 rounded-lg px-3 py-2 font-medium capitalize transition ${
-                  tab === t
-                    ? "bg-slate-800 text-white shadow"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                {t === "bots" ? `Bots (${items.length})` : "How it works"}
-              </button>
-            ))}
-          </nav>
-
-          {tab === "bots" ? (
-            <section className="mt-6 animate-fade-in">
-              {!loaded ? (
-                <p className="py-16 text-center text-slate-500">Loading…</p>
-              ) : items.length === 0 ? (
-                <EmptyState onAdd={() => setShowAdd(true)} />
-              ) : (
-                <ul className="grid gap-4">
-                  {items.map((bot) => (
-                    <BotCard
-                      key={bot.id}
-                      bot={bot}
-                      onChanged={refresh}
-                      onSelect={() => setActiveBotId(bot.id)}
-                      onEdit={() => setEditId(bot.id)}
-                    />
-                  ))}
-                </ul>
-              )}
-            </section>
-          ) : (
-            <AboutPanel />
-          )}
-        </>
-      ) : (
-        <div className="mt-6 animate-pop-in">
+      {/* ---- tabs ---- */}
+      <nav className="mt-6 flex gap-6 border-b border-line">
+        {(
+          [
+            ["bots", `Bots (${items.length})`],
+            ["about", "How it works"],
+          ] as const
+        ).map(([key, label]) => (
           <button
-            onClick={() => setActiveBotId(null)}
-            className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition hover:text-white"
+            key={key}
+            onClick={() => setTab(key)}
+            aria-current={tab === key ? "true" : undefined}
+            className={`relative -mb-px pb-2.5 text-[13px] font-medium transition-colors ${
+              tab === key
+                ? "text-ink"
+                : "text-ink-3 hover:text-ink-2"
+            }`}
           >
-            ← Back to Bots
+            {label}
+            <span
+              aria-hidden
+              className={`absolute inset-x-0 -bottom-px h-[2px] rounded-full transition-all ${
+                tab === key ? "bg-sun" : "bg-transparent"
+              }`}
+            />
           </button>
-          <BotDetailView bot={activeBot} onChanged={refresh} />
-        </div>
+        ))}
+      </nav>
+
+      {tab === "bots" ? (
+        <section className="mt-5">
+          {!loaded ? (
+            <div className="space-y-2.5">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="skeleton h-[76px] rounded-lg" />
+              ))}
+            </div>
+          ) : items.length === 0 ? (
+            <EmptyState onAdd={() => setShowAdd(true)} />
+          ) : (
+            <ul className="grid gap-2.5">
+              {items.map((bot) => (
+                <BotRow
+                  key={bot.id}
+                  bot={bot}
+                  onChanged={refresh}
+                  onSelect={() => setActiveBotId(bot.id)}
+                  onEdit={() => setEditId(bot.id)}
+                />
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : (
+        <AboutPanel />
       )}
 
       {showAdd && (
@@ -201,13 +264,19 @@ export default function BotDashboard() {
   );
 }
 
+/* -------------------------------------------------------------------------- */
+
 export function StatusBadge({ status }: { status: BotStatus }) {
   const meta = STATUS_META[status];
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${meta.ring} ${meta.text}`}
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1.5 rounded border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em]",
+        meta.chip,
+        meta.text,
+      )}
     >
-      <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
+      <span className={cn("h-1.5 w-1.5 rounded-full", meta.dot)} />
       {meta.label}
     </span>
   );
@@ -224,18 +293,23 @@ export function BotAvatar({
 }) {
   const [error, setError] = useState(false);
   const showImg = username && !error;
-  
+
+  const ring =
+    status === "online"
+      ? "border-live/40 bg-live/10"
+      : status === "connecting"
+        ? "border-wait/40 bg-wait/10"
+        : status === "error"
+          ? "border-fail/40 bg-fail/10"
+          : "border-line bg-white/[0.03]";
+
   return (
     <div
-      className={`relative flex shrink-0 items-center justify-center overflow-hidden ring-1 ${className} ${
-        status === "online"
-          ? "bg-emerald-500/15 ring-emerald-500/30"
-          : status === "connecting"
-            ? "bg-amber-500/15 ring-amber-500/30"
-            : status === "error"
-              ? "bg-rose-500/15 ring-rose-500/30"
-              : "bg-slate-700/30 ring-slate-600/40"
-      }`}
+      className={cn(
+        "relative flex shrink-0 items-center justify-center overflow-hidden border",
+        ring,
+        className,
+      )}
     >
       {showImg ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -243,17 +317,18 @@ export function BotAvatar({
           src={`https://visage.surgeplay.com/bust/256/${username}?y=-40`}
           alt={username}
           onError={() => setError(true)}
-          className="mt-2 h-full w-full object-contain drop-shadow-md scale-125"
-          style={{ imageRendering: "pixelated" }}
+          className="pixelated mt-2 h-full w-full scale-125 object-contain drop-shadow-md"
         />
       ) : (
-        "🤖"
+        <span className="text-lg opacity-60" aria-hidden>
+          ▦
+        </span>
       )}
     </div>
   );
 }
 
-function BotCard({
+function BotRow({
   bot,
   onChanged,
   onSelect,
@@ -278,65 +353,77 @@ function BotCard({
   }
 
   return (
-    <li className="card-hover glass rounded-2xl p-4 shadow-lg shadow-black/20">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-3">
-          <BotAvatar
-            username={bot.username}
-            status={bot.status}
-            className="h-11 w-11 rounded-xl text-lg"
-          />
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="truncate text-base font-semibold">{bot.name}</h3>
-              <StatusBadge status={bot.status} />
-            </div>
-            <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 truncate text-sm text-slate-400">
-              <span className="font-mono text-slate-300">
-                {bot.host}:{bot.port}
-              </span>
-              <span className="text-slate-600">·</span>
-              <span className="rounded-md bg-slate-800/60 px-1.5 py-0.5 text-xs text-slate-400">
-                {bot.version && bot.version !== "auto" ? bot.version : "auto"}
-              </span>
-              {bot.username && (
-                <>
-                  <span className="text-slate-600">·</span>
-                  <span className="text-slate-400">{bot.username}</span>
-                </>
-              )}
-            </p>
+    <li className="panel heat rounded-lg">
+      <div className="flex flex-wrap items-center gap-3 p-3 sm:p-4">
+        <BotAvatar
+          username={bot.username}
+          status={bot.status}
+          className="h-11 w-11 rounded-md text-lg"
+        />
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="truncate text-[15px] font-semibold tracking-tight">
+              {bot.name}
+            </h3>
+            <StatusBadge status={bot.status} />
           </div>
+          <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-ink-3">
+            <span className="text-ink-2">
+              {bot.host}:{bot.port}
+            </span>
+            <span aria-hidden className="opacity-40">
+              /
+            </span>
+            <span className="rounded border border-line bg-white/[0.03] px-1 py-px">
+              {bot.version && bot.version !== "auto" ? bot.version : "auto"}
+            </span>
+            {bot.username && (
+              <>
+                <span aria-hidden className="opacity-40">
+                  /
+                </span>
+                <span className="text-ink-2">{bot.username}</span>
+              </>
+            )}
+            <span aria-hidden className="opacity-40">
+              /
+            </span>
+            <span className="uppercase">{bot.engine}</span>
+          </p>
         </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <button
-            onClick={onSelect}
-            className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-sm font-semibold text-emerald-400 transition hover:bg-emerald-500/20"
-          >
-            Control Center →
+
+        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+          <button onClick={onSelect} className="btn btn-primary !px-3 !py-2">
+            Control
           </button>
           <button
             onClick={onEdit}
-            className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm font-medium text-slate-200 transition hover:bg-slate-700"
+            className="btn btn-ghost !px-2.5 !py-2"
             title="Manage token & version"
+            aria-label={`Manage ${bot.name}`}
           >
-            ⚙ Manage
+            <Settings2 size={14} />
           </button>
           {running ? (
             <button
               disabled={busy}
               onClick={() => act(`/api/bots/${bot.id}/stop`)}
-              className="rounded-lg bg-amber-500/90 px-3 py-1.5 text-sm font-semibold text-amber-950 transition hover:bg-amber-400 disabled:opacity-50"
+              className="btn btn-ghost !px-2.5 !py-2"
+              title="Stop"
+              aria-label={`Stop ${bot.name}`}
             >
-              Stop
+              <CircleSlash size={14} />
             </button>
           ) : (
             <button
               disabled={busy}
               onClick={() => act(`/api/bots/${bot.id}/start`)}
-              className="rounded-lg bg-emerald-500 px-3 py-1.5 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-400 disabled:opacity-50"
+              className="btn btn-ghost !px-2.5 !py-2 !text-live"
+              title="Start"
+              aria-label={`Start ${bot.name}`}
             >
-              Start
+              <Play size={14} />
             </button>
           )}
           <button
@@ -345,48 +432,206 @@ function BotCard({
               if (confirm(`Delete bot "${bot.name}"?`))
                 act(`/api/bots/${bot.id}`, "DELETE");
             }}
-            className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm font-medium text-slate-400 transition hover:border-rose-500/40 hover:text-rose-300"
+            className="btn btn-ghost !px-2.5 !py-2 hover:!border-fail/40 hover:!text-fail"
             title="Delete bot"
+            aria-label={`Delete ${bot.name}`}
           >
-            ✕
+            <Trash2 size={14} />
           </button>
         </div>
       </div>
 
-      {bot.status === "error" && bot.lastError && (
-        <p className="mt-3 rounded-lg bg-rose-500/10 px-3 py-2 text-xs text-rose-300 ring-1 ring-rose-500/20">
-          {bot.lastError}
-        </p>
-      )}
-      {bot.joined && (
-        <p className="mt-3 flex items-center gap-1.5 text-xs text-emerald-300">
-          <span>✅</span> Successfully joined the server.
-        </p>
-      )}
+      {(bot.status === "error" && bot.lastError) || bot.joined ? (
+        <div className="border-t border-line px-3 py-2 sm:px-4">
+          {bot.status === "error" && bot.lastError && (
+            <p className="font-mono text-xs leading-relaxed text-fail">
+              {bot.lastError}
+            </p>
+          )}
+          {bot.joined && (
+            <p className="font-mono text-xs text-live">
+              ✓ successfully joined the server
+            </p>
+          )}
+        </div>
+      ) : null}
     </li>
   );
 }
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
-    <div className="grid animate-fade-in place-items-center rounded-3xl border border-dashed border-slate-700/60 bg-slate-900/30 px-6 py-20 text-center">
-      <div className="grid h-20 w-20 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500/20 to-indigo-500/20 text-4xl ring-1 ring-slate-700/50">
-        🛰️
+    <div className="panel grid animate-fade-in place-items-center rounded-lg border-dashed px-6 py-16 text-center">
+      <div className="grid h-14 w-14 place-items-center rounded-md border border-line bg-white/[0.03] text-sun">
+        <Plus size={22} strokeWidth={1.5} />
       </div>
-      <h3 className="mt-5 text-lg font-semibold">No bots yet</h3>
-      <p className="mt-2 max-w-sm text-sm text-slate-400">
-        Add a bot with your Minecraft token and a server address. It&apos;ll try
-        to join and report back here in real-time.
+      <h3 className="mt-4 text-base font-semibold tracking-tight">
+        No bots yet
+      </h3>
+      <p className="mt-1.5 max-w-[44ch] text-sm leading-relaxed text-ink-2">
+        Add a bot with your Minecraft token and a server address. It will try to
+        join and report back here in real time.
       </p>
-      <button
-        onClick={onAdd}
-        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-emerald-950 shadow-lg shadow-emerald-900/30 transition hover:bg-emerald-400 active:scale-[.98]"
-      >
-        <span className="text-lg leading-none">＋</span> Add your first bot
+      <button onClick={onAdd} className="btn btn-primary mt-5">
+        <Plus size={15} strokeWidth={2.5} /> Add your first bot
       </button>
     </div>
   );
 }
+
+function AboutPanel() {
+  return (
+    <section className="panel mt-5 space-y-4 rounded-lg p-5 text-sm leading-relaxed text-ink-2">
+      <h2 className="text-[15px] font-semibold text-ink">How it works</h2>
+      <ol className="space-y-2">
+        {[
+          <>
+            Click <b className="text-ink">Add bot</b> and paste your Minecraft
+            access token (the bearer / Yggdrasil token issued after you log in
+            at minecraft.net).
+          </>,
+          <>
+            Enter the <b className="text-ink">server IP</b>, e.g.{" "}
+            <code className="font-mono text-xs text-sun">play.example.net</code>{" "}
+            or <code className="font-mono text-xs text-sun">1.2.3.4:25565</code>
+            .
+          </>,
+          <>
+            The server validates the token against Minecraft services, resolves
+            your username, and connects with{" "}
+            <code className="font-mono text-xs text-sun">mineflayer</code>.
+          </>,
+          <>
+            Each bot reports whether it <b className="text-ink">joined</b>, and
+            you can open the <b className="text-ink">console</b> to watch chat
+            and send messages.
+          </>,
+        ].map((step, i) => (
+          <li key={i} className="flex gap-3">
+            <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded border border-line bg-white/[0.03] font-mono text-[10px] text-sun">
+              {i + 1}
+            </span>
+            <span>{step}</span>
+          </li>
+        ))}
+      </ol>
+      <p className="rounded-md border border-wait/30 bg-wait/10 px-3 py-2 text-xs leading-relaxed text-wait">
+        Tokens are short-lived. If a join fails with an auth error, grab a fresh
+        token. Bots only run while this server process is alive.
+      </p>
+      <p className="rounded-md border border-mod/30 bg-mod/10 px-3 py-2 text-xs leading-relaxed text-mod">
+        Seeing <b>Disconnected: socketClosed</b>? That usually means a version
+        mismatch behind the server&apos;s proxy. Re-create the bot and set the
+        exact Minecraft version the server runs — the manager also fetches your
+        chat-signing certificates automatically so chat works on 1.19+.
+      </p>
+    </section>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+
+function Overlay({
+  children,
+  onClose,
+}: {
+  children: React.ReactNode;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto p-4 sm:items-center sm:p-6"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className="fixed inset-0 animate-fade-in bg-black/75 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative z-10 flex w-full animate-rise justify-center"
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ModalShell({
+  title,
+  subtitle,
+  icon,
+  onClose,
+  children,
+  footer,
+}: {
+  title: string;
+  subtitle: string;
+  icon: React.ReactNode;
+  onClose: () => void;
+  children: React.ReactNode;
+  footer: React.ReactNode;
+}) {
+  return (
+    <div className="premium-modal flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-xl">
+      <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-line bg-white/[0.04] text-sun">
+            {icon}
+          </div>
+          <div className="min-w-0">
+            <h2 className="truncate text-[15px] font-semibold tracking-tight">
+              {title}
+            </h2>
+            <p className="truncate font-mono text-[11px] text-ink-3">
+              {subtitle}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-ink-3 transition-colors hover:bg-white/5 hover:text-ink"
+        >
+          <X size={15} />
+        </button>
+      </div>
+
+      <div className="space-y-4 overflow-y-auto p-5">{children}</div>
+
+      <div className="flex justify-end gap-2 border-t border-line bg-black/25 px-5 py-4">
+        {footer}
+      </div>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-[13px] font-medium text-ink-2">
+        {label}
+      </span>
+      {children}
+      {hint && (
+        <span className="mt-1.5 block text-xs leading-relaxed text-ink-3">
+          {hint}
+        </span>
+      )}
+    </label>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 
 function AddBotModal({
   onClose,
@@ -415,7 +660,16 @@ function AddBotModal({
       const res = await fetch("/api/bots", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, token, host, port, version, proxy, discordUser, engine }),
+        body: JSON.stringify({
+          name,
+          token,
+          host,
+          port,
+          version,
+          proxy,
+          discordUser,
+          engine,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -432,263 +686,134 @@ function AddBotModal({
 
   return (
     <Overlay onClose={onClose}>
-      <div className="premium-modal flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-[24px]">
-        <div className="flex items-center justify-between border-b border-white/5 bg-white/[0.02] px-6 py-5">
-          <div className="flex items-center gap-4">
-            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 text-xl shadow-[0_0_20px_-5px_rgba(16,185,129,0.5)]">
-              ＋
-            </div>
-            <div>
-              <h2 className="text-xl font-bold tracking-tight text-white">Add a bot</h2>
-              <p className="text-xs font-medium text-slate-400">
-                Connect a Minecraft account to a server
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="grid h-8 w-8 place-items-center rounded-full bg-white/5 text-slate-400 transition hover:bg-white/10 hover:text-white"
-          >
-            ✕
-          </button>
-        </div>
+      <ModalShell
+        title="Add a bot"
+        subtitle="connect a minecraft account to a server"
+        icon={<Plus size={17} />}
+        onClose={onClose}
+        footer={
+          <>
+            <button onClick={onClose} className="btn btn-ghost">
+              Cancel
+            </button>
+            <button
+              onClick={submit}
+              disabled={submitting}
+              className="btn btn-primary"
+            >
+              {submitting ? "Creating…" : "Create & connect"}
+            </button>
+          </>
+        }
+      >
+        <Field label="Bot name (optional)">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="My farming bot"
+            className="field"
+          />
+        </Field>
 
-        <div className="overflow-y-auto p-6 space-y-5">
-          <Field label="Bot name (optional)">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="My farming bot"
-              className={inputClass}
-            />
-          </Field>
+        <Field
+          label="Minecraft token"
+          hint="Your minecraft.net / Yggdrasil / bearer (access) token. Used to authenticate the session."
+        >
+          <textarea
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            placeholder="eyJraWQiOiJ..."
+            rows={3}
+            className="field resize-none font-mono text-xs"
+          />
+        </Field>
 
-          <Field
-            label="Minecraft token"
-            hint="Your minecraft.net / Yggdrasil / bearer (access) token. Used to authenticate the session."
-          >
-            <textarea
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              placeholder="eyJraWQiOiJ..."
-              rows={3}
-              className={`${inputClass} resize-none font-mono text-xs`}
-            />
-          </Field>
-
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-2">
-              <Field label="Server IP / address">
-                <input
-                  value={host}
-                  onChange={(e) => setHost(e.target.value)}
-                  placeholder="play.example.net"
-                  className={inputClass}
-                />
-              </Field>
-            </div>
-            <Field label="Port">
+        <div className="grid grid-cols-3 gap-3">
+          <div className="col-span-2">
+            <Field label="Server IP / address">
               <input
-                value={port}
-                onChange={(e) => setPort(e.target.value)}
-                placeholder="25565"
-                inputMode="numeric"
-                className={inputClass}
+                value={host}
+                onChange={(e) => setHost(e.target.value)}
+                placeholder="play.example.net"
+                className="field"
               />
             </Field>
           </div>
-
-          <Field
-            label="Minecraft version"
-            hint="Leave on Auto-detect first. If you get a 'socketClosed' disconnect, pick the server's exact version here — that fixes most join failures on proxy/anticheat networks."
-          >
-            <select
-              value={version}
-              onChange={(e) => setVersion(e.target.value)}
-              className={inputClass}
-            >
-              <option value="auto">Auto-detect</option>
-              {VERSIONS.map((v) => (
-                <option key={v} value={v}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </Field>
-
-          <Field
-            label="SOCKS proxy (optional)"
-            hint="Route the connection through a SOCKS5/4 proxy, e.g. socks5://user:pass@1.2.3.4:1080. Leave blank for a direct connection. Note: a proxy only changes your IP — it does NOT prevent anticheat bans (those are account-based)."
-          >
+          <Field label="Port">
             <input
-              value={proxy}
-              onChange={(e) => setProxy(e.target.value)}
-              placeholder="socks5://user:pass@host:1080"
-              className={`${inputClass} font-mono text-xs`}
+              value={port}
+              onChange={(e) => setPort(e.target.value)}
+              placeholder="25565"
+              inputMode="numeric"
+              className="field font-mono"
             />
           </Field>
-
-          <Field
-            label="Discord Username (for Beam AI)"
-            hint="The Discord tag the bot will ask the player to add."
-          >
-            <input
-              value={discordUser}
-              onChange={(e) => setDiscordUser(e.target.value)}
-              placeholder="stood014"
-              className={inputClass}
-            />
-          </Field>
-
-          <Field
-            label="Bot Engine"
-            hint="Mineflayer includes Radar/Beam. Raw NMP uses your stealth bypass snippet (console only)."
-          >
-            <select
-              value={engine}
-              onChange={(e) => setEngine(e.target.value)}
-              className={inputClass}
-            >
-              <option value="mineflayer">Mineflayer (Full Features)</option>
-              <option value="nmp">Raw NMP (Stealth Bypass)</option>
-            </select>
-          </Field>
-
-          {error && (
-            <p className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-300 ring-1 ring-rose-500/20">
-              {error}
-            </p>
-          )}
         </div>
 
-        <div className="flex justify-end gap-3 border-t border-white/5 bg-black/20 p-5">
-          <button
-            onClick={onClose}
-            className="rounded-xl border border-white/10 px-5 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
+        <Field
+          label="Minecraft version"
+          hint="Leave on auto-detect first. If you get a 'socketClosed' disconnect, pick the server's exact version here — that fixes most join failures on proxy/anticheat networks."
+        >
+          <select
+            value={version}
+            onChange={(e) => setVersion(e.target.value)}
+            className="field"
           >
-            Cancel
-          </button>
-          <button
-            onClick={submit}
-            disabled={submitting}
-            className="rounded-xl bg-gradient-to-b from-emerald-400 to-emerald-500 px-5 py-2.5 text-sm font-bold text-emerald-950 shadow-[0_0_20px_-5px_rgba(16,185,129,0.4)] transition hover:from-emerald-300 hover:to-emerald-400 disabled:opacity-50"
+            <option value="auto">Auto-detect</option>
+            {VERSIONS.map((v) => (
+              <option key={v} value={v}>
+                {v}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field
+          label="SOCKS proxy (optional)"
+          hint="Route the connection through a SOCKS5/4 proxy, e.g. socks5://user:pass@1.2.3.4:1080. Leave blank for a direct connection. A proxy only changes your IP — it does not prevent anticheat bans, those are account-based."
+        >
+          <input
+            value={proxy}
+            onChange={(e) => setProxy(e.target.value)}
+            placeholder="socks5://user:pass@host:1080"
+            className="field font-mono text-xs"
+          />
+        </Field>
+
+        <Field
+          label="Discord username (for Beam AI)"
+          hint="The Discord tag the bot will ask the player to add."
+        >
+          <input
+            value={discordUser}
+            onChange={(e) => setDiscordUser(e.target.value)}
+            placeholder="stood014"
+            className="field"
+          />
+        </Field>
+
+        <Field
+          label="Bot engine"
+          hint="Mineflayer includes radar/beam. Raw NMP uses the stealth bypass snippet (console only)."
+        >
+          <select
+            value={engine}
+            onChange={(e) => setEngine(e.target.value)}
+            className="field"
           >
-            {submitting ? "Creating…" : "Create & connect"}
-          </button>
-        </div>
-      </div>
+            <option value="mineflayer">Mineflayer (full features)</option>
+            <option value="nmp">Raw NMP (stealth bypass)</option>
+          </select>
+        </Field>
+
+        {error && (
+          <p className="rounded-md border border-fail/35 bg-fail/10 px-3 py-2 text-xs text-fail">
+            {error}
+          </p>
+        )}
+      </ModalShell>
     </Overlay>
   );
-}
-
-function AboutPanel() {
-  return (
-    <section className="mt-6 space-y-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-6 text-sm leading-relaxed text-slate-300">
-      <h2 className="text-base font-semibold text-white">How it works</h2>
-      <ol className="list-decimal space-y-2 pl-5">
-        <li>
-          Click <b>Add bot</b> and paste your Minecraft access token (the bearer
-          / Yggdrasil token issued after you log in at minecraft.net).
-        </li>
-        <li>
-          Enter the <b>server IP</b> (e.g. <code>play.example.net</code> or{" "}
-          <code>1.2.3.4:25565</code>).
-        </li>
-        <li>
-          The server validates the token against Minecraft services, resolves
-          your username, and connects with <code>mineflayer</code>.
-        </li>
-        <li>
-          Each bot shows whether it <b>joined</b> the server, and you can open
-          the <b>Console</b> to watch chat and send messages.
-        </li>
-      </ol>
-      <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-amber-300 ring-1 ring-amber-500/20">
-        Note: tokens are short-lived. If a join fails with an auth error, grab a
-        fresh token. Bots only run while this server process is alive.
-      </p>
-      <p className="rounded-lg bg-sky-500/10 px-3 py-2 text-sky-300 ring-1 ring-sky-500/20">
-        Seeing <b>&quot;Disconnected: socketClosed&quot;</b>? That usually means a
-        version mismatch through the server&apos;s proxy. Re-create the bot and
-        set the exact <b>Minecraft version</b> the server runs. The manager also
-        fetches your chat-signing certificates automatically so chat works on
-        1.19+ servers.
-      </p>
-    </section>
-  );
-}
-
-function Overlay({
-  children,
-  onClose,
-}: {
-  children: React.ReactNode;
-  onClose: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
-      <div
-        className="absolute inset-0 animate-fade-in bg-[#030712]/80 backdrop-blur-xl"
-        onClick={onClose}
-      />
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="relative z-10 flex w-full animate-pop-in justify-center"
-      >
-        {/* Subtle under-glow for the modal */}
-        <div className="absolute -inset-1 z-[-1] rounded-[2rem] bg-gradient-to-b from-emerald-500/20 to-indigo-500/10 blur-xl opacity-60" />
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-sm font-medium text-slate-300">
-        {label}
-      </span>
-      {children}
-      {hint && <span className="mt-1 block text-xs text-slate-500">{hint}</span>}
-    </label>
-  );
-}
-
-const inputClass =
-  "w-full rounded-xl border border-slate-700/80 bg-slate-950/60 px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 outline-none transition focus:border-emerald-500/60 focus:bg-slate-950/80 focus:ring-2 focus:ring-emerald-500/20";
-
-function logColor(level: LogEntry["level"]) {
-  switch (level) {
-    case "error":
-      return "text-rose-300";
-    case "system":
-      return "text-sky-300";
-    case "chat":
-      return "text-slate-200";
-    default:
-      return "text-slate-300";
-  }
-}
-
-// Detect private-message (whisper) lines so we can highlight them.
-// Returns "from" (incoming DM), "to" (outgoing DM), or null.
-function whisperKind(line: string): "from" | "to" | null {
-  const l = line.toLowerCase();
-  // Don't color our own injected "<you → X>" log line.
-  if (/<you\s*→/.test(line)) return null;
-  if (/\(from\b/.test(l) || /^\s*from\s+\w+/.test(l) || /whispers to you/.test(l))
-    return "from";
-  if (/\(to\b/.test(l) || /\byou whisper to\b/.test(l)) return "to";
-  return null;
 }
 
 export function EditBotModal({
@@ -709,30 +834,24 @@ export function EditBotModal({
   const [beamIp, setBeamIp] = useState(bot.beamIp || "badlion-pvp.xyz");
   const [discordUser, setDiscordUser] = useState(bot.discordUser || "stood014");
   const [beamType, setBeamType] = useState(bot.beamType || "ai");
-  const [spamMessage, setSpamMessage] = useState(bot.spamMessage || "join my smp guys /msg me");
-  const [spamInterval, setSpamInterval] = useState(String(bot.spamInterval || 60000));
-  const [spamTriggerWord, setSpamTriggerWord] = useState(bot.spamTriggerWord || "123");
-  const [spamReplyMessage, setSpamReplyMessage] = useState(bot.spamReplyMessage || "add my discord stood014 to join");
+  const [spamMessage, setSpamMessage] = useState(
+    bot.spamMessage || "join my smp guys /msg me",
+  );
+  const [spamInterval, setSpamInterval] = useState(
+    String(bot.spamInterval || 60000),
+  );
+  const [spamTriggerWord, setSpamTriggerWord] = useState(
+    bot.spamTriggerWord || "123",
+  );
+  const [spamReplyMessage, setSpamReplyMessage] = useState(
+    bot.spamReplyMessage || "add my discord stood014 to join",
+  );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   async function save() {
     setError(null);
-    const payload: {
-      token?: string;
-      version?: string;
-      host?: string;
-      port?: string;
-      proxy?: string;
-      ytChannel?: string;
-      beamIp?: string;
-      discordUser?: string;
-      beamType?: string;
-      spamMessage?: string;
-      spamInterval?: number;
-      spamTriggerWord?: string;
-      spamReplyMessage?: string;
-    } = {};
+    const payload: Record<string, string | number> = {};
     if (token.trim()) payload.token = token.trim();
     if (version !== bot.version) payload.version = version;
     if (host.trim() && host.trim() !== bot.host) payload.host = host.trim();
@@ -749,11 +868,17 @@ export function EditBotModal({
       payload.spamMessage = spamMessage.trim();
     if (spamInterval && Number(spamInterval) !== bot.spamInterval)
       payload.spamInterval = Number(spamInterval);
-    if (spamTriggerWord.trim() && spamTriggerWord.trim() !== (bot.spamTriggerWord || ""))
+    if (
+      spamTriggerWord.trim() &&
+      spamTriggerWord.trim() !== (bot.spamTriggerWord || "")
+    )
       payload.spamTriggerWord = spamTriggerWord.trim();
-    if (spamReplyMessage.trim() && spamReplyMessage.trim() !== (bot.spamReplyMessage || ""))
+    if (
+      spamReplyMessage.trim() &&
+      spamReplyMessage.trim() !== (bot.spamReplyMessage || "")
+    )
       payload.spamReplyMessage = spamReplyMessage.trim();
-      
+
     if (Object.keys(payload).length === 0) {
       setError("Change a field to save.");
       return;
@@ -780,218 +905,193 @@ export function EditBotModal({
 
   return (
     <Overlay onClose={onClose}>
-      <div className="premium-modal flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-[24px]">
-        <div className="flex items-center justify-between border-b border-white/5 bg-white/[0.02] px-6 py-5">
-          <div className="flex items-center gap-4">
-            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-slate-600 to-slate-800 text-xl shadow-lg ring-1 ring-slate-600/50">
-              ⚙
-            </div>
-            <div className="min-w-0">
-              <h2 className="truncate text-lg font-bold text-white">{bot.name}</h2>
-              <p className="truncate text-xs font-medium text-slate-400">
-                {bot.host}:{bot.port}
-                {bot.username ? ` · ${bot.username}` : ""}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="grid h-8 w-8 place-items-center rounded-full bg-white/5 text-slate-400 transition hover:bg-white/10 hover:text-white"
-          >
-            ✕
-          </button>
-        </div>
+      <ModalShell
+        title={bot.name}
+        subtitle={`${bot.host}:${bot.port}${bot.username ? ` · ${bot.username}` : ""}`}
+        icon={<Settings2 size={17} />}
+        onClose={onClose}
+        footer={
+          <>
+            <button onClick={onClose} className="btn btn-ghost">
+              Cancel
+            </button>
+            <button
+              onClick={save}
+              disabled={saving}
+              className="btn btn-primary"
+            >
+              {saving ? "Saving…" : "Save changes"}
+            </button>
+          </>
+        }
+      >
+        <Field
+          label="New Minecraft token"
+          hint="Paste a fresh minecraft.net / bearer (access) token. Leave blank to keep the current one."
+        >
+          <textarea
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            placeholder="eyJraWQiOiJ... (leave blank to keep current)"
+            rows={3}
+            className="field resize-none font-mono text-xs"
+          />
+        </Field>
 
-        <div className="overflow-y-auto p-6 space-y-5">
-          <Field
-            label="New Minecraft token"
-            hint="Paste a fresh minecraft.net / bearer (access) token. Leave blank to keep the current one."
-          >
-            <textarea
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              placeholder="eyJraWQiOiJ... (leave blank to keep current)"
-              rows={3}
-              className={`${inputClass} resize-none font-mono text-xs`}
-            />
-          </Field>
-
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-2">
-              <Field label="Server IP / address">
-                <input
-                  value={host}
-                  onChange={(e) => setHost(e.target.value)}
-                  placeholder="play.example.net"
-                  className={inputClass}
-                />
-              </Field>
-            </div>
-            <Field label="Port">
+        <div className="grid grid-cols-3 gap-3">
+          <div className="col-span-2">
+            <Field label="Server IP / address">
               <input
-                value={port}
-                onChange={(e) => setPort(e.target.value)}
-                placeholder="25565"
-                inputMode="numeric"
-                className={inputClass}
+                value={host}
+                onChange={(e) => setHost(e.target.value)}
+                placeholder="play.example.net"
+                className="field"
               />
             </Field>
           </div>
-
-          <Field
-            label="Minecraft version"
-            hint="If a join fails with 'socketClosed', set the server's exact version here."
-          >
-            <select
-              value={version}
-              onChange={(e) => setVersion(e.target.value)}
-              className={inputClass}
-            >
-              <option value="auto">Auto-detect</option>
-              {VERSIONS.map((v) => (
-                <option key={v} value={v}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </Field>
-
-          <Field
-            label="SOCKS proxy (optional)"
-            hint="e.g. socks5://user:pass@1.2.3.4:1080. Clear it for a direct connection. A proxy changes your IP only — it does not stop anticheat bans."
-          >
+          <Field label="Port">
             <input
-              value={proxy}
-              onChange={(e) => setProxy(e.target.value)}
-              placeholder="socks5://user:pass@host:1080"
-              className={`${inputClass} font-mono text-xs`}
+              value={port}
+              onChange={(e) => setPort(e.target.value)}
+              placeholder="25565"
+              inputMode="numeric"
+              className="field font-mono"
             />
           </Field>
+        </div>
 
+        <Field
+          label="Minecraft version"
+          hint="If a join fails with 'socketClosed', set the server's exact version here."
+        >
+          <select
+            value={version}
+            onChange={(e) => setVersion(e.target.value)}
+            className="field"
+          >
+            <option value="auto">Auto-detect</option>
+            {VERSIONS.map((v) => (
+              <option key={v} value={v}>
+                {v}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field
+          label="SOCKS proxy (optional)"
+          hint="e.g. socks5://user:pass@1.2.3.4:1080. Clear it for a direct connection."
+        >
+          <input
+            value={proxy}
+            onChange={(e) => setProxy(e.target.value)}
+            placeholder="socks5://user:pass@host:1080"
+            className="field font-mono text-xs"
+          />
+        </Field>
+
+        <div className="grid gap-4 border-t border-line pt-4 sm:grid-cols-2">
           <Field
-            label="YouTube channel (for Beam AI)"
-            hint="The channel name the beam AI mentions when a player asks 'what's your channel'."
+            label="YouTube channel"
+            hint="Mentioned when a player asks for your channel."
           >
             <input
               value={ytChannel}
               onChange={(e) => setYtChannel(e.target.value)}
               placeholder="Alight.z"
-              className={inputClass}
+              className="field"
             />
           </Field>
-
-          <Field
-            label="Server IP (Beam fallback)"
-            hint="If a player can't use Discord, the beam AI shares this IP so they can still join."
-          >
+          <Field label="Beam fallback IP" hint="Shared with players without Discord.">
             <input
               value={beamIp}
               onChange={(e) => setBeamIp(e.target.value)}
               placeholder="badlion-pvp.xyz"
-              className={inputClass}
+              className="field"
             />
           </Field>
+        </div>
 
-          <Field
-            label="Discord Username (for Beam AI)"
-            hint="The Discord tag the bot will ask the player to add."
-          >
-            <input
-              value={discordUser}
-              onChange={(e) => setDiscordUser(e.target.value)}
-              placeholder="stood014"
-              className={inputClass}
-            />
-          </Field>
+        <Field
+          label="Discord username (for Beam AI)"
+          hint="The Discord tag the bot will ask the player to add."
+        >
+          <input
+            value={discordUser}
+            onChange={(e) => setDiscordUser(e.target.value)}
+            placeholder="stood014"
+            className="field"
+          />
+        </Field>
 
-          <Field
-            label="Bot Engine"
-            hint="Mineflayer includes Radar/Beam. Raw NMP uses your stealth bypass snippet (console only)."
-          >
-            <div className="rounded-xl border border-slate-700/80 bg-slate-950/60 px-3.5 py-2.5 text-sm text-slate-400">
-              Only editable on creation. Delete and recreate to change engine.
-            </div>
-          </Field>
-          
-          <div className="border-t border-slate-800 pt-4 mt-4">
-            <h3 className="text-sm font-semibold text-slate-300 mb-4">Beam Settings</h3>
-            <div className="space-y-4">
-              <Field label="Beam Type">
-                <select
-                  value={beamType}
-                  onChange={(e) => setBeamType(e.target.value)}
-                  className={inputClass}
-                >
-                  <option value="ai">AI Beaming (Player-to-Player)</option>
-                  <option value="spam">Spam Beaming</option>
-                </select>
-              </Field>
-
-              {beamType === "spam" && (
-                <>
-                  <Field label="Spam Message" hint="The message to send periodically.">
-                    <input
-                      value={spamMessage}
-                      onChange={(e) => setSpamMessage(e.target.value)}
-                      className={inputClass}
-                    />
-                  </Field>
-                  <Field label="Spam Interval (ms)" hint="How often to send the spam message. E.g., 60000 = 1 minute.">
-                    <input
-                      type="number"
-                      value={spamInterval}
-                      onChange={(e) => setSpamInterval(e.target.value)}
-                      className={inputClass}
-                    />
-                  </Field>
-                  <Field label="Trigger Word" hint="If a player says this in chat, the bot will whisper them the reply message.">
-                    <input
-                      value={spamTriggerWord}
-                      onChange={(e) => setSpamTriggerWord(e.target.value)}
-                      className={inputClass}
-                    />
-                  </Field>
-                  <Field label="Reply Message" hint="The whisper to send when the trigger word is said.">
-                    <input
-                      value={spamReplyMessage}
-                      onChange={(e) => setSpamReplyMessage(e.target.value)}
-                      className={inputClass}
-                    />
-                  </Field>
-                </>
-              )}
-            </div>
-          </div>
-
-          {error && (
-            <p className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-300 ring-1 ring-rose-500/20">
-              {error}
-            </p>
-          )}
-
-          <p className="rounded-lg bg-sky-500/10 px-3 py-2 text-xs text-sky-300 ring-1 ring-sky-500/20">
-            If the bot is running, it will automatically restart with the new
-            settings.
+        <div className="border-t border-line pt-4">
+          <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-3">
+            beam settings
           </p>
+          <div className="space-y-4">
+            <Field label="Beam type">
+              <select
+                value={beamType}
+                onChange={(e) => setBeamType(e.target.value)}
+                className="field"
+              >
+                <option value="ai">AI beaming (player-to-player)</option>
+                <option value="spam">Spam beaming</option>
+              </select>
+            </Field>
+
+            {beamType === "spam" && (
+              <>
+                <Field label="Spam message" hint="Sent periodically to chat.">
+                  <input
+                    value={spamMessage}
+                    onChange={(e) => setSpamMessage(e.target.value)}
+                    className="field"
+                  />
+                </Field>
+                <Field
+                  label="Spam interval (ms)"
+                  hint="How often to send it. 60000 = 1 minute."
+                >
+                  <input
+                    type="number"
+                    value={spamInterval}
+                    onChange={(e) => setSpamInterval(e.target.value)}
+                    className="field font-mono"
+                  />
+                </Field>
+                <Field
+                  label="Trigger word"
+                  hint="If a player says this in chat, the bot whispers them the reply."
+                >
+                  <input
+                    value={spamTriggerWord}
+                    onChange={(e) => setSpamTriggerWord(e.target.value)}
+                    className="field"
+                  />
+                </Field>
+                <Field label="Reply message" hint="Whisper sent on trigger.">
+                  <input
+                    value={spamReplyMessage}
+                    onChange={(e) => setSpamReplyMessage(e.target.value)}
+                    className="field"
+                  />
+                </Field>
+              </>
+            )}
+          </div>
         </div>
 
-        <div className="flex justify-end gap-3 border-t border-white/5 bg-black/20 p-5">
-          <button
-            onClick={onClose}
-            className="rounded-xl border border-white/10 px-5 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={save}
-            disabled={saving}
-            className="rounded-xl bg-gradient-to-b from-emerald-400 to-emerald-500 px-5 py-2.5 text-sm font-bold text-emerald-950 shadow-[0_0_20px_-5px_rgba(16,185,129,0.4)] transition hover:from-emerald-300 hover:to-emerald-400 disabled:opacity-50"
-          >
-            {saving ? "Saving…" : "Save changes"}
-          </button>
-        </div>
-      </div>
+        {error && (
+          <p className="rounded-md border border-fail/35 bg-fail/10 px-3 py-2 text-xs text-fail">
+            {error}
+          </p>
+        )}
+
+        <p className="rounded-md border border-line bg-white/[0.03] px-3 py-2 text-xs text-ink-3">
+          If the bot is running, it will restart with the new settings.
+        </p>
+      </ModalShell>
     </Overlay>
   );
 }
-

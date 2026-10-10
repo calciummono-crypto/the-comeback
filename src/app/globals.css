@@ -1,54 +1,119 @@
 @import "tailwindcss";
 
-:root {
-  --bg: #070b14;
-  --panel: rgba(17, 24, 39, 0.6);
-  --border: rgba(148, 163, 184, 0.12);
-  --accent: #34d399;
+/* ---------------------------------------------------------------------------
+   "Comeback" design system
+   Minecraft-sunset ambient (magenta / hot pink horizon over a near-black plum
+   sky, silhouetted treeline, glassy water) + Vercel structural rules:
+   Geist type, hairline 1px borders, 8px spacing grid, no drop shadows,
+   restrained motion, visible focus rings.
+--------------------------------------------------------------------------- */
+
+@theme {
+  /* type */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+
+  /* surface scale — plum-black, never pure black */
+  --color-void: #07040a;
+  --color-panel: #0d0712;
+  --color-panel-2: #140b1b;
+  --color-raise: #1c1124;
+  --color-line: rgba(255, 255, 255, 0.08);
+  --color-line-strong: rgba(255, 255, 255, 0.14);
+
+  /* text */
+  --color-ink: #f6f1f5;
+  --color-ink-2: #b3a6b3;
+  --color-ink-3: #7d7080;
+
+  /* sunset accents */
+  --color-sun: #ff2e7e;
+  --color-sun-2: #ff6aa5;
+  --color-horizon: #ff9a5c;
+  --color-glow: #ffc98a;
+
+  /* status — tuned to sit on plum, not on white */
+  --color-live: #4ade9b;
+  --color-wait: #f5c451;
+  --color-fail: #ff5f7a;
+  --color-dead: #6b6172;
+  --color-mod: #c084fc;
+
+  --animate-fade: fade 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-rise: rise 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-blink: blink 1.4s ease-in-out infinite;
+  --animate-drift: drift 26s ease-in-out infinite;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -14px, 0) scale(1.03);
+  }
 }
 
 * {
-  font-family:
-    var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  border-color: var(--color-line);
 }
 
 html {
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   position: relative;
+  min-height: 100dvh;
+  background-color: var(--color-void);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Ambient animated background with premium grid */
-.app-bg {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  background-color: #030712;
-  background-image: 
-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    radial-gradient(
-      80rem 80rem at 15% -10%,
-      rgba(16, 185, 129, 0.07),
-      transparent 60%
-    ),
-    radial-gradient(
-      70rem 70rem at 100% 0%,
-      rgba(99, 102, 241, 0.07),
-      transparent 55%
-    ),
-    radial-gradient(
-      60rem 60rem at 50% 120%,
-      rgba(139, 92, 246, 0.05),
-      transparent 60%
-    );
-  background-size: 32px 32px, 32px 32px, 100% 100%, 100% 100%, 100% 100%;
-  pointer-events: none;
+/* Visible focus for keyboard users — Vercel rule: never remove it. */
+:focus-visible {
+  outline: 2px solid var(--color-sun);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
-/* Custom scrollbars */
+::selection {
+  background: color-mix(in srgb, var(--color-sun) 45%, transparent);
+  color: #fff;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -57,92 +122,163 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.35);
-  border-radius: 999px;
-  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.12);
+  border: 3px solid transparent;
   background-clip: content-box;
+  border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.55);
+  background: rgba(255, 46, 126, 0.55);
   background-clip: content-box;
 }
 
-::selection {
-  background: rgba(52, 211, 153, 0.3);
-  color: #fff;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
-/* Reusable surface treatments */
-.glass {
-  background: linear-gradient(
-    180deg,
-    rgba(15, 23, 42, 0.4),
-    rgba(9, 9, 11, 0.6)
+/* --- ambient Minecraft sunset backdrop ------------------------------------ */
+.sunset {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      120% 70% at 50% 108%,
+      rgba(255, 154, 92, 0.4) 0%,
+      rgba(255, 46, 126, 0.34) 22%,
+      rgba(120, 16, 70, 0.36) 46%,
+      transparent 72%
+    ),
+    linear-gradient(180deg, #07040a 0%, #150a1d 42%, #2a0e2c 68%, #4a1038 86%, #6b1440 100%);
+}
+
+/* Blocky horizon glow — reads as a pixel sun, not a smooth blur. */
+.sunset::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 18%;
+  width: min(46vw, 520px);
+  aspect-ratio: 1;
+  translate: -50% 0;
+  background: radial-gradient(
+    circle,
+    rgba(255, 201, 138, 0.55) 0%,
+    rgba(255, 46, 126, 0.3) 38%,
+    transparent 68%
   );
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 4px 24px -12px rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(16px);
+  filter: blur(48px);
+  animation: var(--animate-drift);
 }
 
-.premium-modal {
-  background: linear-gradient(145deg, #09090b 0%, #030712 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 
-    0 0 0 1px rgba(255, 255, 255, 0.02),
-    0 30px 60px -10px rgba(0, 0, 0, 0.8),
-    0 0 80px -20px rgba(16, 185, 129, 0.15);
+/* Pixel grid — the Minecraft tell, kept at 2% so it never fights text. */
+.sunset::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(120% 90% at 50% 40%, #000 20%, transparent 85%);
 }
 
+/* Silhouetted treeline: stepped "blocks" along the bottom edge. */
+.tree-line {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 34vh;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.62;
+  background: linear-gradient(180deg, transparent 0%, rgba(7, 4, 10, 0.85) 78%);
+  clip-path: polygon(
+    0% 100%, 0% 62%, 3% 62%, 3% 54%, 6% 54%, 6% 66%, 9% 66%, 9% 48%,
+    12% 48%, 12% 58%, 15% 58%, 15% 44%, 18% 44%, 18% 60%, 21% 60%,
+    21% 52%, 24% 52%, 24% 68%, 27% 68%, 27% 50%, 30% 50%, 30% 62%,
+    33% 62%, 33% 46%, 36% 46%, 36% 56%, 39% 56%, 39% 64%, 42% 64%,
+    42% 52%, 45% 52%, 45% 44%, 48% 44%, 48% 58%, 51% 58%, 51% 66%,
+    54% 66%, 54% 48%, 57% 48%, 57% 60%, 60% 60%, 60% 52%, 63% 52%,
+    63% 44%, 66% 44%, 66% 58%, 69% 58%, 69% 66%, 72% 66%, 72% 50%,
+    75% 50%, 75% 62%, 78% 62%, 78% 46%, 81% 46%, 81% 56%, 84% 56%,
+    84% 64%, 87% 64%, 87% 52%, 90% 52%, 90% 44%, 93% 44%, 93% 58%,
+    96% 58%, 96% 66%, 100% 66%, 100% 100%
+  );
+}
+
+/* --- surfaces -------------------------------------------------------------- */
+
+/* Hairline glass panel. No drop shadow — separation comes from the border. */
+.panel {
+  background: color-mix(in srgb, var(--color-panel) 82%, transparent);
+  border: 1px solid var(--color-line);
+  backdrop-filter: blur(14px) saturate(140%);
+}
+
+.panel-solid {
+  background: var(--color-panel);
+  border: 1px solid var(--color-line);
+}
+
+/* Interactive row/card: border brightens + 1px lift, nothing more. */
+.heat {
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.heat:hover {
+  border-color: var(--color-line-strong);
+  background-color: color-mix(in srgb, var(--color-raise) 70%, transparent);
+}
+.heat:active {
+  transform: translateY(1px);
+}
+
+/* Legacy class names still used by panels not yet recoded. */
+.glass {
+  background: color-mix(in srgb, var(--color-panel) 82%, transparent);
+  border: 1px solid var(--color-line);
+  backdrop-filter: blur(14px) saturate(140%);
+}
 .card-hover {
   transition:
-    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+    transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.18s ease;
 }
 .card-hover:hover {
-  transform: translateY(-3px) scale(1.005);
-  border-color: rgba(52, 211, 153, 0.3);
-  box-shadow: 
-    0 12px 40px -12px rgba(16, 185, 129, 0.15),
-    0 0 0 1px rgba(52, 211, 153, 0.1) inset;
+  transform: translateY(-2px);
+  border-color: var(--color-line-strong);
 }
-
-/* Animations */
-@keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.premium-modal {
+  background: linear-gradient(180deg, #150b1c 0%, #0a060e 100%);
+  border: 1px solid var(--color-line-strong);
 }
-@keyframes pop-in {
-  from {
-    opacity: 0;
-    transform: translateY(20px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+.animate-fade-in {
+  animation: var(--animate-fade);
 }
-@keyframes pulse-glow {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 0.8; }
+.animate-pop-in {
+  animation: var(--animate-rise);
 }
-@keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-@keyframes pop-in {
-  from {
-    opacity: 0;
-    transform: translateY(12px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.12),
+    rgba(255, 255, 255, 0.05)
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
 }
 @keyframes shimmer {
   0% {
@@ -152,20 +288,86 @@ body {
     background-position: 200% 0;
   }
 }
-.animate-fade-in {
-  animation: fade-in 0.2s ease both;
+
+/* --- controls -------------------------------------------------------------- */
+
+.field {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--color-line-strong);
+  background: rgba(0, 0, 0, 0.35);
+  padding: 0.6rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-ink);
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
 }
-.animate-pop-in {
-  animation: pop-in 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+.field::placeholder {
+  color: var(--color-ink-3);
+}
+.field:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+.field:focus {
+  outline: none;
+  border-color: var(--color-sun);
+  background: rgba(0, 0, 0, 0.55);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-sun) 22%, transparent);
 }
 
-.skeleton {
-  background: linear-gradient(
-    90deg,
-    rgba(148, 163, 184, 0.06),
-    rgba(148, 163, 184, 0.16),
-    rgba(148, 163, 184, 0.06)
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.4s ease-in-out infinite;
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0.65rem 1rem;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.1s ease;
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+.btn-primary {
+  background: var(--color-sun);
+  color: #1a0510;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-sun-2);
+}
+.btn-ghost {
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-ink-2);
+  background: transparent;
+}
+.btn-ghost:hover:not(:disabled) {
+  color: var(--color-ink);
+  border-color: rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.05);
+}
+.btn-danger {
+  border: 1px solid rgba(255, 95, 122, 0.4);
+  color: var(--color-fail);
+  background: rgba(255, 95, 122, 0.08);
+}
+.btn-danger:hover:not(:disabled) {
+  background: rgba(255, 95, 122, 0.16);
+  border-color: rgba(255, 95, 122, 0.7);
+}
+
+/* Minecraft heads must stay crisp — never bilinear. */
+.pixelated {
+  image-rendering: pixelated;
 }
