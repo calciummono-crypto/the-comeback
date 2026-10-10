@@ -812,9 +812,12 @@ function LitecoinImage() {
   if (failed) return <LitecoinMark className="h-6 w-6" />;
   return (
     <img
-      src="https://cryptologos.cc/logos/litecoin-ltc-logo.png?v=040"
-      alt="Litecoin"
-      className="h-7 w-7 object-contain drop-shadow-[0_8px_18px_rgba(52,93,157,.55)]"
+            src="https://cryptologos.cc/logos/litecoin-ltc-logo.png?v=040"
+            alt="Litecoin"
+            loading="lazy"
+            decoding="async"
+            className="h-7 w-7 object-contain drop-shadow-[0_8px_18px_rgba(52,93,157,.55)]"
+
       onError={() => setFailed(true)}
     />
   );

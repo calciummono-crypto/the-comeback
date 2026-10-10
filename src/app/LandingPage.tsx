@@ -270,14 +270,14 @@ export default function LandingPage() {
                   <span className="token-chip">eyJ...session</span>
                   <span className="resolve-arrow">→</span>
                   <span className="ign-chip">
-                    <img src="https://visage.surgeplay.com/face/48/wisp" alt="" />
+                    <img src="https://visage.surgeplay.com/face/48/wisp" alt="" loading="lazy" decoding="async" />
                     <strong>vyrex_</strong>
                   </span>
                 </div>
               )}
               {index === 1 && (
                 <div className="server-preview" aria-label="Server profile preview">
-                  <img src="https://api.mcsrvstat.us/icon/eu.minemen.club" alt="" />
+                  <img src="https://api.mcsrvstat.us/icon/eu.minemen.club" alt="" loading="lazy" decoding="async" />
                   <div>
                     <strong>eu.minemen.club</strong>
                     <span>Minemen · EU profile</span>
@@ -329,10 +329,10 @@ function DiscordIcon({ small = false }: { small?: boolean }) {
 
 function FeatureIcon({ kind }: { kind: string }) {
   if (kind === "resolve") {
-    return <img src="https://visage.surgeplay.com/face/64/wisp" alt="" />;
+    return <img src="https://visage.surgeplay.com/face/64/wisp" alt="" loading="lazy" decoding="async" />;
   }
   if (kind === "server") {
-    return <img src="https://api.mcsrvstat.us/icon/eu.minemen.club" alt="" />;
+    return <img src="https://api.mcsrvstat.us/icon/eu.minemen.club" alt="" loading="lazy" decoding="async" />;
   }
   const paths: Record<string, string[]> = {
     logs: ["M4 5h16", "M4 12h16", "M4 19h10"],
@@ -348,7 +348,9 @@ function FeatureIcon({ kind }: { kind: string }) {
 }
 
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
+  /* Fonts come from next/font in layout.tsx — no Google Fonts import here.
+     That second request duplicated the stylesheet in globals.css, and an
+     @import inside an inline <style> is ignored by the CSS spec anyway. */
 
   :root {
     --bg: #080a0d;

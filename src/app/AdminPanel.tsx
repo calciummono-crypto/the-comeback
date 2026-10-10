@@ -1293,9 +1293,12 @@ export default function AdminPanel({ meId }: { meId: string }) {
                   {u.avatar ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={u.avatar}
-                      alt=""
-                      className="h-10 w-10 rounded-full"
+            src={u.avatar}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="h-10 w-10 rounded-full"
+
                     />
                   ) : (
                     <div className="grid h-10 w-10 place-items-center rounded-full bg-slate-700 text-sm font-bold">

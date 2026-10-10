@@ -19,16 +19,37 @@ const DOT: Record<ToastKind, string> = {
   info: "bg-sky-400",
 };
 
+const TOAST_LIFETIME = 3500;
+// Must match the mc-toast-out duration in globals.css.
+const TOAST_EXIT_MS = 200;
+
 export default function ToastHost() {
-  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [toasts, setToasts] = useState<(Toast & { leaving?: boolean })[]>([]);
 
   useEffect(() => {
-    return onToast((t) => {
-      setToasts((prev) => [...prev.slice(-4), t]); // keep max 5
-      setTimeout(() => {
-        setToasts((prev) => prev.filter((x) => x.id !== t.id));
-      }, 3500);
+    // Toast ids are unique and monotonically increasing, so each toast owns its
+    // own exit sequence. Every timeout it schedules is tracked here so a fast
+    // remount (StrictMode, route change) can cancel them.
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const push = (ms: number, fn: () => void) => {
+      timers.push(setTimeout(fn, ms));
+    };
+
+    const stop = onToast((t) => {
+      setToasts((prev) => [...prev.filter((x) => x.id !== t.id), t].slice(-5));
+
+      push(TOAST_LIFETIME, () => {
+        setToasts((prev) => prev.map((x) => (x.id === t.id ? { ...x, leaving: true } : x)));
+        push(TOAST_EXIT_MS, () => {
+          setToasts((prev) => prev.filter((x) => x.id !== t.id));
+        });
+      });
     });
+
+    return () => {
+      stop();
+      timers.forEach(clearTimeout);
+    };
   }, []);
 
   if (toasts.length === 0) return null;
@@ -38,7 +59,9 @@ export default function ToastHost() {
       {toasts.map((t) => (
         <div
           key={t.id}
-          className={`pointer-events-auto flex items-center gap-2.5 rounded-2xl border px-4 py-3 text-[13px] font-medium backdrop-blur-xl animate-pop-in ${STYLES[t.kind]}`}
+          className={`pointer-events-auto flex items-center gap-2.5 rounded-2xl border px-4 py-3 text-[13px] font-medium backdrop-blur-xl ${
+            t.leaving ? "animate-toast-out" : "animate-pop-in"
+          } ${STYLES[t.kind]}`}
           role="status"
         >
           <span className={`h-2 w-2 shrink-0 rounded-full ${DOT[t.kind]}`} />

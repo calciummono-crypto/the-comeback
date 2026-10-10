@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-html-link-for-pages -- the Discord login anchor points at an API route that redirects to OAuth, not a page */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import BotDashboard from "./BotDashboard";
 import AdminPanel from "./AdminPanel";
@@ -446,7 +446,7 @@ export default function AppShell() {
       {mobileNav && (
         <div
           onClick={() => setMobileNav(false)}
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+          className="mc-fade fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
         />
       )}
 
@@ -467,28 +467,13 @@ export default function AppShell() {
                 {notifications.length > 0 && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-emerald-300" />}
               </button>
               {notificationsOpen && (
-                <div className="animate-pop-in absolute right-0 top-[calc(100%+10px)] z-40 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-white/10 bg-slate-950/95 shadow-[0_28px_100px_-50px_rgba(0,0,0,.95)] backdrop-blur-2xl">
-                  <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
-                    <p className="text-sm font-black text-white">Notifications</p>
-                    <button onClick={() => setNotifications([])} className="text-xs font-semibold text-slate-500">clear</button>
-                  </div>
-                  <div className="max-h-64 overflow-y-auto p-2">
-                    {notifications.length === 0 ? (
-                      <div className="px-4 py-8 text-center text-sm text-slate-500">No notifications yet.</div>
-                    ) : notifications.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => openNotification(item)}
-                        className={`w-full rounded-xl border border-white/[0.06] bg-white/[0.035] p-3 text-left ${item.invoiceId ? "transition hover:border-amber-300/30 hover:bg-amber-300/[0.06]" : ""}`}
-                      >
-                        <p className="text-sm font-bold text-slate-100">{item.title}</p>
-                        <p className="mt-1 text-xs leading-5 text-slate-400">{item.text}</p>
-                        {item.invoiceId && <p className="mt-2 text-[10px] font-bold uppercase tracking-wide text-amber-300">Open invoice</p>}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <NotificationPanel
+                  items={notifications}
+                  anchor="mobile"
+                  onOpen={openNotification}
+                  onClear={() => setNotifications([])}
+                  onClose={() => setNotificationsOpen(false)}
+                />
               )}
             </div>
             <button
@@ -531,6 +516,7 @@ export default function AppShell() {
                 >
                   ✕
                 </button>
+
               )}
             </label>
 
@@ -546,50 +532,12 @@ export default function AppShell() {
                 )}
               </button>
               {notificationsOpen && (
-                <div className="animate-pop-in mc-notch absolute right-0 top-14 w-[360px] overflow-hidden border border-white/10 bg-[rgba(6,3,10,0.94)] shadow-[0_28px_100px_-50px_rgba(0,0,0,.95)] backdrop-blur-2xl">
-                  <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
-                    <div>
-                      <p className="text-sm font-black text-white">Notifications</p>
-                      <p className="text-[11px] text-slate-500">keys, bots and account events</p>
-                    </div>
-                    <button
-                      onClick={() => setNotifications([])}
-                      className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] font-semibold text-slate-400 transition hover:text-white"
-                    >
-                      clear
-                    </button>
-                  </div>
-                  <div className="max-h-[360px] overflow-y-auto p-2">
-                    {notifications.length === 0 ? (
-                      <div className="grid place-items-center px-6 py-10 text-center text-sm text-slate-500">
-                        No notifications yet.
-                      </div>
-                    ) : (
-                      notifications.map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => openNotification(item)}
-                          className={`w-full rounded-2xl border border-white/[0.06] bg-white/[0.035] p-3 text-left ${item.invoiceId ? "transition hover:border-amber-300/30 hover:bg-amber-300/[0.06]" : ""}`}
-                        >
-                          <div className="flex gap-3">
-                            <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
-                              item.tone === "rose" ? "bg-rose-400" : item.tone === "amber" ? "bg-amber-300" : item.tone === "sky" ? "bg-sky-300" : "bg-emerald-300"
-                            }`} />
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center justify-between gap-3">
-                                <p className="truncate text-sm font-bold text-slate-100">{item.title}</p>
-                                <span className="shrink-0 font-mono text-[10px] text-slate-600">{item.time}</span>
-                              </div>
-                              <p className="mt-1 text-xs leading-5 text-slate-400">{item.text}</p>
-                              {item.invoiceId && <p className="mt-2 text-[10px] font-bold uppercase tracking-wide text-amber-300">Open invoice</p>}
-                            </div>
-                          </div>
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </div>
+                <NotificationPanel
+                  items={notifications}
+                  onOpen={openNotification}
+                  onClear={() => setNotifications([])}
+                  onClose={() => setNotificationsOpen(false)}
+                />
               )}
             </div>
           </div>
@@ -855,5 +803,116 @@ function ShopIcon() {
       <line x1="3" y1="6" x2="21" y2="6" />
       <path d="M16 10a4 4 0 01-8 0" />
     </svg>
+  );
+}
+
+/**
+ * Notification dropdown.
+ *
+ * One component for both the desktop header and the mobile bar. Dismisses on
+ * outside click and Escape — previously the panel only closed when an item was
+ * picked, so it stayed pinned open over the dashboard.
+ */
+function NotificationPanel({
+  items,
+  onOpen,
+  onClear,
+  onClose,
+  anchor = "right",
+}: {
+  items: NotificationItem[];
+  onOpen: (item: NotificationItem) => void;
+  onClear: () => void;
+  onClose: () => void;
+  anchor?: "right" | "mobile" | "full";
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onPointer = (e: PointerEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      ref={ref}
+      role="dialog"
+      aria-label="Notifications"
+      className={`mc-scale-in mc-notch absolute top-full z-40 mt-2 max-h-[70vh] overflow-hidden border border-white/10 bg-[rgba(6,3,10,0.96)] shadow-[0_28px_100px_-40px_rgba(0,0,0,.95)] backdrop-blur-2xl ${
+        anchor === "full"
+          ? "left-0 right-0"
+          : anchor === "mobile"
+            ? "right-0 w-[min(360px,calc(100vw-2rem))]"
+            : "right-0 w-[360px]"
+      }`}
+    >
+      <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
+        <div>
+          <p className="text-sm font-black text-white">Notifications</p>
+          <p className="text-[11px] text-slate-500">keys, bots and account events</p>
+        </div>
+        <button
+          onClick={onClear}
+          disabled={items.length === 0}
+          className="rounded-full border border-white/10 px-2.5 py-1 text-[11px] font-semibold text-slate-400 transition hover:border-white/20 hover:text-white disabled:opacity-40"
+        >
+          clear
+        </button>
+      </div>
+
+      <div className="scrollbar-thin max-h-[360px] overflow-y-auto p-2">
+        {items.length === 0 ? (
+          <div className="grid place-items-center px-6 py-10 text-center text-sm text-slate-500">
+            No notifications yet.
+          </div>
+        ) : (
+          items.map((item, i) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onOpen(item)}
+              style={{ ["--i" as string]: i }}
+              className="mc-row-in group w-full rounded-2xl border border-white/[0.06] bg-white/[0.035] p-3 text-left transition hover:border-[color-mix(in_srgb,var(--mc-glow)_30%,transparent)] hover:bg-white/[0.06]"
+            >
+              <div className="flex gap-3">
+                <span
+                  className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
+                    item.tone === "rose"
+                      ? "bg-rose-400"
+                      : item.tone === "amber"
+                        ? "bg-amber-300"
+                        : item.tone === "sky"
+                          ? "bg-sky-300"
+                          : "bg-emerald-300"
+                  }`}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="truncate text-sm font-bold text-slate-100">{item.title}</p>
+                    <span className="shrink-0 font-mono text-[10px] text-slate-600">{item.time}</span>
+                  </div>
+                  <p className="mt-1 text-xs leading-5 text-slate-400">{item.text}</p>
+                  {item.invoiceId && (
+                    <p className="mt-2 text-[10px] font-bold uppercase tracking-wide text-amber-300">
+                      Open invoice
+                    </p>
+                  )}
+                </div>
+              </div>
+            </button>
+          ))
+        )}
+      </div>
+    </div>
   );
 }

@@ -1,9 +1,36 @@
 import type { Metadata } from "next";
+import { Inter, Sora, IBM_Plex_Mono } from "next/font/google";
 import { DEFAULT_THEME_ID, THEME_PRESETS } from "@/lib/theme";
 import type { ReactNode } from "react";
 import "./globals.css";
 import HoverTick from "./HoverTick";
 import MinecraftBackdrop from "./MinecraftBackdrop";
+
+/* Self-hosted via next/font. The previous setup hit Google Fonts twice — once
+   from globals.css and once from LandingPage's style block — through a
+   render-blocking CSS import. next/font downloads the files at build time,
+   serves them from our own origin, and injects size-adjusted @font-face rules
+   with no extra round trip. */
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-body",
+  weight: ["400", "500", "600", "700", "800"],
+});
+
+const sora = Sora({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-display",
+  weight: ["600", "700", "800"],
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono",
+  weight: ["500", "600", "700"],
+});
 
 export const metadata: Metadata = {
   title: "Z-BEAM",
@@ -48,7 +75,7 @@ for(var k in S)d.style.setProperty("--mc-"+k,S[k]);
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${inter.variable} ${sora.variable} ${plexMono.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: PREPAINT_THEME }} />
       </head>

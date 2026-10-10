@@ -1,4 +1,6 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap");
+/* Fonts are loaded by next/font in layout.tsx, not a Google Fonts CSS import.
+   That import was render-blocking, and LandingPage was requesting the same
+   stylesheet a second time. */
 @import "tailwindcss";
 
 /* ---------------------------------------------------------------------------
@@ -228,11 +230,21 @@ body {
   animation: mc-rise 1.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-/* Slow sun pulse — a blocky sun should still feel alive. */
+/* Slow sun pulse — a blocky sun should still feel alive.
+
+   Deliberately transform-only. Animating `filter` here would repaint the sun
+   on every frame; the glow lives on `.mc-sun-halo` instead, which breathes
+   via opacity and composites on the GPU without touching the disc. */
 .mc-sun {
   transform-origin: center;
   animation: mc-sun-pulse 9s ease-in-out infinite;
-  filter: drop-shadow(0 0 26px color-mix(in srgb, var(--mc-glow) 55%, transparent));
+}
+
+/* The glow ring behind the sun. Opacity-only, so it never repaints. */
+.mc-sun-halo {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mc-halo-breathe 9s ease-in-out infinite;
 }
 
 /* Clouds drift right-to-left and wrap; -7s stagger keeps them unsynchronised. */
@@ -283,8 +295,12 @@ body {
   to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 @keyframes mc-sun-pulse {
-  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 22px color-mix(in srgb, var(--mc-glow) 45%, transparent)); }
-  50%      { transform: scale(1.035); filter: drop-shadow(0 0 40px color-mix(in srgb, var(--mc-glow) 70%, transparent)); }
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.035); }
+}
+@keyframes mc-halo-breathe {
+  0%, 100% { opacity: 0.62; transform: scale(1); }
+  50%      { opacity: 1;    transform: scale(1.06); }
 }
 @keyframes mc-drift {
   from { transform: translateX(-18vw); }
@@ -443,10 +459,14 @@ textarea {
   transform: translateY(-2px);
 }
 
-/* Hot top edge — the horizon line drawn across a card. */
+/* Hot top edge — the horizon line drawn across a card.
+
+   No `overflow: hidden`. The edge is a 1px line inset to the element's own
+   box so it needs no clipping, and clipping here would cut off anything
+   absolutely positioned inside the surface — which is exactly what the
+   notification dropdown is. */
 .mc-hot-edge {
   position: relative;
-  overflow: hidden;
 }
 .mc-hot-edge::before {
   content: "";
@@ -525,7 +545,8 @@ textarea {
 --------------------------------------------------------------------------- */
 
 /* Staggered entrance: apply to children with an inline --i. */
-.mc-stagger > * {
+.mc-stagger > *,
+.mc-stagger-item {
   animation: mc-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
   animation-delay: calc(var(--i, 0) * 60ms);
 }
@@ -533,6 +554,118 @@ textarea {
 /* Panel reveal used on section containers. */
 .mc-reveal {
   animation: mc-reveal 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ---------------------------------------------------------------------------
+   Motion primitives.
+
+   One easing constant, one family of entrance curves. Everything ends on
+   `none` rather than an identity value — see the note on mc-in below.
+--------------------------------------------------------------------------- */
+:root {
+  /* The single ease used across the site: fast out, long settle. */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 150ms;
+  --dur-base: 260ms;
+  --dur-slow: 420ms;
+}
+
+/* Fade up: the default entrance for anything appearing in place. */
+.mc-fade-up {
+  animation: mc-fade-up var(--dur-slow) var(--ease-out-expo) both;
+}
+
+/* Scale-in: for overlays, popovers and floating surfaces. */
+.mc-scale-in {
+  animation: mc-scale-in var(--dur-base) var(--ease-spring) both;
+}
+
+/* Slide from an edge — used for sheets and the mobile nav. */
+.mc-slide-right {
+  animation: mc-slide-right var(--dur-slow) var(--ease-out-expo) both;
+}
+.mc-slide-down {
+  animation: mc-slide-down var(--dur-base) var(--ease-out-expo) both;
+}
+
+/* Cross-fade for content that swaps rather than enters. */
+.mc-fade {
+  animation: mc-fade var(--dur-base) ease both;
+}
+
+/* Hover/press feedback shared by every interactive surface. */
+.mc-lift {
+  transition:
+    transform var(--dur-base) var(--ease-out-expo),
+    box-shadow var(--dur-base) ease,
+    border-color var(--dur-base) ease;
+}
+.mc-lift:hover {
+  transform: translateY(-2px);
+}
+.mc-lift:active {
+  transform: translateY(0) scale(0.995);
+  transition-duration: var(--dur-fast);
+}
+
+/* Rows in a list: subtle slide-in with a per-item delay. */
+.mc-row-in {
+  animation: mc-fade-up 340ms var(--ease-out-expo) both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+
+@keyframes mc-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes mc-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes mc-slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes mc-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes mc-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes mc-in {
@@ -798,6 +931,13 @@ textarea {
 
 @media (prefers-reduced-motion: reduce) {
   .mc-stagger > *,
+  .mc-stagger-item,
+  .mc-row-in,
+  .mc-fade-up,
+  .mc-scale-in,
+  .mc-slide-right,
+  .mc-slide-down,
+  .mc-fade,
   .mc-reveal,
   .mc-ping,
   .mc-scan::after {
@@ -808,6 +948,8 @@ textarea {
   }
   .card-hover:hover,
   .mc-panel:hover,
+  .mc-lift:hover,
+  .mc-lift:active,
   .btn-primary:hover {
     transform: none !important;
   }
@@ -850,6 +992,20 @@ textarea {
 }
 .animate-pop-in {
   animation: pop-in 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+/* Exit counterpart — keep in sync with TOAST_EXIT_MS in ToastHost.tsx. */
+.animate-toast-out {
+  animation: toast-out 0.2s ease both;
+}
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
 }
 
 .skeleton {
@@ -909,8 +1065,15 @@ textarea {
   .landing-cut-card,
   .animate-fade-in,
   .animate-pop-in,
+  .animate-toast-out,
+  .mc-fade-up,
+  .mc-scale-in,
+  .mc-slide-right,
+  .mc-slide-down,
+  .mc-fade,
   .mc-scene,
   .mc-sun,
+  .mc-sun-halo,
   .mc-cloud,
   .mc-clouds,
   .mc-reflection {
@@ -994,6 +1157,7 @@ textarea {
 --------------------------------------------------------------------------- */
 [data-perf="low"] .mc-scene,
 [data-perf="low"] .mc-sun,
+[data-perf="low"] .mc-sun-halo,
 [data-perf="low"] .mc-cloud,
 [data-perf="low"] .mc-clouds,
 [data-perf="low"] .mc-reflection {
@@ -1039,15 +1203,32 @@ textarea {
    composited layer churn, and no lingering transform on a scroll ancestor. */
 [data-perf="low"] .mc-tab,
 [data-perf="low"] .mc-stagger > *,
+[data-perf="low"] .mc-stagger-item,
+[data-perf="low"] .mc-row-in,
 [data-perf="low"] .mc-reveal,
 [data-perf="low"] .animate-slide-up,
 [data-perf="low"] .animate-pop-in,
+[data-perf="low"] .animate-toast-out,
 [data-perf="low"] .landing-cut-card,
 [data-perf="low"] .hero-bot-card-0,
 [data-perf="low"] .hero-bot-card-1,
 [data-perf="low"] .hero-bot-card-2 {
   animation-name: fade-in !important;
   animation-duration: 0.18s !important;
+  animation-delay: 0s !important;
+}
+
+/* A spring curve still moves every frame; cut the movement, keep the fade. */
+[data-perf="low"] .mc-scale-in,
+[data-perf="low"] .mc-slide-right,
+[data-perf="low"] .mc-slide-down {
+  animation-name: fade-in !important;
+  animation-duration: 0.15s !important;
+}
+
+[data-perf="low"] .mc-lift:hover,
+[data-perf="low"] .mc-lift:active {
+  transform: none;
 }
 
 [data-perf="low"] .bot-card-track {

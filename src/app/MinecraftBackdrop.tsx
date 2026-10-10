@@ -159,8 +159,11 @@ export default function MinecraftBackdrop() {
           ))}
         </g>
 
-        {/* Sun halo + blocky sun disc sitting on the horizon */}
+        {/* Sun halo + blocky sun disc sitting on the horizon.
+            The halo is a separate element so its glow can breathe via opacity
+            alone — animating a `filter` repaints the whole disc every frame. */}
         <circle
+          className="mc-sun-halo"
           cx={W / 2}
           cy={HORIZON - 6}
           r={300}

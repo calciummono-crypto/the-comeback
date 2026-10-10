@@ -58,7 +58,7 @@ export default function SettingsPanel({
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
             {me.avatar ? (
-              <img src={me.avatar} alt="" className="h-16 w-16 rounded-2xl ring-1 ring-white/10" />
+              <img src={me.avatar} alt="" loading="lazy" decoding="async" className="h-16 w-16 rounded-2xl ring-1 ring-white/10" />
             ) : (
               <div className="grid h-16 w-16 place-items-center rounded-2xl bg-emerald-300 text-xl font-black text-slate-950 shadow-[0_18px_60px_-35px_color-mix(in_srgb,var(--color-emerald-500)_80%,transparent)]">
                 {me.username.slice(0, 2).toUpperCase()}

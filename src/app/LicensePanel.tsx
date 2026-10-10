@@ -276,7 +276,7 @@ function LicenseVisual({ hasLicense, slots }: { hasLicense: boolean; slots: numb
           <div className="flex -space-x-5">
             {['wisp', 'xNestorio', 'Stimpy'].map((name) => (
               <span key={name} className="grid h-20 w-16 place-items-end overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-xl">
-                <img src={`https://visage.surgeplay.com/bust/120/${name}`} alt="" className="h-full w-full object-cover object-bottom [image-rendering:pixelated]" />
+                <img src={`https://visage.surgeplay.com/bust/120/${name}`} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover object-bottom [image-rendering:pixelated]" />
               </span>
             ))}
           </div>
